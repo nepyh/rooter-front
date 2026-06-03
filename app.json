@@ -20,6 +20,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "fonts": [
+      "./assets/fonts/Pretendard-Regular.otf",
+      "./assets/fonts/Pretendard-Medium.otf",
+      "./assets/fonts/Pretendard-Bold.otf"
+    ]
   }
 }
