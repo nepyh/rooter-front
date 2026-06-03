@@ -3,5 +3,10 @@
   "compilerOptions": {
     "strict": true
   },
-  "include": ["**/*.ts", "**/*.tsx", "declarations.d.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "declarations.d.ts",
+    "nativewind-env.d.ts"
+  ]
 }
