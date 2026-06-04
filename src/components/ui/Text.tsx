@@ -62,6 +62,7 @@ export function Text({ variant = "base-medium", weight, className = "", ...props
       className={`
         ${variantStyles[variant]}
         ${weight ? weightStyles[weight] : ""}
+        text-primary
         ${className}
       `}
       {...props}

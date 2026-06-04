@@ -18,13 +18,18 @@
       },
       "predictiveBackGestureEnabled": false
     },
+    "scheme": "rooter",
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro"
     },
     "fonts": [
       "./assets/fonts/Pretendard-Regular.otf",
       "./assets/fonts/Pretendard-Medium.otf",
       "./assets/fonts/Pretendard-Bold.otf"
+    ],
+    "plugins": [
+      "expo-router",
+      "expo-status-bar"
     ]
   }
 }
