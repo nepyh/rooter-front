@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { View, TextInput, TextInputProps } from "react-native";
-// import tailwindConfig from "@/tailwind.config";
 import { Text } from "./Text";
 
 // ================================
@@ -33,25 +32,23 @@ interface Props extends TextInputProps{
  * @param state Input 상태를 설정합니다.
  * @param label Input label을 추가합니다.
  */
-// export function Input({ state = "default", label, className = "", ...props }: Props) {
-//   const [focused, setFocused] = useState(false);
+export function Input({ state = "default", label, className = "", ...props }: Props) {
+  const [focused, setFocused] = useState(false);
 
-//   return (
-//     <View>
-//       {label &&
-//         <Text variant="base-caption" weight="medium" className="text-secondary">
-//           {label}
-//         </Text>
-//       }
-//       <TextInput
-//         className={`
-//           ${className}
-//         `}
-//         placeholderTextColor=
-//         {...props}
-//       >
-
-//       </TextInput>
-//     </View>
-//   );
-// }
+  return (
+    <View>
+      {label &&
+        <Text variant="base-caption" weight="medium" className="text-secondary">
+          {label}
+        </Text>
+      }
+      <TextInput
+        className={`
+          ${className}
+        `}
+        placeholderTextColor="#C9CDD6"
+        {...props}
+      />
+    </View>
+  );
+}
