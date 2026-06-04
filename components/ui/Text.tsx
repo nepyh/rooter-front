@@ -1,7 +1,7 @@
 import { Text as RNText, TextProps } from "react-native";
 
 // ================================
-// Styles
+// Types
 // ================================
 
 type Variant =
@@ -16,6 +16,12 @@ type Variant =
   | "base-small"
   | "base-caption";
 
+type Weight = "regular" | "medium" | "semibold";
+
+// ================================
+// Styles
+// ================================
+
 const variantStyles: Record<Variant, string> = {
   "title-large": "text-5xl font-semibold",
   "title-medium": "text-4xl font-semibold",
@@ -28,8 +34,6 @@ const variantStyles: Record<Variant, string> = {
   "base-small": "text-sm font-regular",
   "base-caption": "text-xs font-regular",
 };
-
-type Weight = "regular" | "medium" | "semibold";
 
 const weightStyles: Record<Weight, string> = {
   "regular": "font-regular",
@@ -51,7 +55,6 @@ interface Props extends TextProps {
  * Text 컴포넌트
  * @param variant 폰트 타입을 설정합니다.
  * @param weight 폰트 굵기를 설정합니다.
- * @param className variant, weight 외에 사용자가 컴포넌트에 입력한 className을 추가합니다.
  */
 export function Text({ variant = "base-medium", weight, className = "", ...props }: Props) {
   return (
