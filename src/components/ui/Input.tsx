@@ -36,7 +36,7 @@ export function Input({ state = "default", label, className = "", ...props }: Pr
   const [focused, setFocused] = useState(false);
 
   return (
-    <View>
+    <View className="p-xl w-full gap-xxs rounded-md bg-neutral-700">
       {label &&
         <Text variant="base-caption" weight="medium" className="text-secondary">
           {label}
@@ -44,6 +44,8 @@ export function Input({ state = "default", label, className = "", ...props }: Pr
       }
       <TextInput
         className={`
+          text-lg
+          text-white
           ${className}
         `}
         placeholderTextColor="#C9CDD6"

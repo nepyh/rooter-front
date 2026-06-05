@@ -13,22 +13,32 @@ type Width = "full" | "auto";
 // Styles
 // ================================
 
-const variantStyles: Record<Variant, { default: string; pressed: string; }> = {
+interface VariantProps {
+  default: string;
+  pressed: string;
+  textColor: string;
+}
+
+const variantStyles: Record<Variant, VariantProps> = {
   "primary": {
     default: "bg-primary-500",
-    pressed: "bg-primary-700",
+    pressed: "bg-primary-600",
+    textColor: "text-text-primary",
   },
   "white": {
     default: "bg-neutral-0",
-    pressed: "bg-neutral-200",
+    pressed: "bg-neutral-100",
+    textColor: "text-neutral-1000",
   },
   "black": {
     default: "bg-neutral-1000",
     pressed: "bg-neutral-1000",
+    textColor: "text-text-primary",
   },
   "disabled": {
     default: "bg-neutral-700",
     pressed: "bg-neutral-900",
+    textColor: "text-text-primary",
   },
 };
 
@@ -63,14 +73,13 @@ export function Button({ variant = "primary", width = "full", children, classNam
       onPressOut={() => setPressed(false)}
       className={`
         ${widthStyles[width]}
-        items-center justify-center
-        py-m rounded-md
+        py-xl items-center justify-center rounded-xl
         ${pressed ? variantStyles[variant].pressed : variantStyles[variant].default}
         ${className}
       `}
       {...props}
     >
-      <Text variant="base-medium">
+      <Text variant="base-medium" weight="medium" className={variantStyles[variant].textColor}>
         {children}
       </Text>
     </Pressable>
