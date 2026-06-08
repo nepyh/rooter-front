@@ -11,6 +11,7 @@ export default function App() {
     <View style={styles.container}>
       <Text>Open up App.tsx to start working on your app!</Text>
       <Button onPress={() => router.push('/Login')}> 로그인 </Button>
+      <Button onPress={() => router.push('/Signup')}> 회원가입 </Button>
       <StatusBar style="auto" />
     </View>
   );
