@@ -72,8 +72,8 @@ export function Button({ variant = "primary", width = "full", children, classNam
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       className={`
-        ${widthStyles[width]}
         py-xl items-center justify-center rounded-xl
+        ${widthStyles[width]}
         ${pressed ? variantStyles[variant].pressed : variantStyles[variant].default}
         ${className}
       `}
