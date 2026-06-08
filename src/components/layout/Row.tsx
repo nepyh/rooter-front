@@ -46,7 +46,7 @@ export function Row({ gap = "none", width = "auto", className = "", children, ..
   return (
     <View
       className={`
-        flex-row
+        flex-row items-center
         ${widthStyles[width]}
         ${className}
       `}
