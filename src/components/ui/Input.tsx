@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { View, TextInput, TextInputProps, TouchableOpacity} from "react-native";
+import { View, TextInput, TextInputProps, Pressable} from "react-native";
 import { Text } from "@/components";
 import { Row } from "@/components";
 import { Icon } from "@/assets";
@@ -49,7 +49,7 @@ export function Input({ label, className = "", onChangeText, ...props }: Props) 
           onChangeText={(text: string) => {setValue(text);} }
           {...props}
         />
-        {value && <TouchableOpacity onPress={handleClear}> <Icon name="clear" size={22} color="#6B7280" /> </TouchableOpacity>}
+        {value && <Pressable onPress={handleClear}> <Icon name="clear" size={22} color="#6B7280" /> </Pressable>}
       </Row>
     </View>
   );

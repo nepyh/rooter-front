@@ -6,6 +6,7 @@ import Svg, { Path } from "react-native-svg";
 
 const icons = {
   clear: (color: string) => <Path fill={color} d="M12 2a10 10 0 1 1 0 20a10 10 0 0 1 0-20M9.879 8.464a1 1 0 0 0-1.498 1.32l.084.095L10.586 12l-2.12 2.121a1 1 0 0 0 1.32 1.498l.094-.083L12 13.414l2.121 2.122a1 1 0 0 0 1.498-1.32l-.083-.095L13.414 12l2.122-2.121a1 1 0 0 0-1.32-1.498l-.095.083L12 10.586z" />,
+  ChevronLeft: (color: string) => <Path fill={color} d="M8.293 12.707a1 1 0 0 1 0-1.414l5.657-5.657a1 1 0 1 1 1.414 1.414L10.414 12l4.95 4.95a1 1 0 0 1-1.414 1.414z" />,
 }
 
 type IconName = keyof typeof icons;
