@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { View, TextInput, TextInputProps, Pressable} from "react-native";
-import { Text } from "@/components";
-import { Row } from "@/components";
+import { Text } from "./Text";
+import { Row } from "../layout/Row";
 import { Icon } from "@/assets";
 
 // ================================
