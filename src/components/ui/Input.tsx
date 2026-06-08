@@ -49,7 +49,7 @@ export function Input({ label, className = "", onChangeText, ...props }: Props) 
           onChangeText={(text: string) => {setValue(text);} }
           {...props}
         />
-        {value && <Pressable onPress={handleClear}> <Icon name="clear" size={22} color="#6B7280" /> </Pressable>}
+        {value && <Pressable onPress={handleClear}><Icon name="clear" size={22} color="#6B7280" /></Pressable>}
       </Row>
     </View>
   );
