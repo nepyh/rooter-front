@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Pressable, PressableProps } from "react-native";
 import { Text } from "./Text";
+import { Icon } from "@/assets";
+import type { IconName } from "@/assets";
 
 // ================================
 // Types
@@ -37,7 +39,7 @@ const variantStyles: Record<Variant, VariantProps> = {
   },
   "disabled": {
     default: "bg-neutral-700",
-    pressed: "bg-neutral-900",
+    pressed: "bg-neutral-800",
     textColor: "text-text-primary",
   },
 };
@@ -54,6 +56,7 @@ const widthStyles: Record<Width, string> = {
 interface Props extends PressableProps {
   variant?: Variant;
   width?: Width;
+  icon?: IconName;
   children?: React.ReactNode;
   className?: string;
 }
@@ -63,22 +66,22 @@ interface Props extends PressableProps {
  * @param variant 버튼 타입을 설정합니다.
  * @param width 버튼 width를 설정합니다.
  */
-export function Button({ variant = "primary", width = "full", children, className = "", ...props }: Props) {
+export function Button({ variant = "primary", width = "full", icon, children, className = "", ...props }: Props) {
   const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
-      disabled={variant === "disabled"}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       className={`
-        py-xl items-center justify-center rounded-xl
+        py-xl flex-row gap-m items-center justify-center rounded-xl
         ${widthStyles[width]}
         ${pressed ? variantStyles[variant].pressed : variantStyles[variant].default}
         ${className}
       `}
       {...props}
     >
+      {icon && <Icon name={icon} size={24} /> }
       <Text variant="base-medium" weight="medium" className={variantStyles[variant].textColor}>
         {children}
       </Text>
