@@ -15,7 +15,6 @@ export default function Login() {
           <Stack width="full" gap="m">
             <Input label="이름" placeholder="이름을 입력해주세요" />
             <Input label="이메일" placeholder="이메일을 입력해주세요" />
-            <Input label="비밀번호" placeholder="비밀번호를 입력해주세요" secureTextEntry />
           </Stack>
         </Stack>
         <Button> 로그인 </Button>
