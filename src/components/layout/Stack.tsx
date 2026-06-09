@@ -50,6 +50,7 @@ interface Props extends ViewProps {
  * Stack 컴포넌트
  * @param gap Stack 간격을 설정합니다.
  * @param width Stack width를 설정합니다.
+ * @param align Stack 정렬 방법을 설정합니다.
  */
 export function Stack({ gap = "none", width = "auto", align = "start", className = "", children, ...props }: Props) {
   return (
