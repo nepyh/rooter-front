@@ -17,6 +17,7 @@ type Variant =
   | "base-caption";
 
 type Weight = "regular" | "medium" | "semibold";
+type Color = "primary" | "secondary" | "disabled";
 
 // ================================
 // Styles
@@ -41,6 +42,12 @@ const weightStyles: Record<Weight, string> = {
   "semibold": "font-semibold",
 };
 
+const colorStyles: Record<Color, string> = {
+  "primary": "text-text-primary",
+  "secondary": "text-text-secondary",
+  "disabled": "text-text-disabled",
+};
+
 // ================================
 // Components
 // ================================
@@ -48,6 +55,7 @@ const weightStyles: Record<Weight, string> = {
 interface Props extends TextProps {
   variant?: Variant;
   weight?: Weight;
+  color?: Color;
   className?: string;
 }
 
@@ -56,13 +64,13 @@ interface Props extends TextProps {
  * @param variant 폰트 타입을 설정합니다.
  * @param weight 폰트 굵기를 설정합니다.
  */
-export function Text({ variant = "base-medium", weight, className = "", ...props }: Props) {
+export function Text({ variant = "base-medium", weight, color = "primary", className = "", ...props }: Props) {
   return (
     <RNText
       className={`
-        text-text-primary
         ${variantStyles[variant]}
         ${weight ? weightStyles[weight] : ""}
+        ${colorStyles[color]}
         ${className}
       `}
       {...props}

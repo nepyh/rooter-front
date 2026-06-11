@@ -47,21 +47,15 @@ module.exports = {
           1000: "#000000",
         },
         utility: {
-          error: {
-            primary: "#FF4D4F",
-            secondary: "#FF7875",
-            disabled: "#FFD6D6",
-          },
-          warning: {
-            primary: "#FACC15",
-            secondary: "#FDE047",
-            disabled: "#FEF3C7",
-          },
-          success: {
-            primary: "#22C55E",
-            secondary: "#4ADE80",
-            disabled: "#CFFFE1",
-          },
+          "error-primary": "#FF4D4F",
+          "error-secondary": "#FF7875",
+          "error-disabled": "#FFD6D6",
+          "warning-primary": "#FACC15",
+          "warning-secondary": "#FDE047",
+          "warning-disabled": "#FEF3C7",
+          "success-primary": "#22C55E",
+          "success-secondary": "#4ADE80",
+          "success-disabled": "#CFFFE1",
         },
         text: {
           primary: "#FFFFFF",
