@@ -8,7 +8,7 @@ import type { IconName } from "@/assets";
 // Types
 // ================================
 
-type Variant = "primary" | "white" | "black" | "disabled";
+export type Variant = "primary" | "white" | "black" | "disabled";
 type Width = "full" | "auto";
 
 // ================================
