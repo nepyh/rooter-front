@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text } from '@/components';
+import type { Variant } from "@/components/ui/Button";
+import { signup } from '@/api/auth';
 
 export default function Signup() {
   const [user, setUser] = useState("");
@@ -14,15 +16,31 @@ export default function Signup() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [checkPasswordErrorMessage, setCheckPasswordErrorMessage] = useState("");
 
-  const handleSubmit = () => {
+  const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const [responseMessage, setResponseMessage] = useState("");
+
+  const handleSubmit = async () => {
+    setResponseMessage("");
     let isError = false;
 
-    if (!user) setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true;
-    if (!email) setEmailErrorMessage("이메일이 입력되지 않았습니다"); isError = true;
-    if (!password) setPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true;
-    if (!checkPassword) setCheckPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true;
+    if (!user) { setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true; }
+    if (!email) { setEmailErrorMessage("이메일이 입력되지 않았습니다"); isError = true; }
+    if (!password) { setPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
+    if (!checkPassword) { setCheckPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
+    if (password != checkPassword) { setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다."); isError = true; }
 
     if (isError) return;
+
+    try {
+      setBtnVariant("disabled");
+      await signup(user, email, password);
+    } catch (error) {
+      if (error instanceof Error) {
+        setResponseMessage(error.message);
+      }
+    }
+    
+    setBtnVariant("primary");
   }
 
   return (
@@ -79,7 +97,10 @@ export default function Signup() {
             />
           </Stack>
         </Stack>
-        <Button onPress={handleSubmit}> 회원가입 </Button>
+        <Stack gap="s" className="items-center">
+          <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
+          {responseMessage && <Text variant="base-small" className="text-utility-error-primary"> {responseMessage} </Text>}
+        </Stack>
       </Stack>
     </View>
   );

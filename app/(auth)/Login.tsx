@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text } from '@/components';
+import type { Variant } from "@/components/ui/Button";
+import { login } from '@/api/auth';
 
 export default function Login() {
-  const [user, setUser] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userErrorMessage, setUserErrorMessage] = useState("");
+
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
+
+  const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const [responseMessage, setResponseMessage] = useState("");
 
   const handleEmailChange = (text: string) => {
     setEmailErrorMessage("");
@@ -21,13 +25,25 @@ export default function Login() {
     setPassword(text);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setResponseMessage("");
     let isError = false;
-    if (!user) setUserErrorMessage("이름을 입력해주세요."); isError = true;
-    if (!email) setEmailErrorMessage("아이디를 입력해주세요."); isError = true;
-    if (!password) setPasswordErrorMessage("비밀번호를 입력해주세요."); isError = true;
+
+    if (!email) { setEmailErrorMessage("아이디를 입력해주세요."); isError = true; }
+    if (!password) { setPasswordErrorMessage("비밀번호를 입력해주세요."); isError = true; }
     
     if (isError) return;
+
+    try {
+      setBtnVariant("disabled");
+      await login(email, password);
+    } catch (error) {
+      if (error instanceof Error) {
+        setResponseMessage(error.message);
+      }
+    }
+
+    setBtnVariant("primary");
   };
 
   return (
@@ -41,16 +57,6 @@ export default function Login() {
           </Stack>
           <Stack width="full" gap="m">
             <Input
-              value={user}
-              onChangeText={(text: string) => {
-                setUser(text);
-                setUserErrorMessage("");
-              }}
-              label="이름"
-              placeholder="이름을 입력해주세요"
-              errorMessage={userErrorMessage}
-            />
-            <Input
               value={email}
               onChangeText={handleEmailChange}
               label="이메일"
@@ -60,13 +66,17 @@ export default function Login() {
             <Input
               value={password}
               onChangeText={handlePasswordChange}
-              label="이메일"
-              placeholder="이메일을 입력해주세요"
+              label="비밀번호"
+              placeholder="비밀번호를 입력해주세요"
               errorMessage={passwordErrorMessage}
+              secureTextEntry
             />
           </Stack>
         </Stack>
-        <Button onPress={handleSubmit}> 로그인 </Button>
+        <Stack gap="s" className="items-center">
+          <Button variant={btnVariant} onPress={handleSubmit}> 로그인 </Button>
+          {responseMessage && <Text variant="base-small" className="text-utility-error-primary"> {responseMessage} </Text>}
+        </Stack>
       </Stack>
     </View>
   );
