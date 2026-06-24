@@ -1,4 +1,5 @@
 import api from './axios';
+import { useUserStore } from '@/store';
 
 /**
  * 회원가입 API 함수
@@ -20,5 +21,14 @@ export const signup = async (username: string, email: string, password: string) 
  */
 export const login = async (email: string, password: string) => {
   const response = await api.post('/auth/login', { email, password });
+
+  const { username: userName, email: userEmail } = response.data;
+  useUserStore.getState().setUser({
+    username: userName,
+    email: userEmail,
+  });
+
+  console.log(useUserStore.getState().user);
+
   return response.data;
 };
