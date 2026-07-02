@@ -18,9 +18,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./src/assets/android-icon-foreground.png",
+        "backgroundImage": "./src/assets/android-icon-background.png",
+        "monochromeImage": "./src/assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.rooter"
@@ -30,9 +30,9 @@
       "bundler": "metro"
     },
     "fonts": [
-      "./assets/fonts/Pretendard-Regular.otf",
-      "./assets/fonts/Pretendard-Medium.otf",
-      "./assets/fonts/Pretendard-Bold.otf"
+      "./src/assets/fonts/Pretendard-Regular.otf",
+      "./src/assets/fonts/Pretendard-Medium.otf",
+      "./src/assets/fonts/Pretendard-Bold.otf"
     ],
     "plugins": [
       "expo-router",
