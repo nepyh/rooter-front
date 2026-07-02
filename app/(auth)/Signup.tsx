@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { router } from "expo-router";
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Stack, Input, Button, Text } from '@/components';
+import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
 import { signup } from '@/api/auth';
+import axios from "axios";
 
 export default function Signup() {
   const [user, setUser] = useState("");
@@ -17,10 +19,10 @@ export default function Signup() {
   const [checkPasswordErrorMessage, setCheckPasswordErrorMessage] = useState("");
 
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
 
   const handleSubmit = async () => {
-    setResponseMessage("");
     let isError = false;
 
     if (!user) { setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true; }
@@ -34,13 +36,33 @@ export default function Signup() {
     try {
       setBtnVariant("disabled");
       await signup(user, email, password);
+
+      router.replace({
+        pathname: "/",
+        params: {
+          toast: "success",
+        },
+      });
+
+      setBtnVariant("primary");
     } catch (error) {
-      if (error instanceof Error) {
-        setResponseMessage(error.message);
+      if (axios.isAxiosError(error)) {
+        console.log("status:", error.response?.status);
+        console.log("data:", error.response?.data);
+        console.log("message:", error.response?.data?.message);
+
+        const status = error.response?.status;
+        const setToast = (text: string) => {
+          setResponseMessage(text);
+          setShowToast(true);
+          setBtnVariant("primary");;
+        }
+
+        if (status === 400) { setToast("이름은 12자 이하여야 합니다."); return; }
+        if (status === 409) { setToast("이미 사용 중인 이름입니다."); return; }
+        if (status === 500) { setToast("서버 에러가 발생하였습니다."); return; }
       }
     }
-    
-    setBtnVariant("primary");
   }
 
   return (
@@ -97,10 +119,8 @@ export default function Signup() {
             />
           </Stack>
         </Stack>
-        <Stack gap="s" className="items-center">
-          <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
-          {responseMessage && <Text variant="base-small" className="text-utility-error-primary"> {responseMessage} </Text>}
-        </Stack>
+        <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
+        {showToast && <Toast text={responseMessage} onClose={() => setShowToast(false)} />}
       </Stack>
     </View>
   );
