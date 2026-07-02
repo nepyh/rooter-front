@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text } from '@/components';
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth';
+import axios from "axios";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -39,6 +40,11 @@ export default function Login() {
       await login(email, password);
     } catch (error) {
       if (error instanceof Error) {
+        if (axios.isAxiosError(error)) {
+          console.log("status:", error.response?.status);
+          console.log("data:", error.response?.data);
+          console.log("message:", error.response?.data?.message);
+        }
         setResponseMessage(error.message);
       }
     }
