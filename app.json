@@ -8,7 +8,12 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.rooter"
+      "bundleIdentifier": "com.anonymous.rooter",
+      "infoPlist": {
+        "NSBonjourServices": [
+          "_expo._tcp"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +22,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.rooter"
     },
     "scheme": "rooter",
     "web": {
