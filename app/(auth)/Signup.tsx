@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import { router } from "expo-router";
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Stack, Input, Button, Text } from '@/components';
+import { Stack, Input, Button, Text, Toast } from '@/components';
+import type { Variant } from "@/components/ui/Button";
+import { signup } from '@/api/auth';
+import axios from "axios";
 
 export default function Signup() {
   const [user, setUser] = useState("");
@@ -14,15 +18,51 @@ export default function Signup() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [checkPasswordErrorMessage, setCheckPasswordErrorMessage] = useState("");
 
-  const handleSubmit = () => {
+  const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const [showToast, setShowToast] = useState(false);
+  const [responseMessage, setResponseMessage] = useState("");
+
+  const handleSubmit = async () => {
     let isError = false;
 
-    if (!user) setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true;
-    if (!email) setEmailErrorMessage("이메일이 입력되지 않았습니다"); isError = true;
-    if (!password) setPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true;
-    if (!checkPassword) setCheckPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true;
+    if (!user) { setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true; }
+    if (!email) { setEmailErrorMessage("이메일이 입력되지 않았습니다"); isError = true; }
+    if (!password) { setPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
+    if (!checkPassword) { setCheckPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
+    if (password != checkPassword) { setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다."); isError = true; }
 
     if (isError) return;
+
+    try {
+      setBtnVariant("disabled");
+      await signup(user, email, password);
+
+      router.replace({
+        pathname: "/",
+        params: {
+          toast: "success",
+        },
+      });
+
+      setBtnVariant("primary");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log("status:", error.response?.status);
+        console.log("data:", error.response?.data);
+        console.log("message:", error.response?.data?.message);
+
+        const status = error.response?.status;
+        const setToast = (text: string) => {
+          setResponseMessage(text);
+          setShowToast(true);
+          setBtnVariant("primary");;
+        }
+
+        if (status === 400) { setToast("이름은 12자 이하여야 합니다."); return; }
+        if (status === 409) { setToast("이미 사용 중인 이름입니다."); return; }
+        if (status === 500) { setToast("서버 에러가 발생하였습니다."); return; }
+      }
+    }
   }
 
   return (
@@ -79,7 +119,8 @@ export default function Signup() {
             />
           </Stack>
         </Stack>
-        <Button onPress={handleSubmit}> 회원가입 </Button>
+        <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
+        {showToast && <Toast text={responseMessage} onClose={() => setShowToast(false)} />}
       </Stack>
     </View>
   );
