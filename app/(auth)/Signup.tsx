@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from "expo-router";
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -23,18 +23,15 @@ export default function Signup() {
   const [responseMessage, setResponseMessage] = useState("");
 
   const handleSubmit = async () => {
-    let isError = false;
+    setBtnVariant("disabled");
 
-    if (!user) { setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true; }
-    if (!email) { setEmailErrorMessage("이메일이 입력되지 않았습니다"); isError = true; }
-    if (!password) { setPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
-    if (!checkPassword) { setCheckPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
-    if (password != checkPassword) { setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다."); isError = true; }
-
-    if (isError) return;
+    if (password != checkPassword) {
+      setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다.");
+      setBtnVariant("primary");
+      return;
+    }
 
     try {
-      setBtnVariant("disabled");
       await signup(user, email, password);
 
       router.replace({
@@ -64,6 +61,11 @@ export default function Signup() {
       }
     }
   }
+
+  useEffect(() => {
+    const isError = !user || !email || !password || !checkPassword;
+    setBtnVariant(isError ? "disabled" : "primary");
+  }, [user, email, password, checkPassword]);
 
   return (
     <View className="flex-1">
