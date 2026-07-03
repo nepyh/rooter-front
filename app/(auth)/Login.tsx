@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, TextInput } from 'react-native';
 import { router } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text, Toast } from '@/components';
@@ -14,7 +14,10 @@ export default function Login() {
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
 
-  const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
+  const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
   const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
 
@@ -30,13 +33,6 @@ export default function Login() {
 
   const handleSubmit = async () => {
     setBtnVariant("disabled");
-
-    let isError = false;
-
-    if (!email) { setEmailErrorMessage("아이디를 입력해주세요."); isError = true; }
-    if (!password) { setPasswordErrorMessage("비밀번호를 입력해주세요."); isError = true; }
-    
-    if (isError) return;
 
     try {
       await login(email, password);
@@ -63,6 +59,11 @@ export default function Login() {
     setBtnVariant("primary");
   };
 
+  useEffect(() => {
+    const isError = !email || !password;
+    setBtnVariant(isError ? "disabled" : "primary");
+  }, [email, password]);
+
   return (
     <View className="flex-1">
       <StatusBar style="auto" />
@@ -74,6 +75,7 @@ export default function Login() {
           </Stack>
           <Stack width="full" gap="m">
             <Input
+              ref={emailRef}
               value={email}
               onChangeText={handleEmailChange}
               label="이메일"
@@ -81,6 +83,7 @@ export default function Login() {
               errorMessage={emailErrorMessage}
             />
             <Input
+              ref={passwordRef}
               value={password}
               onChangeText={handlePasswordChange}
               label="비밀번호"
