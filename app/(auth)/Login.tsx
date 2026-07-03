@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { View } from 'react-native';
+import { router } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
-import { Stack, Input, Button, Text } from '@/components';
+import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth';
 import axios from "axios";
@@ -14,6 +15,7 @@ export default function Login() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
 
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
 
   const handleEmailChange = (text: string) => {
@@ -27,7 +29,8 @@ export default function Login() {
   };
 
   const handleSubmit = async () => {
-    setResponseMessage("");
+    setBtnVariant("disabled");
+
     let isError = false;
 
     if (!email) { setEmailErrorMessage("아이디를 입력해주세요."); isError = true; }
@@ -36,16 +39,24 @@ export default function Login() {
     if (isError) return;
 
     try {
-      setBtnVariant("disabled");
       await login(email, password);
+
+      router.replace("/");
     } catch (error) {
-      if (error instanceof Error) {
-        if (axios.isAxiosError(error)) {
-          console.log("status:", error.response?.status);
-          console.log("data:", error.response?.data);
-          console.log("message:", error.response?.data?.message);
+      if (axios.isAxiosError(error)) {
+        console.log("==============================")
+        console.log("status:", error.response?.status);
+        console.log("data:", error.response?.data);
+        console.log("message:", error.response?.data?.message);
+
+        const status = error.response?.status;
+
+        if (status === 500) {
+          setResponseMessage("서버 에러가 발생하였습니다.");
+          setShowToast(true);
+          setBtnVariant("primary");;
+          return;
         }
-        setResponseMessage(error.message);
       }
     }
 
@@ -79,10 +90,8 @@ export default function Login() {
             />
           </Stack>
         </Stack>
-        <Stack gap="s" className="items-center">
-          <Button variant={btnVariant} onPress={handleSubmit}> 로그인 </Button>
-          {responseMessage && <Text variant="base-small" className="text-utility-error-primary"> {responseMessage} </Text>}
-        </Stack>
+        <Button variant={btnVariant} onPress={handleSubmit}> 로그인 </Button>
+        {showToast && <Toast text={responseMessage} onClose={() => setShowToast(false)} />}
       </Stack>
     </View>
   );

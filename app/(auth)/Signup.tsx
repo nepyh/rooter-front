@@ -46,8 +46,6 @@ export default function Signup() {
           toast: "success",
         },
       });
-
-      setBtnVariant("primary");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log("==============================")
