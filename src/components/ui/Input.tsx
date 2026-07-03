@@ -61,10 +61,7 @@ export const Input = forwardRef<TextInput, Props>(
           </Row>
         </View>
         {errorMessage && (
-          <Text variant="base-small" className="text-utility-error-primary">
-            {" "}
-            {errorMessage}{" "}
-          </Text>
+          <Text variant="base-small" className="text-utility-error-primary"> {errorMessage} </Text>
         )}
       </Stack>
     );
