@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, TextInput } from 'react-native';
+import { router } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
-import { Stack, Input, Button, Text } from '@/components';
+import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth';
 import axios from "axios";
@@ -13,44 +14,54 @@ export default function Login() {
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
 
-  const [btnVariant, setBtnVariant] = useState<Variant>("primary");
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
+  const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
+  const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
 
-  const handleEmailChange = (text: string) => {
-    setEmailErrorMessage("");
-    setEmail(text);
-  };
-
-  const handlePasswordChange = (text: string) => {
-    setPasswordErrorMessage("");
-    setPassword(text);
-  };
-
   const handleSubmit = async () => {
-    setResponseMessage("");
-    let isError = false;
-
-    if (!email) { setEmailErrorMessage("아이디를 입력해주세요."); isError = true; }
-    if (!password) { setPasswordErrorMessage("비밀번호를 입력해주세요."); isError = true; }
-    
-    if (isError) return;
+    setBtnVariant("disabled");
 
     try {
-      setBtnVariant("disabled");
       await login(email, password);
+
+      router.replace("/");
     } catch (error) {
-      if (error instanceof Error) {
-        if (axios.isAxiosError(error)) {
-          console.log("status:", error.response?.status);
-          console.log("data:", error.response?.data);
-          console.log("message:", error.response?.data?.message);
+      if (axios.isAxiosError(error)) {
+        console.log("==============================")
+        console.log("status:", error.response?.status);
+        console.log("data:", error.response?.data);
+        console.log("message:", error.response?.data?.message);
+
+        const status = error.response?.status;
+
+        if (status === 401) {
+          setPasswordErrorMessage("비밀번호가 옳지 않습니다.");
+          passwordRef.current?.focus();
+          return;
+        } if (status === 404) {
+          setResponseMessage("이메일을 찾을 수 없습니다.");
+          setShowToast(true);
+          setBtnVariant("primary");;
+          return;
+        } if (status === 500) {
+          setResponseMessage("서버 에러가 발생하였습니다.");
+          setShowToast(true);
+          setBtnVariant("primary");;
+          return;
         }
-        setResponseMessage(error.message);
       }
     }
 
     setBtnVariant("primary");
   };
+
+  useEffect(() => {
+    const isError = !email || !password;
+    setBtnVariant(isError ? "disabled" : "primary");
+  }, [email, password]);
 
   return (
     <View className="flex-1">
@@ -63,15 +74,23 @@ export default function Login() {
           </Stack>
           <Stack width="full" gap="m">
             <Input
+              ref={emailRef}
               value={email}
-              onChangeText={handleEmailChange}
+              onChangeText={(text: string) => {
+                setEmail(text);
+                setEmailErrorMessage("");
+              }}
               label="이메일"
               placeholder="이메일을 입력해주세요"
               errorMessage={emailErrorMessage}
             />
             <Input
+              ref={passwordRef}
               value={password}
-              onChangeText={handlePasswordChange}
+              onChangeText={(text: string) => {
+                setPassword(text);
+                setPasswordErrorMessage("");
+              }}
               label="비밀번호"
               placeholder="비밀번호를 입력해주세요"
               errorMessage={passwordErrorMessage}
@@ -79,10 +98,8 @@ export default function Login() {
             />
           </Stack>
         </Stack>
-        <Stack gap="s" className="items-center">
-          <Button variant={btnVariant} onPress={handleSubmit}> 로그인 </Button>
-          {responseMessage && <Text variant="base-small" className="text-utility-error-primary"> {responseMessage} </Text>}
-        </Stack>
+        <Button variant={btnVariant} onPress={handleSubmit}> 로그인 </Button>
+        {showToast && <Toast text={responseMessage} onClose={() => setShowToast(false)} />}
       </Stack>
     </View>
   );

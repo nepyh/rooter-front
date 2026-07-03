@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from "expo-router";
-import { View } from 'react-native';
+import { View, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
@@ -18,23 +18,26 @@ export default function Signup() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [checkPasswordErrorMessage, setCheckPasswordErrorMessage] = useState("");
 
+  const userRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const checkPasswordRef = useRef<TextInput>(null);
+
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
   const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
 
   const handleSubmit = async () => {
-    let isError = false;
+    setBtnVariant("disabled");
 
-    if (!user) { setUserErrorMessage("이름이 입력되지 않았습니다"); isError = true; }
-    if (!email) { setEmailErrorMessage("이메일이 입력되지 않았습니다"); isError = true; }
-    if (!password) { setPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
-    if (!checkPassword) { setCheckPasswordErrorMessage("비밀번호가 입력되지 않았습니다"); isError = true; }
-    if (password != checkPassword) { setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다."); isError = true; }
-
-    if (isError) return;
+    if (password != checkPassword) {
+      setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다.");
+      passwordRef.current?.focus();
+      setBtnVariant("primary");
+      return;
+    }
 
     try {
-      setBtnVariant("disabled");
       await signup(user, email, password);
 
       router.replace({
@@ -43,27 +46,41 @@ export default function Signup() {
           toast: "success",
         },
       });
-
-      setBtnVariant("primary");
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        console.log("==============================")
         console.log("status:", error.response?.status);
         console.log("data:", error.response?.data);
         console.log("message:", error.response?.data?.message);
 
         const status = error.response?.status;
-        const setToast = (text: string) => {
-          setResponseMessage(text);
+
+        if (status === 400) { 
+          setUserErrorMessage("이름은 12자 이하여야 합니다.");
+          userRef.current?.focus();
+          return; 
+        } if (status === 406) {
+          setPasswordErrorMessage("비밀번호는 대소문자, 숫자를 포함하여야 합니다.")
+          passwordRef.current?.focus();
+          return;
+        } if (status === 409) {
+          setEmailErrorMessage("이미 사용 중인 이메일입니다.");
+          emailRef.current?.focus();
+          return;
+        } if (status === 500) {
+          setResponseMessage("서버 에러가 발생하였습니다.");
           setShowToast(true);
           setBtnVariant("primary");;
+          return;
         }
-
-        if (status === 400) { setToast("이름은 12자 이하여야 합니다."); return; }
-        if (status === 409) { setToast("이미 사용 중인 이름입니다."); return; }
-        if (status === 500) { setToast("서버 에러가 발생하였습니다."); return; }
       }
     }
   }
+
+  useEffect(() => {
+    const isError = !user || !email || !password || !checkPassword;
+    setBtnVariant(isError ? "disabled" : "primary");
+  }, [user, email, password, checkPassword]);
 
   return (
     <View className="flex-1">
@@ -76,6 +93,7 @@ export default function Signup() {
           </Stack>
           <Stack width="full" gap="m">
             <Input
+              ref={userRef}
               value={user}
               onChangeText={(text: string) => {
                 setUser(text);
@@ -86,6 +104,7 @@ export default function Signup() {
               errorMessage={userErrorMessage}
             />
             <Input
+              ref={emailRef}
               value={email}
               onChangeText={(text: string) => {
                 setEmail(text);
@@ -96,6 +115,7 @@ export default function Signup() {
               errorMessage={emailErrorMessage}
             />
             <Input
+              ref={passwordRef}
               value={password}
               onChangeText={(text: string) => {
                 setPassword(text);
@@ -107,6 +127,7 @@ export default function Signup() {
               secureTextEntry
             />
             <Input
+              ref={checkPasswordRef}
               value={checkPassword}
               onChangeText={(text: string) => {
                 setCheckPassword(text);
