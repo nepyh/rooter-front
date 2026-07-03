@@ -21,16 +21,6 @@ export default function Login() {
   const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
 
-  const handleEmailChange = (text: string) => {
-    setEmailErrorMessage("");
-    setEmail(text);
-  };
-
-  const handlePasswordChange = (text: string) => {
-    setPasswordErrorMessage("");
-    setPassword(text);
-  };
-
   const handleSubmit = async () => {
     setBtnVariant("disabled");
 
@@ -47,7 +37,16 @@ export default function Login() {
 
         const status = error.response?.status;
 
-        if (status === 500) {
+        if (status === 401) {
+          setPasswordErrorMessage("비밀번호가 옳지 않습니다.");
+          passwordRef.current?.focus();
+          return;
+        } if (status === 404) {
+          setResponseMessage("이메일을 찾을 수 없습니다.");
+          setShowToast(true);
+          setBtnVariant("primary");;
+          return;
+        } if (status === 500) {
           setResponseMessage("서버 에러가 발생하였습니다.");
           setShowToast(true);
           setBtnVariant("primary");;
@@ -77,7 +76,10 @@ export default function Login() {
             <Input
               ref={emailRef}
               value={email}
-              onChangeText={handleEmailChange}
+              onChangeText={(text: string) => {
+                setEmail(text);
+                setEmailErrorMessage("");
+              }}
               label="이메일"
               placeholder="이메일을 입력해주세요"
               errorMessage={emailErrorMessage}
@@ -85,7 +87,10 @@ export default function Login() {
             <Input
               ref={passwordRef}
               value={password}
-              onChangeText={handlePasswordChange}
+              onChangeText={(text: string) => {
+                setPassword(text);
+                setPasswordErrorMessage("");
+              }}
               label="비밀번호"
               placeholder="비밀번호를 입력해주세요"
               errorMessage={passwordErrorMessage}
