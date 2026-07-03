@@ -50,31 +50,29 @@ export default function Signup() {
       setBtnVariant("primary");
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        console.log("==============================")
         console.log("status:", error.response?.status);
         console.log("data:", error.response?.data);
         console.log("message:", error.response?.data?.message);
 
         const status = error.response?.status;
-        const setToast = (text: string) => {
-          setResponseMessage(text);
-          setShowToast(true);
-          setBtnVariant("primary");;
-        }
 
         if (status === 400) { 
           setUserErrorMessage("이름은 12자 이하여야 합니다.");
           userRef.current?.focus();
           return; 
         } if (status === 406) {
-          setToast("비밀번호는 대소문자, 숫자를 포함하여야 합니다.")
+          setPasswordErrorMessage("비밀번호는 대소문자, 숫자를 포함하여야 합니다.")
           passwordRef.current?.focus();
           return;
         } if (status === 409) {
-          setToast("이미 사용 중인 이메일입니다.");
+          setEmailErrorMessage("이미 사용 중인 이메일입니다.");
           emailRef.current?.focus();
           return;
         } if (status === 500) {
-          setToast("서버 에러가 발생하였습니다.");
+          setResponseMessage("서버 에러가 발생하였습니다.");
+          setShowToast(true);
+          setBtnVariant("primary");;
           return;
         }
       }
