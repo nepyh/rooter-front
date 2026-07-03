@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from "expo-router";
-import { View } from 'react-native';
+import { View, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
@@ -18,6 +18,11 @@ export default function Signup() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [checkPasswordErrorMessage, setCheckPasswordErrorMessage] = useState("");
 
+  const userRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const checkPasswordRef = useRef<TextInput>(null);
+
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
   const [showToast, setShowToast] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
@@ -27,6 +32,7 @@ export default function Signup() {
 
     if (password != checkPassword) {
       setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다.");
+      passwordRef.current?.focus();
       setBtnVariant("primary");
       return;
     }
@@ -55,9 +61,22 @@ export default function Signup() {
           setBtnVariant("primary");;
         }
 
-        if (status === 400) { setToast("이름은 12자 이하여야 합니다."); return; }
-        if (status === 409) { setToast("이미 사용 중인 이름입니다."); return; }
-        if (status === 500) { setToast("서버 에러가 발생하였습니다."); return; }
+        if (status === 400) { 
+          setUserErrorMessage("이름은 12자 이하여야 합니다.");
+          userRef.current?.focus();
+          return; 
+        } if (status === 406) {
+          setToast("비밀번호는 대소문자, 숫자를 포함하여야 합니다.")
+          passwordRef.current?.focus();
+          return;
+        } if (status === 409) {
+          setToast("이미 사용 중인 이메일입니다.");
+          emailRef.current?.focus();
+          return;
+        } if (status === 500) {
+          setToast("서버 에러가 발생하였습니다.");
+          return;
+        }
       }
     }
   }
@@ -78,6 +97,7 @@ export default function Signup() {
           </Stack>
           <Stack width="full" gap="m">
             <Input
+              ref={userRef}
               value={user}
               onChangeText={(text: string) => {
                 setUser(text);
@@ -88,6 +108,7 @@ export default function Signup() {
               errorMessage={userErrorMessage}
             />
             <Input
+              ref={emailRef}
               value={email}
               onChangeText={(text: string) => {
                 setEmail(text);
@@ -98,6 +119,7 @@ export default function Signup() {
               errorMessage={emailErrorMessage}
             />
             <Input
+              ref={passwordRef}
               value={password}
               onChangeText={(text: string) => {
                 setPassword(text);
@@ -109,6 +131,7 @@ export default function Signup() {
               secureTextEntry
             />
             <Input
+              ref={checkPasswordRef}
               value={checkPassword}
               onChangeText={(text: string) => {
                 setCheckPassword(text);
