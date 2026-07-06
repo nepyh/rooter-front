@@ -40,12 +40,7 @@ export default function Signup() {
     try {
       await signup(user, email, password);
 
-      router.replace({
-        pathname: "/",
-        params: {
-          toast: "success",
-        },
-      });
+      router.push("/SchoolSelect");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log("==============================")
