@@ -68,9 +68,11 @@ interface Props extends PressableProps {
  */
 export function Button({ variant = "primary", width = "full", icon, children, className = "", ...props }: Props) {
   const [pressed, setPressed] = useState(false);
+  const isDisabled = variant === "disabled";
 
   return (
     <Pressable
+      disabled={isDisabled}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       className={`
