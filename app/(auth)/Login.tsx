@@ -27,7 +27,7 @@ export default function Login() {
     try {
       await login(email, password);
 
-      router.replace("/");
+      router.replace("/Home");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log("==============================")

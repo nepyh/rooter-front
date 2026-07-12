@@ -73,7 +73,7 @@ export default function StudyStyle() {
   const handleComplete = () => {
     // TODO: 학교/학년/반/공부 스타일 설문 데이터를 저장하는 API가 정해지면 여기서 전송합니다.
     console.log("survey result:", { school, grade, classNum, studyStyle: selected });
-    router.replace({ pathname: "/Home", params: { toast: "success" } });
+    router.replace({ pathname: "/", params: { toast: "success" } });
   };
 
   return (
