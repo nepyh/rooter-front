@@ -23,12 +23,14 @@ const MOCK_SCHOOLS = [
 // ================================
 
 /**
- * 학교 선택 화면
- * @description 학교명을 입력해 목록에서 검색하고, 목록에 있는 학교를 정확히 선택해야 다음 단계로 진행할 수 있습니다.
+ * 학교 선택 및 정보 입력 화면
+ * @description 학교명을 입력해 목록에서 검색하고, 학교를 선택하면 같은 화면에서 학년/반을 이어서 입력받습니다.
  */
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
+  const [grade, setGrade] = useState("");
+  const [classNum, setClassNum] = useState("");
 
   const schoolRef = useRef<TextInput>(null);
 
@@ -48,13 +50,18 @@ export default function SchoolSelect() {
     schoolRef.current?.blur();
   };
 
+  const handleEditSchool = () => {
+    setSelected(false);
+    schoolRef.current?.focus();
+  };
+
   const handleComplete = () => {
-    router.push({ pathname: "/SchoolInfo", params: { school: query } });
+    router.push({ pathname: "/StudyStyle", params: { school: query, grade, classNum } });
   };
 
   useEffect(() => {
-    setBtnVariant(selected ? "primary" : "disabled");
-  }, [selected]);
+    setBtnVariant(selected && grade && classNum ? "primary" : "disabled");
+  }, [selected, grade, classNum]);
 
   return (
     <View className="flex-1">
@@ -62,14 +69,18 @@ export default function SchoolSelect() {
       <Stack align="between" className="flex-1">
         <Stack gap="xxl">
           <Stack gap="s">
-            <Text variant="title-medium"> 학교 선택 </Text>
-            <Text color="secondary"> 현재 재학 중인 학교를 선택해주세요 </Text>
+            <Text variant="title-medium"> {selected ? "학교 정보 입력" : "학교 선택"} </Text>
+            <Text color="secondary">
+              {selected ? "학년, 반을 입력해주세요" : "현재 재학 중인 학교를 선택해주세요"}
+            </Text>
           </Stack>
           <Stack width="full" gap="m">
             <Input
               ref={schoolRef}
               value={query}
               onChangeText={handleChangeQuery}
+              editable={!selected}
+              onPressIn={selected ? handleEditSchool : undefined}
               label="학교명"
               placeholder="학교 이름을 입력해주세요."
             />
@@ -82,14 +93,38 @@ export default function SchoolSelect() {
                 ))}
               </Stack>
             )}
+            {selected && (
+              <Row gap="m" width="full">
+                <View className="flex-1">
+                  <Input
+                    value={grade}
+                    onChangeText={setGrade}
+                    label="학년"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Input
+                    value={classNum}
+                    onChangeText={setClassNum}
+                    label="반"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+              </Row>
+            )}
           </Stack>
         </Stack>
         <Stack gap="l" width="full">
           <Button variant={btnVariant} onPress={handleComplete}> 선택 완료 </Button>
-          <Row gap="s" width="full" className="justify-center items-end">
-            <Text color="disabled"> 재학 중인 학교가 없나요? </Text>
-            <Text weight="medium" className="text-primary-500 underline"> 문의하기 </Text>
-          </Row>
+          {!selected && (
+            <Row gap="s" width="full" className="justify-center items-end">
+              <Text color="disabled"> 재학 중인 학교가 없나요? </Text>
+              <Text weight="medium" className="text-primary-500 underline"> 문의하기 </Text>
+            </Row>
+          )}
         </Stack>
       </Stack>
     </View>
