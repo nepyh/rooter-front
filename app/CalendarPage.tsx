@@ -107,8 +107,8 @@ export default function CalendarPage() {
           <Pressable onPress={goPrevMonth} className="p-xs rounded-full">
             <Icon name="chevronLeft" size={24} />
           </Pressable>
-          <Pressable onPress={goNextMonth} className="p-xs rounded-full" style={{ transform: [{ rotate: "180deg" }] }}>
-            <Icon name="chevronLeft" size={24} />
+          <Pressable onPress={goNextMonth} className="p-xs rounded-full">
+            <Icon name="chevronRight" size={24} />
           </Pressable>
         </Row>
       </Row>
