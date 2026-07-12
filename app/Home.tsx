@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Input, Button, Text, Toast } from "@/components";
+import { Stack, Row, Input, Button, Text, Toast, NavBar } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
+import { CATEGORY_COLORS } from "@/constants/category";
+import type { Category } from "@/constants/category";
 
 // ================================
 // Types
 // ================================
 
-type Category = "math" | "english" | "science" | "social" | "neutral";
 type PlanStatus = "pending" | "done" | "failed";
 
 interface PlanLine {
@@ -39,14 +40,6 @@ const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
 
-const CATEGORY_COLORS: Record<Category, { bar: string; bg: string }> = {
-  math: { bar: "#ff5252", bg: "rgba(255,82,82,0.15)" },
-  english: { bar: "#5283ff", bg: "rgba(82,131,255,0.15)" },
-  science: { bar: "#ffe252", bg: "rgba(255,226,82,0.15)" },
-  social: { bar: "#add3ff", bg: "rgba(173,211,255,0.15)" },
-  neutral: { bar: "#6c6c6c", bg: "rgba(108,108,108,0.15)" },
-};
-
 const INITIAL_PLANS: Plan[] = [
   { id: "sleep-1", title: "수면", category: "neutral", start: 0, duration: 100, status: "pending", lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }] },
   { id: "school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending", lines: [{ icon: "history", text: "08:30 - 16:30 | 8시간" }] },
@@ -59,13 +52,6 @@ const INITIAL_PLANS: Plan[] = [
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
-
-const TABS: { key: string; label: string; icon: IconName }[] = [
-  { key: "home", label: "홈", icon: "home" },
-  { key: "todo", label: "할 일", icon: "checklist" },
-  { key: "calendar", label: "캘린더", icon: "calendar" },
-  { key: "more", label: "더보기", icon: "menu" },
-];
 
 // ================================
 // Helpers
@@ -218,15 +204,6 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
   );
 }
 
-function TabItem({ icon, label, active }: { icon: IconName; label: string; active: boolean }) {
-  return (
-    <Stack gap="xs" align="center" className="flex-1 items-center py-s rounded-sm" style={{ height: 62 }}>
-      <Icon name={icon} size={24} color={active ? "#FFFFFF" : "#8A919E"} />
-      <Text variant="base-small" className={active ? "text-text-primary" : "text-neutral-400"}>{label}</Text>
-    </Stack>
-  );
-}
-
 /**
  * 홈 화면
  * @description 오늘의 일정을 시간순으로 보여주고, 현재 시각/날짜를 실시간으로 반영합니다.
@@ -341,11 +318,7 @@ export default function Home() {
         </Row>
       </View>
 
-      <Row width="full" gap="xs" className="border-t border-neutral-600 items-center justify-center absolute bottom-0 left-0 pt-s pb-s px-xl bg-background-primary">
-        {TABS.map((tab) => (
-          <TabItem key={tab.key} icon={tab.icon} label={tab.label} active={tab.key === "home"} />
-        ))}
-      </Row>
+      <NavBar />
 
       {editingPlan && (
         <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />
