@@ -7,6 +7,7 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { isSameDay } from "@/utils/date";
+import { useNow } from "@/hooks/useNow";
 
 // ================================
 // Types
@@ -37,7 +38,7 @@ const buildMockEvents = (reference: Date): Record<string, CalendarEvent[]> => {
   };
 };
 
-const buildMonthGrid = (year: number, month: number): CalendarCellData[] => {
+const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
   const startWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
@@ -52,7 +53,12 @@ const buildMonthGrid = (year: number, month: number): CalendarCellData[] => {
   for (let day = 1; cells.length < 42; day++) {
     cells.push({ date: new Date(year, month + 1, day), inMonth: false });
   }
-  return cells;
+
+  const weeks: CalendarCellData[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+  return weeks;
 };
 
 // ================================
@@ -63,8 +69,8 @@ function CalendarCell({ cell, events, selected, onPress }: { cell: CalendarCellD
   const dayColor = selected ? "text-white" : cell.inMonth ? "text-white" : "text-text-disabled";
 
   return (
-    <Pressable onPress={onPress} style={{ width: `${100 / 7}%` }} className="items-center py-m">
-      <View className={`items-center justify-center ${selected ? "bg-primary-500 rounded-full" : ""}`} style={{ width: 28, height: 28 }}>
+    <Pressable onPress={onPress} style={{ flex: 1 }} className="items-center py-l">
+      <View className={`items-center justify-center px-xs py-xxs ${selected ? "bg-primary-500 rounded-full" : ""}`}>
         <Text variant="base-medium" className={dayColor}>{cell.date.getDate()}</Text>
       </View>
       <Stack gap="xxs" align="center" className="items-center mt-xs w-full">
@@ -87,12 +93,12 @@ function CalendarCell({ cell, events, selected, onPress }: { cell: CalendarCellD
  * @description 월별 달력으로 일정을 보여주고, 날짜를 선택하거나 월을 이동할 수 있습니다.
  */
 export default function CalendarPage() {
-  const [now] = useState(() => new Date());
+  const now = useNow(60_000);
   const [viewDate, setViewDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
-  const [selectedDate, setSelectedDate] = useState(now);
-  const [events] = useState(() => buildMockEvents(now));
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const events = buildMockEvents(now);
 
-  const cells = buildMonthGrid(viewDate.getFullYear(), viewDate.getMonth());
+  const weeks = buildMonthWeeks(viewDate.getFullYear(), viewDate.getMonth());
 
   const goPrevMonth = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   const goNextMonth = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
@@ -102,7 +108,7 @@ export default function CalendarPage() {
       <StatusBar style="light" />
 
       <Row width="full" align="between" className="items-center pb-l">
-        <Text variant="header-large">{`${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`}</Text>
+        <Text variant="header-large">{`${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월`}</Text>
         <Row gap="xs" className="items-center">
           <Pressable onPress={goPrevMonth} className="p-xs rounded-full">
             <Icon name="chevronLeft" size={24} />
@@ -114,24 +120,28 @@ export default function CalendarPage() {
       </Row>
 
       <Row width="full" className="border-b border-neutral-600 pb-s">
-        {WEEKDAYS.map((weekday) => (
-          <View key={weekday} style={{ width: `${100 / 7}%` }} className="items-center py-s">
-            <Text variant="base-medium" className="text-white">{weekday}</Text>
+        {WEEKDAYS.map((weekday, i) => (
+          <View key={weekday} className="flex-1 items-center py-s">
+            <Text variant="base-medium" className={i === 0 || i === 6 ? "text-text-disabled" : "text-white"}>{weekday}</Text>
           </View>
         ))}
       </Row>
 
-      <Row width="full" className="flex-wrap">
-        {cells.map((cell, i) => (
-          <CalendarCell
-            key={i}
-            cell={cell}
-            events={events[dateKey(cell.date)] ?? []}
-            selected={isSameDay(cell.date, selectedDate)}
-            onPress={() => setSelectedDate(cell.date)}
-          />
+      <Stack width="full">
+        {weeks.map((week, i) => (
+          <Row key={i} width="full" className={i < weeks.length - 1 ? "border-b border-neutral-600" : ""}>
+            {week.map((cell, j) => (
+              <CalendarCell
+                key={j}
+                cell={cell}
+                events={events[dateKey(cell.date)] ?? []}
+                selected={selectedDate ? isSameDay(cell.date, selectedDate) : isSameDay(cell.date, now)}
+                onPress={() => setSelectedDate(cell.date)}
+              />
+            ))}
+          </Row>
         ))}
-      </Row>
+      </Stack>
 
       <NavBar />
     </View>

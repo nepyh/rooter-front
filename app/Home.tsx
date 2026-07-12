@@ -8,6 +8,7 @@ import type { IconName } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
+import { useNow } from "@/hooks/useNow";
 
 // ================================
 // Types
@@ -211,7 +212,7 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
-  const [now, setNow] = useState(() => new Date());
+  const now = useNow(30_000);
   const [plans, setPlans] = useState(INITIAL_PLANS);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -220,11 +221,6 @@ export default function Home() {
   useEffect(() => {
     if (toast === "success") setShowToast(true);
   }, [toast]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);

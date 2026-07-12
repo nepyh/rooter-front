@@ -7,6 +7,7 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { isSameDay } from "@/utils/date";
+import { useNow } from "@/hooks/useNow";
 
 // ================================
 // Types
@@ -80,7 +81,7 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
   return (
     <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
       <View className="w-1 rounded-full" style={{ backgroundColor: colors.bar }} />
-      <Stack gap="m" className="flex-1 p-s">
+      <Stack gap="s" className="flex-1 p-s">
         <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
         <Stack gap="m">
           {group.items.map((item) => (
@@ -113,10 +114,10 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
  * @description 이번 주 요일을 보여주고, 과목별 할 일 목록을 체크할 수 있습니다.
  */
 export default function TodoPage() {
-  const [today] = useState(() => new Date());
-  const [selectedDay, setSelectedDay] = useState(today);
+  const now = useNow(60_000);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [groups, setGroups] = useState(INITIAL_GROUPS);
-  const weekDates = getWeekDates(today);
+  const weekDates = getWeekDates(now);
 
   const handleToggle = (groupId: string, itemId: string) => {
     setGroups((prev) => prev.map((group) => (
@@ -137,14 +138,14 @@ export default function TodoPage() {
 
       <Row width="full" className="border-b border-neutral-600 pb-s">
         {weekDates.map((date, i) => {
-          const selected = isSameDay(date, selectedDay);
+          const isToday = isSameDay(date, now);
+          const selected = selectedDay ? isSameDay(date, selectedDay) : isToday;
+          const color = isToday ? "text-primary-500" : selected ? "text-white" : "text-text-disabled";
           return (
             <Pressable key={i} className="flex-1 items-center py-s rounded-sm" onPress={() => setSelectedDay(date)}>
               <Stack gap="xs" align="center" className="items-center">
-                <Text variant="base-medium" className={selected ? "text-white" : "text-text-disabled"}>{WEEKDAYS[date.getDay()]}</Text>
-                <Text variant="base-medium" weight={selected ? "medium" : "regular"} className={selected ? "text-white" : "text-text-disabled"}>
-                  {date.getDate()}
-                </Text>
+                <Text variant="base-small" className={color}>{WEEKDAYS[date.getDay()]}</Text>
+                <Text variant="base-small" weight="medium" className={color}>{date.getDate()}</Text>
               </Stack>
             </Pressable>
           );
