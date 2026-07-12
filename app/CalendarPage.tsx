@@ -31,10 +31,15 @@ const dateKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date
 
 const buildMockEvents = (reference: Date): Record<string, CalendarEvent[]> => {
   const today = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate());
-  const thirteenth = new Date(reference.getFullYear(), reference.getMonth(), 13);
+  const makeDay = (day: number) => new Date(reference.getFullYear(), reference.getMonth(), day);
+
   return {
     [dateKey(today)]: [{ label: "기말고사", category: "neutral" }, { label: "두줄", category: "social" }],
-    [dateKey(thirteenth)]: [{ label: "방학식", category: "neutral" }],
+    [dateKey(makeDay(3))]: [{ label: "수학 학원", category: "math" }],
+    [dateKey(makeDay(8))]: [{ label: "영어 단어시험", category: "english" }],
+    [dateKey(makeDay(13))]: [{ label: "방학식", category: "neutral" }],
+    [dateKey(makeDay(19))]: [{ label: "과학 실험", category: "science" }],
+    [dateKey(makeDay(24))]: [{ label: "동아리 모임", category: "social" }, { label: "사회 발표", category: "social" }],
   };
 };
 
@@ -42,6 +47,7 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
   const startWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
 
   const cells: CalendarCellData[] = [];
   for (let i = 0; i < startWeekday; i++) {
@@ -50,7 +56,7 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
   for (let day = 1; day <= daysInMonth; day++) {
     cells.push({ date: new Date(year, month, day), inMonth: true });
   }
-  for (let day = 1; cells.length < 42; day++) {
+  for (let day = 1; cells.length < totalCells; day++) {
     cells.push({ date: new Date(year, month + 1, day), inMonth: false });
   }
 
@@ -66,7 +72,8 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
 // ================================
 
 function CalendarCell({ cell, events, selected, onPress }: { cell: CalendarCellData; events: CalendarEvent[]; selected: boolean; onPress: () => void }) {
-  const dayColor = selected ? "text-white" : cell.inMonth ? "text-white" : "text-text-disabled";
+  const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
+  const dayColor = selected ? "text-white" : isWeekend ? "text-text-disabled" : "text-white";
 
   return (
     <Pressable onPress={onPress} style={{ flex: 1 }} className="items-center py-l">
@@ -103,12 +110,20 @@ export default function CalendarPage() {
   const goPrevMonth = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   const goNextMonth = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
 
+  const isViewingCurrentMonth = viewDate.getFullYear() === now.getFullYear() && viewDate.getMonth() === now.getMonth();
+  const headerDay = selectedDate && selectedDate.getFullYear() === viewDate.getFullYear() && selectedDate.getMonth() === viewDate.getMonth()
+    ? selectedDate.getDate()
+    : now.getDate();
+  const headerText = isViewingCurrentMonth
+    ? `${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월 ${headerDay}일`
+    : `${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월`;
+
   return (
     <View className="flex-1">
       <StatusBar style="light" />
 
       <Row width="full" align="between" className="items-center pb-l">
-        <Text variant="header-large">{`${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월`}</Text>
+        <Text variant="header-large">{headerText}</Text>
         <Row gap="xs" className="items-center">
           <Pressable onPress={goPrevMonth} className="p-xs rounded-full">
             <Icon name="chevronLeft" size={24} />

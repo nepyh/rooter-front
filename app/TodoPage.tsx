@@ -140,12 +140,13 @@ export default function TodoPage() {
         {weekDates.map((date, i) => {
           const isToday = isSameDay(date, now);
           const selected = selectedDay ? isSameDay(date, selectedDay) : isToday;
-          const color = isToday ? "text-primary-500" : selected ? "text-white" : "text-text-disabled";
+          const weekdayColor = selected ? "text-white" : "text-text-disabled";
+          const numberColor = isToday ? "text-primary-500" : "text-text-disabled";
           return (
             <Pressable key={i} className="flex-1 items-center py-s rounded-sm" onPress={() => setSelectedDay(date)}>
               <Stack gap="xs" align="center" className="items-center">
-                <Text variant="base-small" className={color}>{WEEKDAYS[date.getDay()]}</Text>
-                <Text variant="base-small" weight="medium" className={color}>{date.getDate()}</Text>
+                <Text variant="base-small" className={weekdayColor}>{WEEKDAYS[date.getDay()]}</Text>
+                <Text variant="base-small" weight="medium" className={numberColor}>{date.getDate()}</Text>
               </Stack>
             </Pressable>
           );
