@@ -66,8 +66,8 @@ const INITIAL_GROUPS: TodoGroup[] = [
 // Helpers
 // ================================
 
-const getWeekDates = (date: Date) => {
-  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
+const getWeekDates = (center: Date) => {
+  const start = new Date(center.getFullYear(), center.getMonth(), center.getDate() - 3);
   return Array.from({ length: 7 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
 };
 
@@ -115,7 +115,6 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
  */
 export default function TodoPage() {
   const now = useNow(60_000);
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [groups, setGroups] = useState(INITIAL_GROUPS);
   const weekDates = getWeekDates(now);
 
@@ -138,17 +137,14 @@ export default function TodoPage() {
 
       <Row width="full" className="border-b border-neutral-600 pb-s">
         {weekDates.map((date, i) => {
-          const isToday = isSameDay(date, now);
-          const selected = selectedDay ? isSameDay(date, selectedDay) : isToday;
-          const weekdayColor = selected ? "text-white" : "text-text-disabled";
-          const numberColor = isToday ? "text-primary-500" : "text-text-disabled";
+          const color = isSameDay(date, now) ? "text-white" : "text-text-disabled";
           return (
-            <Pressable key={i} className="flex-1 items-center py-s rounded-sm" onPress={() => setSelectedDay(date)}>
+            <View key={i} className="flex-1 items-center py-s rounded-sm">
               <Stack gap="xs" align="center" className="items-center">
-                <Text variant="base-small" className={weekdayColor}>{WEEKDAYS[date.getDay()]}</Text>
-                <Text variant="base-small" weight="medium" className={numberColor}>{date.getDate()}</Text>
+                <Text variant="base-small" className={color}>{WEEKDAYS[date.getDay()]}</Text>
+                <Text variant="base-small" weight="medium" className={color}>{date.getDate()}</Text>
               </Stack>
-            </Pressable>
+            </View>
           );
         })}
       </Row>
