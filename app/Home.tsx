@@ -7,6 +7,7 @@ import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
+import { WEEKDAYS } from "@/constants/date";
 
 // ================================
 // Types
@@ -33,7 +34,6 @@ interface Plan {
 // Constants
 // ================================
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const WINDOW_START_MIN = 6 * 60;
 const DAY_MIN = 24 * 60;
 const TIMELINE_HEIGHT = DAY_MIN;

@@ -5,6 +5,8 @@ import { Stack, Row, Text, NavBar } from "@/components";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
+import { WEEKDAYS } from "@/constants/date";
+import { isSameDay } from "@/utils/date";
 
 // ================================
 // Types
@@ -26,8 +28,6 @@ interface TodoGroup {
 // ================================
 // Constants
 // ================================
-
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const INITIAL_GROUPS: TodoGroup[] = [
   {
@@ -64,9 +64,6 @@ const INITIAL_GROUPS: TodoGroup[] = [
 // ================================
 // Helpers
 // ================================
-
-const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 const getWeekDates = (date: Date) => {
   const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
