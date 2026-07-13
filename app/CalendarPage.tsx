@@ -71,26 +71,27 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
 // Components
 // ================================
 
+const CELL_HEIGHT = 120;
+
 function CalendarCell({ cell, events, selected, onPress }: { cell: CalendarCellData; events: CalendarEvent[]; selected: boolean; onPress: () => void }) {
   const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
-  const dayColor = isWeekend ? "text-text-disabled" : "text-white";
 
   return (
-    <Pressable onPress={onPress} style={{ flex: 1 }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
+    <Pressable onPress={onPress} style={{ flex: 1, height: CELL_HEIGHT }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
       {selected ? (
         <View className="items-center justify-center p-xs bg-primary-500 rounded-full">
-          <Text variant="base-medium" className="text-white">{cell.date.getDate()}</Text>
+          <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
         </View>
       ) : (
-        <Text variant="base-medium" className={dayColor}>{cell.date.getDate()}</Text>
+        <Text variant="base-medium" color={isWeekend ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
       )}
       <Stack gap="xxs" align="center" className="items-center mt-xs w-full">
         {events.slice(0, 2).map((event, i) => {
           const colors = CATEGORY_COLORS[event.category];
           return (
-            <Row key={i} gap="xs" className="items-center rounded-xxs px-xxs" style={{ backgroundColor: colors.bg, maxWidth: 48 }}>
-              <View className="w-[2px] h-[10px] rounded-full" style={{ backgroundColor: colors.bar }} />
-              <Text variant="base-caption" className="text-white" numberOfLines={1}>{event.label}</Text>
+            <Row key={i} gap="xs" className="rounded-xxs p-xs" style={{ backgroundColor: colors.bg, maxWidth: 80 }}>
+              <View className="w-[2px] rounded-full" style={{ backgroundColor: colors.bar }} />
+              <Text variant="base-caption" color="primary" numberOfLines={1}>{event.label}</Text>
             </Row>
           );
         })}
@@ -141,7 +142,7 @@ export default function CalendarPage() {
       <Row width="full" className="border-b border-neutral-600 pb-s">
         {WEEKDAYS.map((weekday, i) => (
           <View key={weekday} className="flex-1 items-center px-m py-s">
-            <Text variant="base-medium" className={i === 0 || i === 6 ? "text-text-disabled" : "text-white"}>{weekday}</Text>
+            <Text variant="base-medium" color={i === 0 || i === 6 ? "disabled" : "primary"}>{weekday}</Text>
           </View>
         ))}
       </Row>

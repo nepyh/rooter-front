@@ -24,7 +24,6 @@ const STUDY_STYLES: {
   hex: string;
   border: string;
   bg: string;
-  text: string;
 }[] = [
   {
     key: "relaxed",
@@ -34,7 +33,6 @@ const STUDY_STYLES: {
     hex: "#22C55E",
     border: "border-utility-success-primary",
     bg: "bg-utility-success-primary/20",
-    text: "text-utility-success-primary",
   },
   {
     key: "normal",
@@ -44,7 +42,6 @@ const STUDY_STYLES: {
     hex: "#2D6AF6",
     border: "border-secondary-500",
     bg: "bg-secondary-500/20",
-    text: "text-secondary-500",
   },
   {
     key: "hard",
@@ -54,7 +51,6 @@ const STUDY_STYLES: {
     hex: "#FF4D4F",
     border: "border-utility-error-primary",
     bg: "bg-utility-error-primary/20",
-    text: "text-utility-error-primary",
   },
 ];
 
@@ -99,10 +95,10 @@ export default function StudyStyle() {
                 >
                   <Icon name={option.icon} size={40} color={isSelected ? option.hex : "#6B7280"} />
                   <Stack gap="xs">
-                    <Text weight="medium" className={isSelected ? option.text : "text-neutral-500"}>
+                    <Text weight="medium" style={{ color: isSelected ? option.hex : "#6B7280" }}>
                       {option.title}
                     </Text>
-                    <Text className={isSelected ? option.text : "text-neutral-500"}>
+                    <Text style={{ color: isSelected ? option.hex : "#6B7280" }}>
                       {option.subtitle}
                     </Text>
                   </Stack>

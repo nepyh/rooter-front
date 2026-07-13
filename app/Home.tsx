@@ -102,14 +102,14 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
         <Row gap="xs" className="items-center">
           {plan.status === "done" && <Icon name="check" size={12} color="#FFFFFF" />}
           {plan.status === "failed" && <Icon name="close" size={12} color="#FFFFFF" />}
-          <Text variant="base-small" weight="medium" className="text-white" style={plan.status === "failed" ? { textDecorationLine: "line-through" } : undefined}>
+          <Text variant="base-small" weight="medium" style={plan.status === "failed" ? { textDecorationLine: "line-through" } : undefined}>
             {plan.title}
           </Text>
         </Row>
         {plan.lines.map((line, i) => (
           <Row key={i} gap="xs" className="items-center">
             <Icon name={line.icon} size={12} color="rgba(255,255,255,0.6)" />
-            <Text variant="base-caption" className="text-white/60">{line.text}</Text>
+            <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{line.text}</Text>
           </Row>
         ))}
       </Stack>
@@ -190,7 +190,7 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
               <Input label="종료 시간" placeholder="HH:MM" value={endText} onChangeText={setEndText} />
             </View>
           </Row>
-          {!!error && <Text className="text-utility-error-primary">{error}</Text>}
+          {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
           <Row gap="m" width="full">
             <View className="flex-1">
               <Button variant="disabled" onPress={onClose}> 취소 </Button>

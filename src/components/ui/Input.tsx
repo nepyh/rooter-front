@@ -35,7 +35,7 @@ export const Input = forwardRef<TextInput, Props>(
       <Stack gap="s">
         <View className={`p-xl w-full gap-xxs rounded-md bg-neutral-700 ${focused ? "border-2 border-primary-500" : "p-xl border-2 border-transparent"} ${errorMessage && "border-2 border-utility-error-primary"}`}>
           {label && (
-            <Text variant="base-caption" weight="medium" className="text-secondary">
+            <Text variant="base-caption" weight="medium" color="secondary">
               {label}
             </Text>
           )}
@@ -61,7 +61,7 @@ export const Input = forwardRef<TextInput, Props>(
           </Row>
         </View>
         {errorMessage && (
-          <Text variant="base-small" className="text-utility-error-primary"> {errorMessage} </Text>
+          <Text variant="base-small" style={{ color: "#FF4D4F" }}> {errorMessage} </Text>
         )}
       </Stack>
     );

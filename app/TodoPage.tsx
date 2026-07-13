@@ -95,7 +95,7 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
                 </View>
                 <Text
                   variant="base-medium"
-                  className={item.done ? "text-text-disabled" : "text-white"}
+                  color={item.done ? "disabled" : "primary"}
                   style={item.done ? { textDecorationLine: "line-through" } : undefined}
                 >
                   {item.text}
@@ -137,12 +137,12 @@ export default function TodoPage() {
 
       <Row width="full" className="border-b border-neutral-600 pb-s">
         {weekDates.map((date, i) => {
-          const color = isSameDay(date, now) ? "text-white" : "text-text-disabled";
+          const color = isSameDay(date, now) ? "primary" : "disabled";
           return (
             <View key={i} className="flex-1 items-center py-s rounded-sm">
               <Stack gap="xs" align="center" className="items-center">
-                <Text variant="base-small" className={color}>{WEEKDAYS[date.getDay()]}</Text>
-                <Text variant="base-small" weight="medium" className={color}>{date.getDate()}</Text>
+                <Text variant="base-small" color={color}>{WEEKDAYS[date.getDay()]}</Text>
+                <Text variant="base-small" weight="medium" color={color}>{date.getDate()}</Text>
               </Stack>
             </View>
           );

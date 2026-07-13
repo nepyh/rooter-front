@@ -49,7 +49,7 @@ export function NavBar() {
           <Pressable key={tab.key} className="flex-1" onPress={() => !active && router.replace(tab.path)}>
             <Stack gap="xs" align="center" className="items-center py-s rounded-sm" style={{ height: 62 }}>
               <Icon name={tab.icon} size={24} color={active ? "#FFFFFF" : "#8A919E"} />
-              <Text variant="base-small" className={active ? "text-text-primary" : "text-neutral-400"}>{tab.label}</Text>
+              <Text variant="base-small" color={active ? "primary" : "disabled"}>{tab.label}</Text>
             </Stack>
           </Pressable>
         );
