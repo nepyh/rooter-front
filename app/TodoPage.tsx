@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text, NavBar } from "@/components";
+import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
@@ -75,6 +76,43 @@ const getWeekDates = (center: Date) => {
 // Components
 // ================================
 
+function TodoItemRow({ item, barColor, onPress }: { item: TodoItem; barColor: string; onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (item.done) {
+      scale.value = withSequence(withTiming(1.35, { duration: 120 }), withTiming(1, { duration: 160 }));
+    }
+  }, [item.done, scale]);
+
+  const boxStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <Pressable onPress={onPress}>
+      <Row gap="s" className="items-center">
+        <Animated.View
+          className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
+          style={[item.done ? { backgroundColor: barColor } : { borderWidth: 1, borderColor: "#8A919E" }, boxStyle]}
+        >
+          {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
+        </Animated.View>
+        <Text
+          variant="base-medium"
+          color={item.done ? "disabled" : "primary"}
+          style={item.done ? { textDecorationLine: "line-through" } : undefined}
+        >
+          {item.text}
+        </Text>
+      </Row>
+    </Pressable>
+  );
+}
+
 function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (groupId: string, itemId: string) => void }) {
   const colors = CATEGORY_COLORS[group.category];
 
@@ -85,23 +123,7 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
         <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
         <Stack gap="m">
           {group.items.map((item) => (
-            <Pressable key={item.id} onPress={() => onToggle(group.id, item.id)}>
-              <Row gap="s" className="items-center">
-                <View
-                  className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
-                  style={item.done ? { backgroundColor: colors.bar } : { borderWidth: 1, borderColor: "#8A919E" }}
-                >
-                  {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
-                </View>
-                <Text
-                  variant="base-medium"
-                  color={item.done ? "disabled" : "primary"}
-                  style={item.done ? { textDecorationLine: "line-through" } : undefined}
-                >
-                  {item.text}
-                </Text>
-              </Row>
-            </Pressable>
+            <TodoItemRow key={item.id} item={item} barColor={colors.bar} onPress={() => onToggle(group.id, item.id)} />
           ))}
         </Stack>
       </Stack>
@@ -162,8 +184,6 @@ export default function TodoPage() {
           <Icon name="plus" size={20} />
         </Pressable>
       </View>
-
-      <NavBar />
     </View>
   );
 }

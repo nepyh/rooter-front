@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Input, Button, Text, Toast, NavBar } from "@/components";
+import { Stack, Row, Input, Button, Text, Toast } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
@@ -313,8 +313,6 @@ export default function Home() {
           </Pressable>
         </Row>
       </View>
-
-      <NavBar />
 
       {editingPlan && (
         <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />

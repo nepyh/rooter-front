@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text, NavBar } from "@/components";
+import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
@@ -72,55 +73,62 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
 // ================================
 
 const CELL_HEIGHT = 120;
+const SLIDE_MS = 260;
 
-function CalendarCell({ cell, events, selected, onPress }: { cell: CalendarCellData; events: CalendarEvent[]; selected: boolean; onPress: () => void }) {
+function CalendarCell({ cell, events, selected }: { cell: CalendarCellData; events: CalendarEvent[]; selected: boolean }) {
   const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
+  const dimmed = !cell.inMonth || isWeekend;
+  const [primaryEvent, ...restEvents] = events;
 
   return (
-    <Pressable onPress={onPress} style={{ flex: 1, height: CELL_HEIGHT }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
+    <View style={{ flex: 1, height: CELL_HEIGHT }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
       {selected ? (
         <View className="items-center justify-center p-xs bg-primary-500 rounded-full">
           <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
         </View>
       ) : (
-        <Text variant="base-medium" color={isWeekend ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
+        <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
       )}
-      <Stack gap="xxs" align="center" className="items-center mt-xs w-full">
-        {events.slice(0, 2).map((event, i) => {
-          const colors = CATEGORY_COLORS[event.category];
-          return (
-            <Row key={i} gap="xs" className="rounded-xxs p-xs" style={{ backgroundColor: colors.bg, maxWidth: 80 }}>
-              <View className="w-[2px] rounded-full" style={{ backgroundColor: colors.bar }} />
-              <Text variant="base-caption" color="primary" numberOfLines={1}>{event.label}</Text>
-            </Row>
-          );
-        })}
-      </Stack>
-    </Pressable>
+      {primaryEvent && (
+        <Row gap="xs" className="items-center rounded-xxs p-xs mt-xs w-full" style={{ backgroundColor: CATEGORY_COLORS[primaryEvent.category].bg }}>
+          <View className="w-[2px] rounded-full" style={{ backgroundColor: CATEGORY_COLORS[primaryEvent.category].bar }} />
+          <Text variant="base-caption" color="primary" numberOfLines={1} style={{ flexShrink: 1 }}>{primaryEvent.label}</Text>
+          {restEvents.length > 0 && (
+            <Text variant="base-caption" color="secondary">+{restEvents.length}</Text>
+          )}
+        </Row>
+      )}
+    </View>
   );
 }
 
 /**
  * 캘린더 화면
- * @description 월별 달력으로 일정을 보여주고, 날짜를 선택하거나 월을 이동할 수 있습니다.
+ * @description 월별 달력으로 일정을 보여주고, 월을 이동할 수 있습니다. 표시되는 날짜는 항상 오늘 기준입니다.
  */
 export default function CalendarPage() {
   const now = useNow(60_000);
   const [viewDate, setViewDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [direction, setDirection] = useState<"next" | "prev">("next");
+  const hasNavigated = useRef(false);
   const events = buildMockEvents(now);
 
   const weeks = buildMonthWeeks(viewDate.getFullYear(), viewDate.getMonth());
 
-  const goPrevMonth = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
-  const goNextMonth = () => setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  const goPrevMonth = () => {
+    hasNavigated.current = true;
+    setDirection("prev");
+    setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  };
+  const goNextMonth = () => {
+    hasNavigated.current = true;
+    setDirection("next");
+    setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  };
 
   const isViewingCurrentMonth = viewDate.getFullYear() === now.getFullYear() && viewDate.getMonth() === now.getMonth();
-  const headerDay = selectedDate && selectedDate.getFullYear() === viewDate.getFullYear() && selectedDate.getMonth() === viewDate.getMonth()
-    ? selectedDate.getDate()
-    : now.getDate();
   const headerText = isViewingCurrentMonth
-    ? `${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월 ${headerDay}일`
+    ? `${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월 ${now.getDate()}일`
     : `${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월`;
 
   return (
@@ -147,23 +155,27 @@ export default function CalendarPage() {
         ))}
       </Row>
 
-      <Stack width="full">
-        {weeks.map((week, i) => (
-          <Row key={i} width="full" className={i < weeks.length - 1 ? "border-b border-neutral-600" : ""}>
-            {week.map((cell, j) => (
-              <CalendarCell
-                key={j}
-                cell={cell}
-                events={events[dateKey(cell.date)] ?? []}
-                selected={selectedDate ? isSameDay(cell.date, selectedDate) : isSameDay(cell.date, now)}
-                onPress={() => setSelectedDate(cell.date)}
-              />
+      <View style={{ overflow: "hidden" }}>
+        <Animated.View
+          key={`${viewDate.getFullYear()}-${viewDate.getMonth()}`}
+          entering={hasNavigated.current ? (direction === "next" ? SlideInRight : SlideInLeft).duration(SLIDE_MS) : undefined}
+        >
+          <Stack width="full">
+            {weeks.map((week, i) => (
+              <Row key={i} width="full" className={i < weeks.length - 1 ? "border-b border-neutral-600" : ""}>
+                {week.map((cell, j) => (
+                  <CalendarCell
+                    key={j}
+                    cell={cell}
+                    events={events[dateKey(cell.date)] ?? []}
+                    selected={isSameDay(cell.date, now)}
+                  />
+                ))}
+              </Row>
             ))}
-          </Row>
-        ))}
-      </Stack>
-
-      <NavBar />
+          </Stack>
+        </Animated.View>
+      </View>
     </View>
   );
 }

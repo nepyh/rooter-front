@@ -1,6 +1,6 @@
 import { Pressable, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text, NavBar } from "@/components";
+import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
@@ -58,8 +58,6 @@ export default function SettingPage() {
           <SettingRow icon="lock" label="계정" />
         </Stack>
       </Stack>
-
-      <NavBar />
     </View>
   );
 }
