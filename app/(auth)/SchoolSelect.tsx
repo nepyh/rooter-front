@@ -122,7 +122,7 @@ export default function SchoolSelect() {
           {!selected && (
             <Row gap="s" width="full" className="justify-center items-end">
               <Text color="disabled"> 재학 중인 학교가 없나요? </Text>
-              <Text weight="medium" className="text-primary-500 underline"> 문의하기 </Text>
+              <Text weight="medium" className="underline" style={{ color: "#F6482D" }}> 문의하기 </Text>
             </Row>
           )}
         </Stack>

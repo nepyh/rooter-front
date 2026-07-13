@@ -5,12 +5,15 @@ import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text, Toast } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
+import { CATEGORY_COLORS } from "@/constants/category";
+import type { Category } from "@/constants/category";
+import { WEEKDAYS } from "@/constants/date";
+import { useNow } from "@/hooks/useNow";
 
 // ================================
 // Types
 // ================================
 
-type Category = "math" | "english" | "science" | "social" | "neutral";
 type PlanStatus = "pending" | "done" | "failed";
 
 interface PlanLine {
@@ -32,20 +35,11 @@ interface Plan {
 // Constants
 // ================================
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const WINDOW_START_MIN = 6 * 60;
 const DAY_MIN = 24 * 60;
 const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
-
-const CATEGORY_COLORS: Record<Category, { bar: string; bg: string }> = {
-  math: { bar: "#ff5252", bg: "rgba(255,82,82,0.15)" },
-  english: { bar: "#5283ff", bg: "rgba(82,131,255,0.15)" },
-  science: { bar: "#ffe252", bg: "rgba(255,226,82,0.15)" },
-  social: { bar: "#add3ff", bg: "rgba(173,211,255,0.15)" },
-  neutral: { bar: "#6c6c6c", bg: "rgba(108,108,108,0.15)" },
-};
 
 const INITIAL_PLANS: Plan[] = [
   { id: "sleep-1", title: "수면", category: "neutral", start: 0, duration: 100, status: "pending", lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }] },
@@ -59,13 +53,6 @@ const INITIAL_PLANS: Plan[] = [
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
-
-const TABS: { key: string; label: string; icon: IconName }[] = [
-  { key: "home", label: "홈", icon: "home" },
-  { key: "todo", label: "할 일", icon: "checklist" },
-  { key: "calendar", label: "캘린더", icon: "calendar" },
-  { key: "more", label: "더보기", icon: "menu" },
-];
 
 // ================================
 // Helpers
@@ -115,14 +102,14 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
         <Row gap="xs" className="items-center">
           {plan.status === "done" && <Icon name="check" size={12} color="#FFFFFF" />}
           {plan.status === "failed" && <Icon name="close" size={12} color="#FFFFFF" />}
-          <Text variant="base-small" weight="medium" className="text-white" style={plan.status === "failed" ? { textDecorationLine: "line-through" } : undefined}>
+          <Text variant="base-small" weight="medium" style={plan.status === "failed" ? { textDecorationLine: "line-through" } : undefined}>
             {plan.title}
           </Text>
         </Row>
         {plan.lines.map((line, i) => (
           <Row key={i} gap="xs" className="items-center">
             <Icon name={line.icon} size={12} color="rgba(255,255,255,0.6)" />
-            <Text variant="base-caption" className="text-white/60">{line.text}</Text>
+            <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{line.text}</Text>
           </Row>
         ))}
       </Stack>
@@ -203,7 +190,7 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
               <Input label="종료 시간" placeholder="HH:MM" value={endText} onChangeText={setEndText} />
             </View>
           </Row>
-          {!!error && <Text className="text-utility-error-primary">{error}</Text>}
+          {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
           <Row gap="m" width="full">
             <View className="flex-1">
               <Button variant="disabled" onPress={onClose}> 취소 </Button>
@@ -218,15 +205,6 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
   );
 }
 
-function TabItem({ icon, label, active }: { icon: IconName; label: string; active: boolean }) {
-  return (
-    <Stack gap="xs" align="center" className="flex-1 items-center py-s rounded-sm" style={{ height: 62 }}>
-      <Icon name={icon} size={24} color={active ? "#FFFFFF" : "#8A919E"} />
-      <Text variant="base-small" className={active ? "text-text-primary" : "text-neutral-400"}>{label}</Text>
-    </Stack>
-  );
-}
-
 /**
  * 홈 화면
  * @description 오늘의 일정을 시간순으로 보여주고, 현재 시각/날짜를 실시간으로 반영합니다.
@@ -234,7 +212,7 @@ function TabItem({ icon, label, active }: { icon: IconName; label: string; activ
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
-  const [now, setNow] = useState(() => new Date());
+  const now = useNow(30_000);
   const [plans, setPlans] = useState(INITIAL_PLANS);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -243,11 +221,6 @@ export default function Home() {
   useEffect(() => {
     if (toast === "success") setShowToast(true);
   }, [toast]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
@@ -340,12 +313,6 @@ export default function Home() {
           </Pressable>
         </Row>
       </View>
-
-      <Row width="full" gap="xs" className="border-t border-neutral-600 items-center justify-center absolute bottom-0 left-0 pt-s pb-s px-xl bg-background-primary">
-        {TABS.map((tab) => (
-          <TabItem key={tab.key} icon={tab.icon} label={tab.label} active={tab.key === "home"} />
-        ))}
-      </Row>
 
       {editingPlan && (
         <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />
