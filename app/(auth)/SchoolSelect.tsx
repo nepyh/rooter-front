@@ -4,19 +4,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
 import type { Variant } from "@/components/ui/Button";
-
-// ================================
-// Constants
-// ================================
-
-const MOCK_SCHOOLS = [
-  "부산국제중학교",
-  "부산중앙중학교",
-  "부산예술중학교",
-  "서울고등학교",
-  "서울중앙중학교",
-  "인천국제중학교",
-];
+import { searchMiddleSchools } from "@/api/school";
 
 // ================================
 // Components
@@ -31,10 +19,10 @@ export default function SchoolSelect() {
   const [selected, setSelected] = useState(false);
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
+  const [schools, setSchools] = useState<string[]>([]);
 
   const schoolRef = useRef<TextInput>(null);
 
-  const filtered = MOCK_SCHOOLS.filter((school) => school.includes(query));
   const showSuggestions = query.length > 0 && !selected;
 
   const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
@@ -63,6 +51,21 @@ export default function SchoolSelect() {
     setBtnVariant(selected && grade && classNum ? "primary" : "disabled");
   }, [selected, grade, classNum]);
 
+  useEffect(() => {
+    if (!showSuggestions) {
+      setSchools([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchMiddleSchools(query)
+        .then(setSchools)
+        .catch(() => setSchools([]));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, showSuggestions]);
+
   return (
     <View className="flex-1">
       <StatusBar style="auto" />
@@ -86,7 +89,7 @@ export default function SchoolSelect() {
             />
             {showSuggestions && (
               <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
-                {filtered.map((school) => (
+                {schools.map((school) => (
                   <Pressable key={school} className="p-xl w-full" onPress={() => handleSelect(school)}>
                     <Text variant="base-large" weight="medium"> {school} </Text>
                   </Pressable>
