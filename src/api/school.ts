@@ -19,7 +19,7 @@ export const searchMiddleSchools = async (keyword: string): Promise<string[]> =>
       KEY: process.env.EXPO_PUBLIC_NEIS_API_KEY,
       Type: 'json',
       pIndex: 1,
-      pSize: 20,
+      pSize: 3,
       SCHUL_KND_SC_NM: '중학교',
       SCHUL_NM: keyword,
     },
