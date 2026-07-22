@@ -96,6 +96,10 @@ export default function Login() {
               placeholder="비밀번호를 입력해주세요"
               errorMessage={passwordErrorMessage}
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (btnVariant !== "disabled") handleSubmit();
+              }}
             />
           </Stack>
         </Stack>
