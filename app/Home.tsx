@@ -87,22 +87,35 @@ const parseClock = (value: string) => {
 // Components
 // ================================
 
+// 완료(성공)는 색을 죽여 "클리어됨"을, 실패는 붉은 톤으로 "실패했음"을 구분해서 보여줍니다.
+const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opacity: number }>> = {
+  done: { bar: "#6B7280", bg: "rgba(107,114,128,0.12)", opacity: 0.55 },
+  failed: { bar: "#FF4D4F", bg: "rgba(255,77,79,0.16)", opacity: 0.85 },
+};
+
 function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   const colors = CATEGORY_COLORS[plan.category];
-  const dimmed = plan.status !== "pending";
+  const override = STATUS_OVERRIDE[plan.status];
+  const bar = override?.bar ?? colors.bar;
+  const bg = override?.bg ?? colors.bg;
+  const opacity = override?.opacity ?? 1;
 
   return (
     <Pressable
       onPress={onPress}
-      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: colors.bg, opacity: dimmed ? 0.6 : 1 }}
+      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: bg, opacity }}
       className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
     >
-      <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
+      <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
       <Stack gap="xs" className="flex-1 py-xxs">
         <Row gap="xs" className="items-center">
           {plan.status === "done" && <Icon name="check" size={12} color="#FFFFFF" />}
-          {plan.status === "failed" && <Icon name="close" size={12} color="#FFFFFF" />}
-          <Text variant="base-small" weight="medium" style={plan.status === "failed" ? { textDecorationLine: "line-through" } : undefined}>
+          {plan.status === "failed" && <Icon name="close" size={12} color="#FF4D4F" />}
+          <Text
+            variant="base-small"
+            weight="medium"
+            style={plan.status === "failed" ? { textDecorationLine: "line-through", color: "#FF4D4F" } : undefined}
+          >
             {plan.title}
           </Text>
         </Row>
