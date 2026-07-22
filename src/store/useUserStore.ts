@@ -13,6 +13,7 @@ interface UserState {
   user: User | null;
   isLogin: boolean;
   setUser: (user: User) => void;
+  logout: () => void;
 }
 
 // ================================
@@ -24,4 +25,5 @@ export const useUserStore = create<UserState>((set) => ({
   isLogin: false,
 
   setUser: (user) => set({ user, isLogin: true }),
+  logout: () => set({ user: null, isLogin: false }),
 }));
