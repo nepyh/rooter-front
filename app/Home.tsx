@@ -206,7 +206,7 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
           {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
           <Row gap="m" width="full">
             <View className="flex-1">
-              <Button variant="disabled" onPress={onClose}> 취소 </Button>
+              <Button variant="disabled" disabled={false} onPress={onClose}> 취소 </Button>
             </View>
             <View className="flex-1">
               <Button variant="primary" onPress={handleSave}> 저장 </Button>

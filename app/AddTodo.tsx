@@ -80,7 +80,7 @@ export default function AddTodo() {
 
         <Row gap="m" width="full">
           <View className="flex-1">
-            <Button variant="disabled" onPress={() => router.back()}> 취소 </Button>
+            <Button variant="disabled" disabled={false} onPress={() => router.back()}> 취소 </Button>
           </View>
           <View className="flex-1">
             <Button variant={canSubmit ? "primary" : "disabled"} onPress={handleSubmit}> 추가 </Button>
