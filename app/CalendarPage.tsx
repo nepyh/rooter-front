@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
@@ -75,19 +75,28 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
 const CELL_HEIGHT = 120;
 const SLIDE_MS = 260;
 
-function CalendarCell({ cell, events, selected }: { cell: CalendarCellData; events: CalendarEvent[]; selected: boolean }) {
+function CalendarCell({ cell, events, isToday, selected, onPress }: {
+  cell: CalendarCellData;
+  events: CalendarEvent[];
+  isToday: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
   const dimmed = !cell.inMonth || isWeekend;
   const [primaryEvent, ...restEvents] = events;
 
   return (
-    <View style={{ flex: 1, height: CELL_HEIGHT }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
+    <Pressable onPress={onPress} style={{ flex: 1, height: CELL_HEIGHT }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
       {selected ? (
         <View className="items-center justify-center p-xs bg-primary-500 rounded-full">
           <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
         </View>
       ) : (
-        <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
+        <Stack gap="xxs" align="center">
+          <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
+          {isToday && <View className="w-1 h-1 rounded-full bg-primary-500" />}
+        </Stack>
       )}
       {primaryEvent && (
         <Row gap="xs" className="items-center rounded-xxs p-xs mt-xs w-full" style={{ backgroundColor: CATEGORY_COLORS[primaryEvent.category].bg }}>
@@ -98,7 +107,7 @@ function CalendarCell({ cell, events, selected }: { cell: CalendarCellData; even
           )}
         </Row>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -110,19 +119,23 @@ export default function CalendarPage() {
   const now = useNow(60_000);
   const [viewDate, setViewDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
   const [direction, setDirection] = useState<"next" | "prev">("next");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(now);
   const hasNavigated = useRef(false);
   const events = buildMockEvents(now);
 
   const weeks = buildMonthWeeks(viewDate.getFullYear(), viewDate.getMonth());
+  const selectedEvents = selectedDate ? events[dateKey(selectedDate)] ?? [] : [];
 
   const goPrevMonth = () => {
     hasNavigated.current = true;
     setDirection("prev");
+    setSelectedDate(null);
     setViewDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   };
   const goNextMonth = () => {
     hasNavigated.current = true;
     setDirection("next");
+    setSelectedDate(null);
     setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
   };
 
@@ -168,7 +181,9 @@ export default function CalendarPage() {
                     key={j}
                     cell={cell}
                     events={events[dateKey(cell.date)] ?? []}
-                    selected={isSameDay(cell.date, now)}
+                    isToday={isSameDay(cell.date, now)}
+                    selected={!!selectedDate && isSameDay(cell.date, selectedDate)}
+                    onPress={() => setSelectedDate(cell.date)}
                   />
                 ))}
               </Row>
@@ -176,6 +191,26 @@ export default function CalendarPage() {
           </Stack>
         </Animated.View>
       </View>
+
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
+        <Stack gap="m" width="full">
+          <Text variant="header-small">
+            {selectedDate ? `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 일정` : "날짜를 선택해주세요"}
+          </Text>
+          {selectedDate && (
+            selectedEvents.length === 0 ? (
+              <Text color="disabled">일정이 없습니다.</Text>
+            ) : (
+              selectedEvents.map((event, i) => (
+                <Row key={i} gap="s" className="bg-neutral-700 p-m rounded-xs">
+                  <View className="w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[event.category].bar }} />
+                  <Text variant="base-medium">{event.label}</Text>
+                </Row>
+              ))
+            )
+          )}
+        </Stack>
+      </ScrollView>
     </View>
   );
 }
