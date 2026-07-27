@@ -44,7 +44,7 @@ export default function SchoolSelect() {
   };
 
   const handleComplete = () => {
-    router.push({ pathname: "/StudyStyle", params: { school: query, grade, classNum } });
+    router.push({ pathname: "/TextbookSelect", params: { school: query, grade, classNum } });
   };
 
   useEffect(() => {
