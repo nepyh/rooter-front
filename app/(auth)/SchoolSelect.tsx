@@ -17,6 +17,7 @@ import { searchMiddleSchools, type School } from "@/api/school";
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
+  const [hasSelectedOnce, setHasSelectedOnce] = useState(false);
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
   const [schools, setSchools] = useState<School[]>([]);
@@ -35,6 +36,7 @@ export default function SchoolSelect() {
   const handleSelect = (school: School) => {
     setQuery(school.name);
     setSelected(true);
+    setHasSelectedOnce(true);
     setGrade("");
     setClassNum("");
     schoolRef.current?.blur();
@@ -100,7 +102,7 @@ export default function SchoolSelect() {
                 ))}
               </Stack>
             )}
-            {selected && (
+            {hasSelectedOnce && (
               <Row gap="m" width="full">
                 <View className="flex-1">
                   <Input
