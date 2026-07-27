@@ -35,6 +35,8 @@ export default function SchoolSelect() {
   const handleSelect = (school: School) => {
     setQuery(school.name);
     setSelected(true);
+    setGrade("");
+    setClassNum("");
     schoolRef.current?.blur();
   };
 
