@@ -69,7 +69,7 @@ export default function Login() {
       <Stack align="between" className="flex-1">
         <Stack gap="xxl">
           <Stack gap="s">
-            <Text variant="title-medium" className="font-jalnan"> 로그인 </Text>
+            <Text variant="title-medium"> 로그인 </Text>
             <Text color="secondary"> 로그인을 진행합니다. </Text>
           </Stack>
           <Stack width="full" gap="m">

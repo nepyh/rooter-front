@@ -90,7 +90,6 @@ module.exports = {
         regular: ["Pretendard-Regular"],
         medium: ["Pretendard-Medium"],
         semibold: ["Pretendard-SemiBold"],
-        jalnan: ["Jalnan2"],
       },
       fontSize: {
         "xs":   ["12px", { lineHeight: "14px", letterSpacing: "-0.12px" }],
