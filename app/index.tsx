@@ -21,7 +21,7 @@ export default function App() {
       <StatusBar style="auto" />
       <Stack gap="l" className="flex-1 items-center justify-center">
         <Icon name="mascot" size={140} color="#0ED9FD" />
-        <Text weight="semibold" style={{ color: "#0ED9FD", fontSize: 50 }}>
+        <Text weight="semibold" style={{ color: "#0ED9FD", fontSize: 50, lineHeight: 60 }}>
           Rooter
         </Text>
       </Stack>
