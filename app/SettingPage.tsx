@@ -43,7 +43,8 @@ export default function SettingPage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row width="full" className="items-center pb-l">
+      <Row width="full" gap="s" className="items-center pb-l">
+        <Icon name="mascot" size={28} color="#0ED9FD" />
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
@@ -74,6 +75,10 @@ export default function SettingPage() {
           <SettingRow icon="logout" label="로그아웃" onPress={handleLogout} />
         </Stack>
       </Stack>
+
+      <View className="absolute bottom-0 right-0" pointerEvents="none">
+        <Icon name="mascotCharacter" size={120} />
+      </View>
     </View>
   );
 }
