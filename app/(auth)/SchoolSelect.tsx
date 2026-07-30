@@ -21,6 +21,7 @@ export default function SchoolSelect() {
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
   const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const schoolRef = useRef<TextInput>(null);
 
@@ -34,11 +35,16 @@ export default function SchoolSelect() {
   };
 
   const handleSelect = (school: School) => {
+    const isSameSchool = selectedSchool?.code === school.code;
+
     setQuery(school.name);
     setSelected(true);
     setHasSelectedOnce(true);
-    setGrade("");
-    setClassNum("");
+    setSelectedSchool(school);
+    if (!isSameSchool) {
+      setGrade("");
+      setClassNum("");
+    }
     schoolRef.current?.blur();
   };
 
