@@ -43,8 +43,7 @@ export default function SettingPage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row width="full" gap="s" className="items-center pb-l">
-        <Icon name="mascot" size={28} color="#0ED9FD" />
+      <Row width="full" className="items-center pb-l">
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
