@@ -38,7 +38,7 @@ export default function Login() {
         const status = error.response?.status;
 
         if (status === 401 || status === 404) {
-          setPasswordErrorMessage("이메일 또는 비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
+          setPasswordErrorMessage("이메일 또는 비밀번호가 일치하지 않습니다.\n다시 확인해주세요.");
           passwordRef.current?.focus();
           passwordRef.current?.setNativeProps({ selection: { start: password.length, end: password.length } });
           return;
