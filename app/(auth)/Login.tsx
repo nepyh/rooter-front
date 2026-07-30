@@ -37,15 +37,10 @@ export default function Login() {
 
         const status = error.response?.status;
 
-        if (status === 401) {
-          setPasswordErrorMessage("비밀번호가 옳지 않습니다.");
+        if (status === 401 || status === 404) {
+          setPasswordErrorMessage("이메일 또는 비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
           passwordRef.current?.focus();
           passwordRef.current?.setNativeProps({ selection: { start: password.length, end: password.length } });
-          return;
-        } if (status === 404) {
-          setResponseMessage("이메일을 찾을 수 없습니다.");
-          setShowToast(true);
-          setBtnVariant("primary");;
           return;
         } if (status === 500) {
           setResponseMessage("서버 에러가 발생하였습니다.");
