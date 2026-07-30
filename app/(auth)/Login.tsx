@@ -40,6 +40,7 @@ export default function Login() {
         if (status === 401) {
           setPasswordErrorMessage("비밀번호가 옳지 않습니다.");
           passwordRef.current?.focus();
+          passwordRef.current?.setNativeProps({ selection: { start: password.length, end: password.length } });
           return;
         } if (status === 404) {
           setResponseMessage("이메일을 찾을 수 없습니다.");
