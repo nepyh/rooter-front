@@ -41,6 +41,7 @@ const buildMockEvents = (reference: Date): Record<string, CalendarEvent[]> => {
       { label: "두줄", category: "social", memo: "두줄 약속 장소는 학교 앞 카페" },
     ],
     [dateKey(makeDay(3))]: [{ label: "수학 학원", category: "math", memo: "숙제 다 풀고 가기" }],
+    [dateKey(makeDay(6))]: [{ label: "체육대회", category: "social", memo: "물, 모자 챙기기" }],
     [dateKey(makeDay(8))]: [{ label: "영어 단어시험", category: "english", memo: "단어장 3단원까지 외우기" }],
     [dateKey(makeDay(13))]: [{ label: "방학식", category: "neutral", memo: "방학식 빨리 오너라" }],
     [dateKey(makeDay(19))]: [{ label: "과학 실험", category: "science", memo: "보호 안경 챙기기" }],
