@@ -1,4 +1,5 @@
 
+import { useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -12,7 +13,7 @@ import { WEEKDAYS } from "@/constants/date";
 // Constants
 // ================================
 
-const CONTRIBUTION_WEEK_COUNT = 13;
+const CONTRIBUTION_WEEK_COUNT = 53;
 
 // 잔디 색상 단계: 0(활동 없음)은 neutral-600, 1~5는 primary-500을 기준으로 투명도를 올려 표현합니다.
 const CONTRIBUTION_LEVEL_COLORS = ["#525866", "rgba(246,72,45,0.2)", "rgba(246,72,45,0.4)", "rgba(246,72,45,0.6)", "rgba(246,72,45,0.8)", "#F6482D"];
@@ -88,7 +89,9 @@ function SettingRow({ icon, label, onPress }: { icon: IconName; label: string; o
 
 function ContributionGraph() {
   const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const months = buildContributionMonths(today, CONTRIBUTION_WEEK_COUNT);
+  const scrollRef = useRef<ScrollView>(null);
 
   return (
     <Row gap="s" width="full" className="items-end bg-neutral-700 p-l rounded-md">
@@ -99,26 +102,37 @@ function ContributionGraph() {
           </View>
         ))}
       </Stack>
-      <Row gap="xs">
-        {months.map((month, i) => (
-          <Stack key={i} gap="s">
-            <Text variant="base-small" color="primary">{month.label}</Text>
-            <Row gap="xs">
-              {month.weeks.map((week, j) => (
-                <Stack key={j} gap="xs">
-                  {week.map((day, k) => (
-                    <View
-                      key={k}
-                      className="w-[20px] h-[20px] rounded-xxs"
-                      style={{ backgroundColor: CONTRIBUTION_LEVEL_COLORS[getMockContributionLevel(day, today)] }}
-                    />
-                  ))}
-                </Stack>
-              ))}
-            </Row>
-          </Stack>
-        ))}
-      </Row>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+      >
+        <Row gap="xs">
+          {months.map((month, i) => (
+            <Stack key={i} gap="s">
+              <Text variant="base-small" color="primary">{month.label}</Text>
+              <Row gap="xs">
+                {month.weeks.map((week, j) => (
+                  <Stack key={j} gap="xs">
+                    {week.map((day, k) => (
+                      day > startOfToday ? (
+                        <View key={k} className="w-[20px] h-[20px]" />
+                      ) : (
+                        <View
+                          key={k}
+                          className="w-[20px] h-[20px] rounded-xxs"
+                          style={{ backgroundColor: CONTRIBUTION_LEVEL_COLORS[getMockContributionLevel(day, today)] }}
+                        />
+                      )
+                    ))}
+                  </Stack>
+                ))}
+              </Row>
+            </Stack>
+          ))}
+        </Row>
+      </ScrollView>
     </Row>
   );
 }
