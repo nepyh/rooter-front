@@ -93,13 +93,15 @@ function CalendarCell({ cell, events, isToday, onSelectEvent }: {
 
   return (
     <View style={{ flex: 1, minHeight: 72 }} className="items-center px-xs py-m">
-      {isToday ? (
-        <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-full">
-          <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
-        </View>
-      ) : (
-        <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
-      )}
+      <View style={{ height: 28 }} className="items-center justify-center">
+        {isToday ? (
+          <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-full">
+            <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
+          </View>
+        ) : (
+          <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
+        )}
+      </View>
       {events.length > 0 && (
         <Stack gap="xxs" width="full" className="mt-s">
           {events.map((event, i) => (
