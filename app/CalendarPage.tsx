@@ -92,16 +92,16 @@ function CalendarCell({ cell, events, isToday, onSelectEvent }: {
   const dimmed = !cell.inMonth || isWeekend;
 
   return (
-    <View style={{ flex: 1, minHeight: 72 }} className="items-center px-m py-m">
+    <View style={{ flex: 1, minHeight: 72 }} className="items-center px-xs py-m">
       {isToday ? (
-        <View className="items-center justify-center p-xs bg-primary-500 rounded-full">
+        <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-full">
           <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
         </View>
       ) : (
         <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
       )}
       {events.length > 0 && (
-        <Stack gap="xxs" width="full" className="mt-xs">
+        <Stack gap="xxs" width="full" className="mt-s">
           {events.map((event, i) => (
             <Pressable key={i} onPress={() => onSelectEvent(cell.date, event)}>
               <Row gap="xs" className="items-center rounded-xxs p-xs w-full" style={{ backgroundColor: CATEGORY_COLORS[event.category].bg }}>
