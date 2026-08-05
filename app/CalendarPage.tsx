@@ -91,7 +91,7 @@ function CalendarCell({ cell, events, isToday, onSelectEvent }: {
   const dimmed = !cell.inMonth || isWeekend;
 
   return (
-    <View style={{ flex: 1 }} className="items-center px-m py-m">
+    <View style={{ flex: 1, minHeight: 72 }} className="items-center px-m py-m">
       {isToday ? (
         <View className="items-center justify-center p-xs bg-primary-500 rounded-full">
           <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
