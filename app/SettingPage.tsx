@@ -1,11 +1,74 @@
 
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
+import { WEEKDAYS } from "@/constants/date";
+
+// ================================
+// Constants
+// ================================
+
+const CONTRIBUTION_WEEK_COUNT = 13;
+
+// 잔디 색상 단계: 0(활동 없음)은 neutral-600, 1~5는 primary-500을 기준으로 투명도를 올려 표현합니다.
+const CONTRIBUTION_LEVEL_COLORS = ["#525866", "rgba(246,72,45,0.2)", "rgba(246,72,45,0.4)", "rgba(246,72,45,0.6)", "rgba(246,72,45,0.8)", "#F6482D"];
+
+// TODO: 실제 작업 수행량 데이터로 교체 예정. 지금은 최근 13일치 목업 값입니다 (index 0 = 오늘).
+const CONTRIBUTION_MOCK_LEVELS = [2, 0, 4, 1, 5, 3, 0, 2, 4, 1, 0, 3, 1];
+
+// ================================
+// Helpers
+// ================================
+
+const startOfWeek = (date: Date) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+};
+
+const daysBetween = (a: Date, b: Date) => Math.round((a.getTime() - b.getTime()) / 86_400_000);
+
+const getMockContributionLevel = (date: Date, today: Date) => {
+  const diff = daysBetween(new Date(today.getFullYear(), today.getMonth(), today.getDate()), date);
+  if (diff < 0 || diff >= CONTRIBUTION_MOCK_LEVELS.length) return 0;
+  return CONTRIBUTION_MOCK_LEVELS[diff];
+};
+
+interface ContributionMonthGroup {
+  label: string;
+  weeks: Date[][];
+}
+
+const buildContributionMonths = (today: Date, weekCount: number): ContributionMonthGroup[] => {
+  const lastWeekStart = startOfWeek(today);
+  const weeks: Date[][] = [];
+  for (let w = weekCount - 1; w >= 0; w--) {
+    const weekStart = new Date(lastWeekStart);
+    weekStart.setDate(weekStart.getDate() - w * 7);
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+    weeks.push(days);
+  }
+
+  const months: ContributionMonthGroup[] = [];
+  weeks.forEach((week) => {
+    const label = `${week[0].getMonth() + 1}월`;
+    const lastGroup = months[months.length - 1];
+    if (lastGroup && lastGroup.label === label) {
+      lastGroup.weeks.push(week);
+    } else {
+      months.push({ label, weeks: [week] });
+    }
+  });
+  return months;
+};
 
 // ================================
 // Components
@@ -20,6 +83,43 @@ function SettingRow({ icon, label, onPress }: { icon: IconName; label: string; o
       </Row>
       <Icon name="chevronRight" size={24} color="#8A919E" />
     </Pressable>
+  );
+}
+
+function ContributionGraph() {
+  const today = new Date();
+  const months = buildContributionMonths(today, CONTRIBUTION_WEEK_COUNT);
+
+  return (
+    <Row gap="s" width="full" className="items-end bg-neutral-700 p-l rounded-md">
+      <Stack gap="xs">
+        {WEEKDAYS.map((weekday) => (
+          <View key={weekday} className="w-[20px] h-[20px] items-center justify-center">
+            <Text variant="base-small" color="primary">{weekday}</Text>
+          </View>
+        ))}
+      </Stack>
+      <Row gap="xs">
+        {months.map((month, i) => (
+          <Stack key={i} gap="s">
+            <Text variant="base-small" color="primary">{month.label}</Text>
+            <Row gap="xs">
+              {month.weeks.map((week, j) => (
+                <Stack key={j} gap="xs">
+                  {week.map((day, k) => (
+                    <View
+                      key={k}
+                      className="w-[20px] h-[20px] rounded-xxs"
+                      style={{ backgroundColor: CONTRIBUTION_LEVEL_COLORS[getMockContributionLevel(day, today)] }}
+                    />
+                  ))}
+                </Stack>
+              ))}
+            </Row>
+          </Stack>
+        ))}
+      </Row>
+    </Row>
   );
 }
 
@@ -43,6 +143,7 @@ export default function SettingPage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
       <Row width="full" className="items-center pb-l">
         <Text variant="header-large">마이페이지</Text>
       </Row>
@@ -69,15 +170,21 @@ export default function SettingPage() {
       </Stack>
 
       <Stack gap="l" width="full" className="pt-xxl">
+        <Text variant="base-medium" weight="medium" color="secondary">잔디</Text>
+        <ContributionGraph />
+      </Stack>
+
+      <Stack gap="l" width="full" className="pt-xxl">
         <Text variant="base-medium" weight="medium" color="secondary">계정 관리</Text>
         <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
           <SettingRow icon="logout" label="로그아웃" onPress={handleLogout} />
         </Stack>
       </Stack>
 
-      <View className="absolute bottom-0 right-0" pointerEvents="none">
+      <Row width="full" className="justify-end pt-xxl" pointerEvents="none">
         <Icon name="mascotCharacter" size={120} />
-      </View>
+      </Row>
+      </ScrollView>
     </View>
   );
 }
