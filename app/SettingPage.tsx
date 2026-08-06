@@ -184,7 +184,7 @@ export default function SettingPage() {
       </Stack>
 
       <Stack gap="l" width="full" className="pt-xxl">
-        <Text variant="base-medium" weight="medium" color="secondary">잔디</Text>
+        <Text variant="base-medium" weight="medium" color="secondary">데일리</Text>
         <ContributionGraph />
       </Stack>
 
