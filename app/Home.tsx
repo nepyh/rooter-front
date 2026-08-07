@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text, Toast } from "@/components";
 import { Icon } from "@/assets";
@@ -9,6 +9,8 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
+import { getPlanBoards } from "@/api/planBoard";
+import type { PlanBoard } from "@/api/planBoard";
 
 // ================================
 // Types
@@ -41,18 +43,11 @@ const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
 
-const INITIAL_PLANS: Plan[] = [
-  { id: "sleep-1", title: "수면", category: "neutral", start: 0, duration: 100, status: "pending", lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }] },
-  { id: "school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending", lines: [{ icon: "history", text: "08:30 - 16:30 | 8시간" }] },
-  { id: "math", title: "수학", category: "math", start: 690, duration: 120, status: "pending", lines: [{ icon: "book", text: "교과서 | p.30 ~ p.48" }, { icon: "history", text: "17:30 - 19:30 | 2시간" }] },
-  { id: "meal", title: "식사", category: "neutral", start: 810, duration: 60, status: "pending", lines: [{ icon: "history", text: "19:30 - 20:30 | 1시간" }] },
-  { id: "english", title: "영어", category: "english", start: 870, duration: 60, status: "pending", lines: [{ icon: "book", text: "교과서 | p.111 ~ p.122" }, { icon: "history", text: "20:30 - 21:30 | 1시간" }] },
-  { id: "science", title: "과학", category: "science", start: 960, duration: 120, status: "pending", lines: [{ icon: "book", text: "교과서 | p.22 ~ p.37" }, { icon: "history", text: "22:00 - 24:00 | 2시간" }] },
-  { id: "social", title: "사회", category: "social", start: 1080, duration: 90, status: "pending", lines: [{ icon: "book", text: "교과서 | p.8 ~ p.10" }, { icon: "history", text: "24:00 - 00:30 | 1시간 30분" }] },
-  { id: "sleep-2", title: "수면", category: "neutral", start: 1140, duration: 300, status: "pending", lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }] },
-];
-
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
+
+// 플랜보드엔 과목별 고정 카테고리가 없어서, 과목 ID로 기존 5색 팔레트를 순환 배정합니다.
+const CATEGORY_CYCLE = Object.keys(CATEGORY_COLORS) as Category[];
+const categoryForSubject = (subjectId: number): Category => CATEGORY_CYCLE[subjectId % CATEGORY_CYCLE.length];
 
 // ================================
 // Helpers
@@ -83,26 +78,58 @@ const parseClock = (value: string) => {
   return h * 60 + m;
 };
 
+const mapPlanBoardToPlan = (board: PlanBoard): Plan => {
+  const startDate = new Date(board.startAt);
+  const endDate = new Date(board.endAt);
+  const duration = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60_000));
+
+  return {
+    id: String(board.id),
+    title: board.title,
+    category: categoryForSubject(board.subjectId),
+    start: minutesSinceWindowStart(startDate),
+    duration,
+    status: board.status,
+    lines: [
+      { icon: "book", text: `${board.textbookName} | ${board.chapterName}` },
+      { icon: "history", text: `${formatClock(startDate)} - ${formatClock(endDate)} | ${formatDuration(duration)}` },
+    ],
+  };
+};
+
 // ================================
 // Components
 // ================================
 
+// 완료(성공)는 색을 죽여 "클리어됨"을, 실패는 붉은 톤으로 "실패했음"을 구분해서 보여줍니다.
+const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opacity: number }>> = {
+  done: { bar: "#6B7280", bg: "rgba(107,114,128,0.12)", opacity: 0.55 },
+  failed: { bar: "#FF4D4F", bg: "rgba(255,77,79,0.16)", opacity: 0.85 },
+};
+
 function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   const colors = CATEGORY_COLORS[plan.category];
-  const dimmed = plan.status !== "pending";
+  const override = STATUS_OVERRIDE[plan.status];
+  const bar = override?.bar ?? colors.bar;
+  const bg = override?.bg ?? colors.bg;
+  const opacity = override?.opacity ?? 1;
 
   return (
     <Pressable
       onPress={onPress}
-      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: colors.bg, opacity: dimmed ? 0.6 : 1 }}
+      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: bg, opacity }}
       className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
     >
-      <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
+      <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
       <Stack gap="xs" className="flex-1 py-xxs">
         <Row gap="xs" className="items-center">
           {plan.status === "done" && <Icon name="check" size={12} color="#FFFFFF" />}
-          {plan.status === "failed" && <Icon name="close" size={12} color="#FFFFFF" />}
-          <Text variant="base-small" weight="medium" style={plan.status === "failed" ? { textDecorationLine: "line-through" } : undefined}>
+          {plan.status === "failed" && <Icon name="close" size={12} color="#FF4D4F" />}
+          <Text
+            variant="base-small"
+            weight="medium"
+            style={plan.status === "failed" ? { textDecorationLine: "line-through", color: "#FF4D4F" } : undefined}
+          >
             {plan.title}
           </Text>
         </Row>
@@ -193,7 +220,7 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
           {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
           <Row gap="m" width="full">
             <View className="flex-1">
-              <Button variant="disabled" onPress={onClose}> 취소 </Button>
+              <Button variant="disabled" disabled={false} onPress={onClose}> 취소 </Button>
             </View>
             <View className="flex-1">
               <Button variant="primary" onPress={handleSave}> 저장 </Button>
@@ -213,7 +240,7 @@ export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const now = useNow(30_000);
-  const [plans, setPlans] = useState(INITIAL_PLANS);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -221,6 +248,15 @@ export default function Home() {
   useEffect(() => {
     if (toast === "success") setShowToast(true);
   }, [toast]);
+
+  // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
+  useFocusEffect(
+    useCallback(() => {
+      getPlanBoards()
+        .then((boards) => setPlans(boards.map(mapPlanBoardToPlan)))
+        .catch(() => setPlans([]));
+    }, [])
+  );
 
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
@@ -263,7 +299,7 @@ export default function Home() {
       {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
 
       <Row width="full" align="between" className="items-center pb-l">
-        <Text variant="header-medium">{formatDateHeader(now)}</Text>
+        <Text variant="header-large">{formatDateHeader(now)}</Text>
         <Row gap="s" className="items-center">
           <Text variant="base-small" color="secondary">기말고사</Text>
           <Text variant="header-medium">D-20</Text>
@@ -305,7 +341,7 @@ export default function Home() {
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
-          <Pressable className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={() => router.push("/AddPlanBoard")} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
           <Pressable className="p-m rounded-full items-center justify-center">
