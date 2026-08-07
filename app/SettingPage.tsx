@@ -162,7 +162,7 @@ export default function SettingPage() {
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
-      <Pressable className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
+      <Pressable onPress={() => router.push("/ProfilePage")} className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
         <Row gap="m" className="items-center">
           <View className="w-[48px] h-[48px] rounded-full bg-primary-500 items-center justify-center">
             <Text variant="base-large" weight="medium" className="text-white">{username.slice(0, 1)}</Text>
