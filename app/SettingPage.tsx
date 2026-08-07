@@ -144,14 +144,8 @@ function ContributionGraph() {
 export default function SettingPage() {
   const router = useRouter();
   const user = useUserStore((state) => state.user);
-  const logout = useUserStore((state) => state.logout);
   const username = user?.username ?? "게스트";
   const email = user?.email ?? "로그인이 필요합니다";
-
-  const handleLogout = () => {
-    logout();
-    router.replace("/");
-  };
 
   return (
     <View className="flex-1">
@@ -186,13 +180,6 @@ export default function SettingPage() {
       <Stack gap="l" width="full" className="pt-xxl">
         <Text variant="base-medium" weight="medium" color="secondary">데일리</Text>
         <ContributionGraph />
-      </Stack>
-
-      <Stack gap="l" width="full" className="pt-xxl">
-        <Text variant="base-medium" weight="medium" color="secondary">계정 관리</Text>
-        <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
-          <SettingRow icon="logout" label="로그아웃" onPress={handleLogout} />
-        </Stack>
       </Stack>
 
       <Row width="full" className="justify-end pt-xxl" pointerEvents="none">

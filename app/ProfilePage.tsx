@@ -3,7 +3,7 @@ import { Alert, Image, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, Row, Text, Input, Button, Toast } from "@/components";
+import { Stack, Row, Text, Input, Button } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
@@ -43,7 +43,6 @@ export default function ProfilePage() {
 
   const [bio, setBio] = useState(user?.bio ?? "");
   const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
-  const [showToast, setShowToast] = useState(false);
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -66,7 +65,7 @@ export default function ProfilePage() {
 
   const handleSave = () => {
     updateProfile({ bio, profileImageUri });
-    setShowToast(true);
+    router.replace("/SettingPage");
   };
 
   const handleLogout = () => {
@@ -78,14 +77,14 @@ export default function ProfilePage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        <Row gap="s" className="items-center pb-l">
-          <Pressable onPress={() => router.back()}>
-            <Icon name="chevronLeft" size={28} />
-          </Pressable>
-          <Text variant="header-large">프로필</Text>
-        </Row>
+      <Row gap="s" className="items-center pb-l">
+        <Pressable onPress={() => router.back()}>
+          <Icon name="chevronLeft" size={28} />
+        </Pressable>
+        <Text variant="header-large">프로필</Text>
+      </Row>
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         <Stack align="center" width="full" className="pt-l">
           <View className="w-[100px] h-[100px]">
             <View className="w-[100px] h-[100px] rounded-full overflow-hidden bg-neutral-700 items-center justify-center">
@@ -126,8 +125,6 @@ export default function ProfilePage() {
       </ScrollView>
 
       <Button variant="primary" onPress={handleSave} className="mt-l">수정하기</Button>
-
-      {showToast && <Toast text="프로필이 저장되었습니다." onClose={() => setShowToast(false)} />}
     </View>
   );
 }
