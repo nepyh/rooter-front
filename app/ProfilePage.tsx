@@ -85,7 +85,7 @@ export default function ProfilePage() {
       </Row>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        <Stack align="center" width="full" className="pt-l">
+        <Stack width="full" className="items-center pt-l">
           <View className="w-[100px] h-[100px]">
             <View className="w-[100px] h-[100px] rounded-full overflow-hidden bg-neutral-700 items-center justify-center">
               {profileImageUri ? (
