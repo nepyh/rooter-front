@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Input, Button, Text, Toast } from "@/components";
+import { Stack, Row, Input, Button, Text } from "@/components";
 import type { Variant } from "@/components/ui/Button";
 import { Icon } from "@/assets";
 
@@ -19,7 +19,6 @@ export default function ChangePasswordPage() {
   const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = useState("");
 
   const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
-  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const isFilled = !!currentPassword && !!newPassword && !!confirmPassword;
@@ -37,10 +36,7 @@ export default function ChangePasswordPage() {
     }
 
     // TODO: 실제 비밀번호 변경 API 연동 전까지는 성공한 것으로 간주합니다.
-    setShowToast(true);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    router.replace("/SettingPage");
   };
 
   return (
@@ -91,8 +87,6 @@ export default function ChangePasswordPage() {
       </Stack>
 
       <Button variant={btnVariant} onPress={handleSubmit}>변경하기</Button>
-
-      {showToast && <Toast text="비밀번호가 변경되었습니다." onClose={() => setShowToast(false)} />}
     </View>
   );
 }
