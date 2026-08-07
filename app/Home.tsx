@@ -299,7 +299,7 @@ export default function Home() {
       {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
 
       <Row width="full" align="between" className="items-center pb-l">
-        <Text variant="header-medium">{formatDateHeader(now)}</Text>
+        <Text variant="header-large">{formatDateHeader(now)}</Text>
         <Row gap="s" className="items-center">
           <Text variant="base-small" color="secondary">기말고사</Text>
           <Text variant="header-medium">D-20</Text>
