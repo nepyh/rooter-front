@@ -1,13 +1,17 @@
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
-import { Stack, Row, Text } from "@/components";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Stack, Row, Text, Toast } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { WEEKDAYS } from "@/constants/date";
+
+const TOAST_MESSAGES: Record<string, string> = {
+  "password-changed": "비밀번호가 변경되었습니다.",
+};
 
 // ================================
 // Constants
@@ -143,9 +147,16 @@ function ContributionGraph() {
  */
 export default function SettingPage() {
   const router = useRouter();
+  const { toast } = useLocalSearchParams<{ toast?: string }>();
   const user = useUserStore((state) => state.user);
   const username = user?.username ?? "게스트";
   const email = user?.email ?? "로그인이 필요합니다";
+
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    if (toast && TOAST_MESSAGES[toast]) setShowToast(true);
+  }, [toast]);
 
   return (
     <View className="flex-1">
@@ -186,6 +197,10 @@ export default function SettingPage() {
         <Icon name="mascotCharacter" size={120} />
       </Row>
       </ScrollView>
+
+      {showToast && toast && (
+        <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />
+      )}
     </View>
   );
 }

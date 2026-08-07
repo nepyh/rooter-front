@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
 import type { Variant } from "@/components/ui/Button";
 import { Icon } from "@/assets";
+import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/password";
 
 type Step = "verify" | "reset";
 
@@ -23,6 +24,9 @@ export default function ChangePasswordPage() {
   const [newPasswordErrorMessage, setNewPasswordErrorMessage] = useState("");
   const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = useState("");
 
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
   const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
 
   useEffect(() => {
@@ -32,6 +36,12 @@ export default function ChangePasswordPage() {
     setBtnVariant(isFilled ? "primary" : "disabled");
   }, [step, currentPassword, newPassword, confirmPassword]);
 
+  // 에러 후 재포커스 시 커서가 맨 앞으로 가지 않도록 텍스트 끝으로 이동시킵니다.
+  const focusAtEnd = (ref: React.RefObject<TextInput | null>, value: string) => {
+    ref.current?.focus();
+    ref.current?.setNativeProps({ selection: { start: value.length, end: value.length } });
+  };
+
   const handleVerify = () => {
     // TODO: 실제로는 백엔드에 현재 비밀번호가 맞는지 확인하는 API를 호출해야 합니다.
     // 아직 해당 API가 없어 지금은 입력만 있으면 통과시킵니다.
@@ -39,17 +49,19 @@ export default function ChangePasswordPage() {
   };
 
   const handleReset = () => {
-    if (newPassword.length < 8) {
-      setNewPasswordErrorMessage("비밀번호는 8자 이상 입력해주세요.");
+    if (!isValidPassword(newPassword)) {
+      setNewPasswordErrorMessage(PASSWORD_ERROR_MESSAGE);
+      focusAtEnd(newPasswordRef, newPassword);
       return;
     }
     if (newPassword !== confirmPassword) {
       setConfirmPasswordErrorMessage("새 비밀번호가 일치하지 않습니다.");
+      focusAtEnd(confirmPasswordRef, confirmPassword);
       return;
     }
 
     // TODO: 실제 비밀번호 변경 API 연동 전까지는 성공한 것으로 간주합니다.
-    router.replace("/SettingPage");
+    router.replace({ pathname: "/SettingPage", params: { toast: "password-changed" } });
   };
 
   return (
@@ -84,6 +96,7 @@ export default function ChangePasswordPage() {
       ) : (
         <Stack gap="m" width="full" className="pt-xxl flex-1">
           <Input
+            ref={newPasswordRef}
             value={newPassword}
             onChangeText={(text: string) => {
               setNewPassword(text);
@@ -95,6 +108,7 @@ export default function ChangePasswordPage() {
             secureTextEntry
           />
           <Input
+            ref={confirmPasswordRef}
             value={confirmPassword}
             onChangeText={(text: string) => {
               setConfirmPassword(text);
