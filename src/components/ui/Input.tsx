@@ -28,6 +28,11 @@ export const Input = forwardRef<TextInput, Props>(
     useImperativeHandle(ref, () => inputRef.current as TextInput);
 
     const handleClear = () => {
+      // 비밀번호 입력은 보이지 않는 상태에서 전체 삭제되면 실수하기 쉬워서, 일반 delete 키처럼 마지막 한 글자만 지웁니다.
+      if (secureTextEntry) {
+        onChangeText?.((value ?? "").slice(0, -1));
+        return;
+      }
       onChangeText?.("");
       inputRef.current?.clear();
     };
