@@ -11,6 +11,8 @@ import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
 import { getPlanBoards } from "@/api/planBoard";
 import type { PlanBoard } from "@/api/planBoard";
+import { useTodoStore } from "@/store";
+import type { TodoGroup } from "@/store";
 
 // ================================
 // Types
@@ -48,6 +50,52 @@ const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
 // 플랜보드엔 과목별 고정 카테고리가 없어서, 과목 ID로 기존 5색 팔레트를 순환 배정합니다.
 const CATEGORY_CYCLE = Object.keys(CATEGORY_COLORS) as Category[];
 const categoryForSubject = (subjectId: number): Category => CATEGORY_CYCLE[subjectId % CATEGORY_CYCLE.length];
+
+// TODO: 실제 플랜보드 데이터로 교체 예정. 지금은 플랜보드 API가 빈 값을 주거나 실패했을 때 보여줄
+// 목업 하루 일정입니다. 과목(수학/영어/사회)은 할 일 목록 목업(useTodoStore)과 동일한 카테고리를 써서
+// 플랜을 눌렀을 때 나오는 체크리스트가 할 일 화면과 같은 데이터를 보여주도록 맞췄습니다.
+const MOCK_PLANS: Plan[] = [
+  {
+    id: "mock-school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending",
+    lines: [{ icon: "history", text: "08:30 - 16:30 | 8시간" }],
+  },
+  {
+    id: "mock-math", title: "수학", category: "math", start: 690, duration: 120, status: "pending",
+    lines: [
+      { icon: "book", text: "교과서 | p.30 ~ p.48" },
+      { icon: "history", text: "17:30 - 19:30 | 2시간" },
+    ],
+  },
+  {
+    id: "mock-meal", title: "식사", category: "neutral", start: 810, duration: 60, status: "pending",
+    lines: [{ icon: "history", text: "19:30 - 20:30 | 1시간" }],
+  },
+  {
+    id: "mock-english", title: "영어", category: "english", start: 870, duration: 60, status: "pending",
+    lines: [
+      { icon: "book", text: "교과서 | p.111 ~ p.122" },
+      { icon: "history", text: "20:30 - 21:30 | 1시간" },
+    ],
+  },
+  {
+    id: "mock-science", title: "과학", category: "science", start: 960, duration: 120, status: "pending",
+    lines: [
+      { icon: "book", text: "교과서 | p.22 ~ p.37" },
+      { icon: "history", text: "22:00 - 24:00 | 2시간" },
+    ],
+  },
+  {
+    id: "mock-social", title: "사회", category: "social", start: 1080, duration: 60, status: "pending",
+    lines: [
+      { icon: "book", text: "교과서 | p.8 ~ p.10" },
+      { icon: "history", text: "24:00 - 01:00 | 1시간" },
+    ],
+  },
+  {
+    id: "mock-sleep", title: "수면", category: "neutral", start: 1140, duration: 400, status: "pending",
+    lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }],
+  },
+];
 
 // ================================
 // Helpers
@@ -144,19 +192,55 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
-function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
-  const showBelow = plan.start < POPOVER_HEIGHT + 8;
-  const top = showBelow ? plan.start + plan.duration + 8 : plan.start - POPOVER_HEIGHT - 8;
+function TodoSummary({ group, barColor }: { group: TodoGroup; barColor: string }) {
+  return (
+    <Row gap="m" className="p-m items-stretch">
+      <View className="w-1 rounded-full" style={{ backgroundColor: barColor }} />
+      <Stack gap="s">
+        <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
+        <Stack gap="m">
+          {group.items.map((item) => (
+            <Row key={item.id} gap="s" className="items-center">
+              <View
+                className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
+                style={item.done ? { backgroundColor: barColor } : { borderWidth: 1, borderColor: "#8A919E" }}
+              >
+                {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
+              </View>
+              <Text
+                variant="base-medium"
+                color={item.done ? "disabled" : "primary"}
+                style={item.done ? { textDecorationLine: "line-through" } : undefined}
+              >
+                {item.text}
+              </Text>
+            </Row>
+          ))}
+        </Stack>
+      </Stack>
+    </Row>
+  );
+}
+
+function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: { plan: Plan; todoGroup: TodoGroup | null; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
+  const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
+  const showBelow = plan.start < menuHeight + 8;
+  const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
 
   return (
     <View style={{ position: "absolute", top, left: TIMELINE_LEFT }} className="items-center">
       {showBelow && <View className="w-3 h-3 -mb-1.5 bg-neutral-700 border-l border-t border-neutral-600 rotate-45" />}
-      <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-md p-xs items-center">
-        <ActionButton icon="check" label="완료" onPress={onComplete} />
-        <ActionButton icon="close" label="실패" onPress={onFail} />
-        <ActionButton icon="pencil" label="수정" onPress={onEdit} />
-        <ActionButton icon="trash" label="삭제" onPress={onDelete} />
-      </Row>
+      <Stack gap="s" className="bg-neutral-700 border border-neutral-600 rounded-md p-xs" onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}>
+        {todoGroup && todoGroup.items.length > 0 && (
+          <TodoSummary group={todoGroup} barColor={CATEGORY_COLORS[plan.category].bar} />
+        )}
+        <Row gap="none" className="items-center">
+          <ActionButton icon="check" label="완료" onPress={onComplete} />
+          <ActionButton icon="close" label="실패" onPress={onFail} />
+          <ActionButton icon="pencil" label="수정" onPress={onEdit} />
+          <ActionButton icon="trash" label="삭제" onPress={onDelete} />
+        </Row>
+      </Stack>
       {!showBelow && <View className="w-3 h-3 -mt-1.5 bg-neutral-700 border-r border-b border-neutral-600 rotate-45" />}
     </View>
   );
@@ -244,17 +328,22 @@ export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const todoGroups = useTodoStore((state) => state.groups);
 
   useEffect(() => {
     if (toast === "success") setShowToast(true);
   }, [toast]);
 
   // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
+  // TODO: 실제 플랜보드 데이터가 쌓이기 전까지는 API가 빈 값/에러를 주면 목업 하루 일정을 보여줍니다.
   useFocusEffect(
     useCallback(() => {
       getPlanBoards()
-        .then((boards) => setPlans(boards.map(mapPlanBoardToPlan)))
-        .catch(() => setPlans([]));
+        .then((boards) => {
+          const mapped = boards.map(mapPlanBoardToPlan);
+          setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
+        })
+        .catch(() => setPlans(MOCK_PLANS));
     }, [])
   );
 
@@ -266,6 +355,7 @@ export default function Home() {
 
   const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
+  const activeTodoGroup = activePlan ? todoGroups.find((group) => group.category === activePlan.category) ?? null : null;
 
   const updateStatus = (id: string, status: PlanStatus) => {
     setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
@@ -329,7 +419,9 @@ export default function Home() {
 
           {activePlan && (
             <ActionMenu
+              key={activePlan.id}
               plan={activePlan}
+              todoGroup={activeTodoGroup}
               onComplete={() => updateStatus(activePlan.id, "done")}
               onFail={() => updateStatus(activePlan.id, "failed")}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
