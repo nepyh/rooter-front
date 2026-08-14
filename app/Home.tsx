@@ -324,7 +324,8 @@ export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const now = useNow(30_000);
-  const [plans, setPlans] = useState<Plan[]>([]);
+  // 실제 API 응답을 기다리는 동안 화면이 비어 보이지 않도록, 목업 일정을 먼저 보여주고 실제 데이터가 오면 교체합니다.
+  const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
