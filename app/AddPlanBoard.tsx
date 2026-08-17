@@ -152,7 +152,7 @@ export default function AddPlanBoard() {
       <StatusBar style="light" />
       <Stack gap="xxl" className="flex-1">
         <Stack gap="s">
-          <Text variant="title-medium">플랜보드 추가</Text>
+          <Text variant="header-large">플랜보드 추가</Text>
           <Text color="secondary">과목, 교과서, 단원을 선택하고 시간을 입력해주세요</Text>
         </Stack>
 

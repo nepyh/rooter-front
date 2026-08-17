@@ -1,14 +1,52 @@
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Row, Text } from "@/components";
+import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
+
+// TODO: 실제 알림 종류/설정 저장 API 연동 전까지는 로컬 상태로만 토글합니다.
+const NOTIFICATION_ROWS = [
+  { id: "type-1", label: "알림 종류", defaultEnabled: true },
+  { id: "type-2", label: "알림 종류", defaultEnabled: false },
+  { id: "type-3", label: "알림 종류", defaultEnabled: false },
+];
+
+// ================================
+// Components
+// ================================
+
+function NotificationSwitch({ value, onToggle }: { value: boolean; onToggle: () => void }) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      className={`w-[48px] h-[28px] rounded-full p-xxs ${value ? "bg-primary-500 items-end" : "bg-neutral-500 items-start"}`}
+    >
+      <View className="w-[24px] h-[24px] rounded-full bg-white" />
+    </Pressable>
+  );
+}
+
+function NotificationRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: () => void }) {
+  return (
+    <Row width="full" align="between" className="items-center">
+      <Text variant="base-large" className="text-white">{label}</Text>
+      <NotificationSwitch value={value} onToggle={onToggle} />
+    </Row>
+  );
+}
 
 /**
  * 알림 화면
- * @description 현재는 별도 기능 없이 디자인만 퍼블리싱된 화면입니다.
+ * @description 알림 종류별 on/off 토글을 보여줍니다. 실제 알림 발송 기능은 아직 없습니다.
  */
 export default function NotificationPage() {
+  const [enabled, setEnabled] = useState(NOTIFICATION_ROWS.map((row) => row.defaultEnabled));
+
+  const toggle = (index: number) => {
+    setEnabled((prev) => prev.map((value, i) => (i === index ? !value : value)));
+  };
+
   return (
     <View className="flex-1">
       <StatusBar style="light" />
@@ -19,6 +57,12 @@ export default function NotificationPage() {
         </Pressable>
         <Text variant="header-large">알림</Text>
       </Row>
+
+      <Stack gap="xl" width="full" className="pt-l">
+        {NOTIFICATION_ROWS.map((row, i) => (
+          <NotificationRow key={row.id} label={row.label} value={enabled[i]} onToggle={() => toggle(i)} />
+        ))}
+      </Stack>
     </View>
   );
 }

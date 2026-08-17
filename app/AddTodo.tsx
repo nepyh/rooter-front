@@ -41,7 +41,7 @@ export default function AddTodo() {
       <Stack align="between" className="flex-1">
         <Stack gap="xxl">
           <Stack gap="s">
-            <Text variant="title-medium">할 일 추가</Text>
+            <Text variant="header-large">할 일 추가</Text>
             <Text color="secondary">과목을 선택하고 할 일을 입력해주세요</Text>
           </Stack>
 
