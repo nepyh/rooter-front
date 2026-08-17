@@ -121,7 +121,7 @@ export default function TodoPage() {
       </ScrollView>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        <Pressable onPress={() => router.push("/AddTodo")} style={{ backgroundColor: "#6C6C6C" }} className="p-m rounded-full items-center justify-center">
+        <Pressable onPress={() => router.push("/AddTodo")} className="bg-neutral-600 p-m rounded-full items-center justify-center">
           <Icon name="plus" size={20} />
         </Pressable>
       </View>
