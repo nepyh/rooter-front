@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
+import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject, getChaptersByTextbook } from "@/api/catalog";
 import type { Subject, Textbook, Chapter } from "@/api/catalog";
 import { createPlanBoard } from "@/api/planBoard";
@@ -152,7 +153,12 @@ export default function AddPlanBoard() {
       <StatusBar style="light" />
       <Stack gap="xxl" className="flex-1">
         <Stack gap="s">
-          <Text variant="header-large">플랜보드 추가</Text>
+          <Row gap="s" className="items-center">
+            <Pressable onPress={() => router.back()}>
+              <Icon name="chevronLeft" size={28} />
+            </Pressable>
+            <Text variant="header-large">플랜보드 추가</Text>
+          </Row>
           <Text color="secondary">과목, 교과서, 단원을 선택하고 시간을 입력해주세요</Text>
         </Stack>
 
