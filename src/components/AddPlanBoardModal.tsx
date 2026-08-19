@@ -112,11 +112,11 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
 
-  // 배경(Backdrop)은 Modal 자체의 fade로 화면 전체를 즉시 덮고, 시트만 따로 아래에서 위로
-  // 슬라이드시킵니다. Modal 전체를 slide로 움직이면 NavBar가 사라지는 시점과 배경이
-  // 그 자리를 덮는 시점 사이에 화면이 잠깐 비어 보이는 틈이 생겨서 이렇게 분리했습니다.
+  // 배경(Backdrop)은 페이드 없이 즉시 덮고, 시트만 따로 아래에서 위로 슬라이드시킵니다.
+  // (Modal 자체를 fade/slide로 움직이면 NavBar가 사라지는 시점과 배경이 그 자리를 덮는
+  // 시점 사이에 화면이 잠깐 비어 보이는 틈이 생겨서 이렇게 분리했습니다.)
   useEffect(() => {
-    translateY.value = withTiming(visible ? 0 : SHEET_HEIGHT, { duration: 280, easing: Easing.out(Easing.cubic) });
+    translateY.value = withTiming(visible ? 0 : SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) });
   }, [visible, translateY]);
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -256,7 +256,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     : null;
 
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+    <Modal transparent animationType="none" visible={visible} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
           <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
