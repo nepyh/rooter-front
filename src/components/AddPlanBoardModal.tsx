@@ -237,10 +237,10 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     : null;
 
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+    <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
-          <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px]" style={{ maxHeight: "88%" }}>
+          <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px]" style={{ height: "90%" }}>
             <Row width="full" align="between" className="items-center">
               <Pressable onPress={onClose} className="w-8 h-8 items-center justify-center">
                 <Icon name="close" size={24} />
@@ -251,7 +251,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Pressable>
             </Row>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
               <Stack gap="xl" width="full">
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">제목</Text>
@@ -261,11 +261,11 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">일시</Text>
                   <View className="w-full rounded-md overflow-hidden">
-                    <Row width="full" align="between" className="items-center bg-neutral-700 px-xl py-l border-b-2 border-neutral-600">
+                    <Row width="full" align="between" className="items-center bg-neutral-700 px-xl py-[18px] border-b-2 border-neutral-600">
                       <Text variant="base-large" weight="medium" className="text-white">하루종일</Text>
                       <Switch value={allDay} onToggle={() => setAllDay((prev) => !prev)} />
                     </Row>
-                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-xl py-l ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
+                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-xl py-[18px] ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
                       <Text variant="base-large" weight="medium" className="text-white">시작</Text>
                       <Row gap="xs">
                         <DatePill label={formatDatePill(start)} onPress={() => openPicker("start-date")} />
