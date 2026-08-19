@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Dimensions, Modal, Platform, Pressable, ScrollView, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -111,12 +111,23 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
  */
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
+  // Modal의 animationType이 "none"이라 visible이 false가 되는 즉시 네이티브 모달이 사라져서,
+  // 우리 슬라이드다운 애니메이션이 재생될 틈이 없습니다. 그래서 닫힐 때는 애니메이션이 끝난
+  // 뒤에야 실제로 Modal을 내려주기 위해 별도의 렌더링 상태를 둡니다.
+  const [isRendered, setIsRendered] = useState(visible);
 
   // 배경(Backdrop)은 페이드 없이 즉시 덮고, 시트만 따로 아래에서 위로 슬라이드시킵니다.
   // (Modal 자체를 fade/slide로 움직이면 NavBar가 사라지는 시점과 배경이 그 자리를 덮는
   // 시점 사이에 화면이 잠깐 비어 보이는 틈이 생겨서 이렇게 분리했습니다.)
   useEffect(() => {
-    translateY.value = withTiming(visible ? 0 : SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) });
+    if (visible) {
+      setIsRendered(true);
+      translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
+    } else {
+      translateY.value = withTiming(SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
+        if (finished) runOnJS(setIsRendered)(false);
+      });
+    }
   }, [visible, translateY]);
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -256,7 +267,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     : null;
 
   return (
-    <Modal transparent animationType="none" visible={visible} onRequestClose={onClose}>
+    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
           <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
