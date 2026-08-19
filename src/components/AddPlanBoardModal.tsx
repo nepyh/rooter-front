@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -48,6 +49,11 @@ const mergeTimePart = (base: Date, timePart: Date) => {
   next.setHours(timePart.getHours(), timePart.getMinutes(), 0, 0);
   return next;
 };
+
+// "90%" 같은 퍼센트 값은 부모 체인에 명확한 높이가 없으면(여기서는 배경을 감싸는 Pressable이
+// 그 경우) 제대로 해석되지 않아 시트가 내용물 크기로만 줄어들고 스크롤도 먹통이 됩니다.
+// 화면 실측 높이로 직접 계산해 고정 픽셀 값을 써야 확실하게 동작합니다.
+const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 
 // ================================
 // Components
@@ -104,6 +110,19 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
  * @description 홈 화면 위에 뜨는 바텀시트로, 제목/일시/교과서를 입력해 새로운 플랜보드를 만듭니다.
  */
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
+  const translateY = useSharedValue(SHEET_HEIGHT);
+
+  // 배경(Backdrop)은 Modal 자체의 fade로 화면 전체를 즉시 덮고, 시트만 따로 아래에서 위로
+  // 슬라이드시킵니다. Modal 전체를 slide로 움직이면 NavBar가 사라지는 시점과 배경이
+  // 그 자리를 덮는 시점 사이에 화면이 잠깐 비어 보이는 틈이 생겨서 이렇게 분리했습니다.
+  useEffect(() => {
+    translateY.value = withTiming(visible ? 0 : SHEET_HEIGHT, { duration: 280, easing: Easing.out(Easing.cubic) });
+  }, [visible, translateY]);
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   const [title, setTitle] = useState("");
   const [allDay, setAllDay] = useState(false);
   const [start, setStart] = useState(() => roundToNextHour(baseDate));
@@ -237,11 +256,12 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     : null;
 
   return (
-    <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
-          <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px]" style={{ height: "90%" }}>
-            <Row width="full" align="between" className="items-center pb-m">
+          <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
+            <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px] flex-1">
+              <Row width="full" align="between" className="items-center">
               <Pressable onPress={onClose} className="w-8 h-8 items-center justify-center">
                 <Icon name="close" size={24} />
               </Pressable>
@@ -331,6 +351,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Stack>
             </ScrollView>
           </Stack>
+          </Animated.View>
         </Pressable>
       </Pressable>
 
