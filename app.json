@@ -43,7 +43,8 @@
           "photosPermission": "프로필 사진을 변경하기 위해 사진 접근 권한이 필요합니다.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "backgroundColor": "#33363F"
   }

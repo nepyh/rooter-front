@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Input, Button, Text, Toast } from "@/components";
+import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
@@ -328,6 +328,7 @@ export default function Home() {
   const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddPlan, setShowAddPlan] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const todoGroups = useTodoStore((state) => state.groups);
 
@@ -369,6 +370,11 @@ export default function Home() {
       { text: "취소", style: "cancel" },
       { text: "삭제", style: "destructive", onPress: () => setPlans((prev) => prev.filter((plan) => plan.id !== id)) },
     ]);
+  };
+
+  const handlePlanCreated = (board: PlanBoard) => {
+    setPlans((prev) => [...prev.filter((plan) => !plan.id.startsWith("mock-")), mapPlanBoardToPlan(board)]);
+    setShowAddPlan(false);
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
@@ -434,7 +440,7 @@ export default function Home() {
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
-          <Pressable onPress={() => router.push("/AddPlanBoard")} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={() => setShowAddPlan(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
           <Pressable className="p-m rounded-full items-center justify-center">
@@ -446,6 +452,13 @@ export default function Home() {
       {editingPlan && (
         <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />
       )}
+
+      <AddPlanBoardModal
+        visible={showAddPlan}
+        baseDate={now}
+        onClose={() => setShowAddPlan(false)}
+        onCreated={handlePlanCreated}
+      />
     </View>
   );
 }
