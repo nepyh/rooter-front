@@ -11,7 +11,7 @@ import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
 import { getPlanBoards } from "@/api/planBoard";
 import type { PlanBoard } from "@/api/planBoard";
-import { useTodoStore } from "@/store";
+import { useTodoStore, useUIStore } from "@/store";
 import type { TodoGroup } from "@/store";
 
 // ================================
@@ -331,10 +331,17 @@ export default function Home() {
   const [showAddPlan, setShowAddPlan] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const todoGroups = useTodoStore((state) => state.groups);
+  const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
   useEffect(() => {
     if (toast === "success") setShowToast(true);
   }, [toast]);
+
+  // 플랜보드 추가 모달이 떠 있는 동안은 하단 NavBar를 숨깁니다.
+  useEffect(() => {
+    setFullScreenModalOpen(showAddPlan);
+    return () => setFullScreenModalOpen(false);
+  }, [showAddPlan, setFullScreenModalOpen]);
 
   // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
   // TODO: 실제 플랜보드 데이터가 쌓이기 전까지는 API가 빈 값/에러를 주면 목업 하루 일정을 보여줍니다.

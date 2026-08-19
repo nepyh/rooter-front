@@ -241,7 +241,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
           <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px]" style={{ height: "90%" }}>
-            <Row width="full" align="between" className="items-center">
+            <Row width="full" align="between" className="items-center pb-m">
               <Pressable onPress={onClose} className="w-8 h-8 items-center justify-center">
                 <Icon name="close" size={24} />
               </Pressable>
