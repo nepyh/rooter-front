@@ -185,12 +185,15 @@ export default function QuizPage() {
           ) : (
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
               <Stack gap="xxl" width="full">
-                <View className="bg-neutral-700 rounded-md p-xl w-full">
+                <View className="bg-neutral-700 rounded-md p-xl w-full" style={{ minHeight: 200 }}>
                   <View className="self-start bg-neutral-600 px-m py-xs rounded-xs">
                     <Text variant="header-small">Q{currentIndex + 1}</Text>
                   </View>
-                  <View style={{ height: 40 }} />
-                  <Text weight="semibold" className="text-center" style={{ fontSize: 28, lineHeight: 34, letterSpacing: -0.28 }}>{current.question}</Text>
+                  <View className="flex-1 w-full items-center justify-center">
+                    <Text weight="semibold" className="text-center" style={{ fontSize: 28, lineHeight: 34, letterSpacing: -0.28 }}>
+                      {current.question}
+                    </Text>
+                  </View>
                 </View>
 
                 <Stack gap="m" width="full">
