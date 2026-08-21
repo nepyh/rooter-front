@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text, Button } from "@/components";
@@ -64,24 +65,47 @@ const MOCK_QUIZZES: Record<Category, QuizQuestion[]> = {
 // Components
 // ================================
 
+const OPTION_STATE_STYLE: Record<OptionState, { borderColor: string; backgroundColor: string }> = {
+  default: { borderColor: "#525866", backgroundColor: "transparent" },
+  selected: { borderColor: "#F6482D", backgroundColor: "rgba(246,72,45,0.3)" },
+  correct: { borderColor: "#22C55E", backgroundColor: "rgba(34,197,94,0.3)" },
+  incorrect: { borderColor: "#FF4D4F", backgroundColor: "rgba(255,77,79,0.3)" },
+};
+
 function OptionRow({ label, state, onPress }: { label: string; state: OptionState; onPress: () => void }) {
-  const stateStyle: Record<OptionState, { borderColor: string; backgroundColor: string }> = {
-    default: { borderColor: "#525866", backgroundColor: "transparent" },
-    selected: { borderColor: "#F6482D", backgroundColor: "rgba(246,72,45,0.3)" },
-    correct: { borderColor: "#22C55E", backgroundColor: "rgba(34,197,94,0.3)" },
-    incorrect: { borderColor: "#FF4D4F", backgroundColor: "rgba(255,77,79,0.3)" },
-  };
+  const scale = useSharedValue(1);
+  const iconOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (state === "correct" || state === "incorrect") {
+      scale.value = withSequence(withTiming(1.04, { duration: 120 }), withTiming(1, { duration: 160 }));
+      iconOpacity.value = withTiming(1, { duration: 220 });
+    }
+  }, [state, scale, iconOpacity]);
+
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const iconStyle = useAnimatedStyle(() => ({ opacity: iconOpacity.value }));
 
   return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full"
-      style={stateStyle[state]}
-    >
-      {state === "correct" && <Icon name="check" size={20} color="#22C55E" />}
-      {state === "incorrect" && <Icon name="close" size={20} color="#FF4D4F" />}
-      <Text variant="base-large">{label}</Text>
-    </Pressable>
+    <Animated.View style={[{ width: "100%" }, rowStyle]}>
+      <Pressable
+        onPress={onPress}
+        className="flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full"
+        style={OPTION_STATE_STYLE[state]}
+      >
+        {state === "correct" && (
+          <Animated.View style={iconStyle}>
+            <Icon name="check" size={20} color="#22C55E" />
+          </Animated.View>
+        )}
+        {state === "incorrect" && (
+          <Animated.View style={iconStyle}>
+            <Icon name="close" size={20} color="#FF4D4F" />
+          </Animated.View>
+        )}
+        <Text variant="base-large">{label}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -166,7 +190,7 @@ export default function QuizPage() {
                     <Text variant="header-small">Q{currentIndex + 1}</Text>
                   </View>
                   <View style={{ height: 40 }} />
-                  <Text variant="title-medium" className="text-center">{current.question}</Text>
+                  <Text weight="semibold" className="text-center" style={{ fontSize: 28, lineHeight: 34, letterSpacing: -0.28 }}>{current.question}</Text>
                 </View>
 
                 <Stack gap="m" width="full">
