@@ -73,39 +73,39 @@ const OPTION_STATE_STYLE: Record<OptionState, { borderColor: string; backgroundC
 };
 
 function OptionRow({ label, state, onPress }: { label: string; state: OptionState; onPress: () => void }) {
-  const scale = useSharedValue(1);
+  const iconScale = useSharedValue(0.5);
   const iconOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (state === "correct" || state === "incorrect") {
-      scale.value = withSequence(withTiming(1.04, { duration: 120 }), withTiming(1, { duration: 160 }));
-      iconOpacity.value = withTiming(1, { duration: 220 });
+      iconOpacity.value = withTiming(1, { duration: 200 });
+      iconScale.value = withSequence(withTiming(1.25, { duration: 140 }), withTiming(1, { duration: 140 }));
     }
-  }, [state, scale, iconOpacity]);
+  }, [state, iconOpacity, iconScale]);
 
-  const rowStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const iconStyle = useAnimatedStyle(() => ({ opacity: iconOpacity.value }));
+  const iconStyle = useAnimatedStyle(() => ({
+    opacity: iconOpacity.value,
+    transform: [{ scale: iconScale.value }],
+  }));
 
   return (
-    <Animated.View style={[{ width: "100%" }, rowStyle]}>
-      <Pressable
-        onPress={onPress}
-        className="flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full"
-        style={OPTION_STATE_STYLE[state]}
-      >
-        {state === "correct" && (
-          <Animated.View style={iconStyle}>
-            <Icon name="check" size={20} color="#22C55E" />
-          </Animated.View>
-        )}
-        {state === "incorrect" && (
-          <Animated.View style={iconStyle}>
-            <Icon name="close" size={20} color="#FF4D4F" />
-          </Animated.View>
-        )}
-        <Text variant="base-large">{label}</Text>
-      </Pressable>
-    </Animated.View>
+    <Pressable
+      onPress={onPress}
+      className="flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full"
+      style={OPTION_STATE_STYLE[state]}
+    >
+      {state === "correct" && (
+        <Animated.View style={iconStyle}>
+          <Icon name="check" size={20} color="#22C55E" />
+        </Animated.View>
+      )}
+      {state === "incorrect" && (
+        <Animated.View style={iconStyle}>
+          <Icon name="close" size={20} color="#FF4D4F" />
+        </Animated.View>
+      )}
+      <Text variant="base-large">{label}</Text>
+    </Pressable>
   );
 }
 
