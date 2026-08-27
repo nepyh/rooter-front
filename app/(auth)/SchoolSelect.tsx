@@ -4,19 +4,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
 import type { Variant } from "@/components/ui/Button";
-
-// ================================
-// Constants
-// ================================
-
-const MOCK_SCHOOLS = [
-  "부산국제중학교",
-  "부산중앙중학교",
-  "부산예술중학교",
-  "서울고등학교",
-  "서울중앙중학교",
-  "인천국제중학교",
-];
+import { searchMiddleSchools, type School } from "@/api/school";
 
 // ================================
 // Components
@@ -29,12 +17,14 @@ const MOCK_SCHOOLS = [
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
+  const [hasSelectedOnce, setHasSelectedOnce] = useState(false);
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const schoolRef = useRef<TextInput>(null);
 
-  const filtered = MOCK_SCHOOLS.filter((school) => school.includes(query));
   const showSuggestions = query.length > 0 && !selected;
 
   const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
@@ -44,9 +34,17 @@ export default function SchoolSelect() {
     setSelected(false);
   };
 
-  const handleSelect = (school: string) => {
-    setQuery(school);
+  const handleSelect = (school: School) => {
+    const isSameSchool = selectedSchool?.code === school.code;
+
+    setQuery(school.name);
     setSelected(true);
+    setHasSelectedOnce(true);
+    setSelectedSchool(school);
+    if (!isSameSchool) {
+      setGrade("");
+      setClassNum("");
+    }
     schoolRef.current?.blur();
   };
 
@@ -56,12 +54,27 @@ export default function SchoolSelect() {
   };
 
   const handleComplete = () => {
-    router.push({ pathname: "/StudyStyle", params: { school: query, grade, classNum } });
+    router.push({ pathname: "/TextbookSelect", params: { school: query, grade, classNum } });
   };
 
   useEffect(() => {
     setBtnVariant(selected && grade && classNum ? "primary" : "disabled");
   }, [selected, grade, classNum]);
+
+  useEffect(() => {
+    if (!showSuggestions) {
+      setSchools([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchMiddleSchools(query)
+        .then(setSchools)
+        .catch(() => setSchools([]));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, showSuggestions]);
 
   return (
     <View className="flex-1">
@@ -75,25 +88,31 @@ export default function SchoolSelect() {
             </Text>
           </Stack>
           <Stack width="full" gap="m">
-            <Input
-              ref={schoolRef}
-              value={query}
-              onChangeText={handleChangeQuery}
-              editable={!selected}
-              onPressIn={selected ? handleEditSchool : undefined}
-              label="학교명"
-              placeholder="학교 이름을 입력해주세요."
-            />
-            {showSuggestions && (
-              <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
-                {filtered.map((school) => (
-                  <Pressable key={school} className="p-xl w-full" onPress={() => handleSelect(school)}>
-                    <Text variant="base-large" weight="medium"> {school} </Text>
-                  </Pressable>
-                ))}
-              </Stack>
-            )}
-            {selected && (
+            <View className="relative z-10">
+              <Input
+                ref={schoolRef}
+                value={query}
+                onChangeText={handleChangeQuery}
+                editable={!selected}
+                onPressIn={selected ? handleEditSchool : undefined}
+                label="학교명"
+                placeholder="학교 이름을 입력해주세요."
+              />
+              {showSuggestions && (
+                <View className="absolute top-full mt-s w-full z-20 shadow-lg" style={{ elevation: 8 }}>
+                  <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
+                    {schools.map((school) => (
+                      <Pressable key={school.code} className="p-xl w-full" onPress={() => handleSelect(school)}>
+                        <Text variant="base-large" weight="medium">
+                          {school.name} ({school.region})
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </Stack>
+                </View>
+              )}
+            </View>
+            {hasSelectedOnce && (
               <Row gap="m" width="full">
                 <View className="flex-1">
                   <Input

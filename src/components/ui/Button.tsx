@@ -66,9 +66,11 @@ interface Props extends PressableProps {
  * @param variant 버튼 타입을 설정합니다.
  * @param width 버튼 width를 설정합니다.
  */
-export function Button({ variant = "primary", width = "full", icon, children, className = "", ...props }: Props) {
+export function Button({ variant = "primary", width = "full", icon, children, className = "", disabled, ...props }: Props) {
   const [pressed, setPressed] = useState(false);
-  const isDisabled = variant === "disabled";
+  // variant="disabled"는 기본적으로 눌리지 않는 버튼(폼 검증 게이팅)이지만,
+  // 취소처럼 항상 눌려야 하는 버튼도 같은 회색 스타일을 쓰므로 disabled를 명시하면 그 값을 우선합니다.
+  const isDisabled = disabled ?? variant === "disabled";
 
   return (
     <Pressable
