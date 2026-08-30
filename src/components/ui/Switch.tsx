@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Pressable } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
@@ -28,7 +29,9 @@ interface Props {
 export function Switch({ value, onToggle }: Props) {
   const progress = useSharedValue(value ? 1 : 0);
 
-  progress.value = withTiming(value ? 1 : 0, { duration: 200 });
+  useEffect(() => {
+    progress.value = withTiming(value ? 1 : 0, { duration: 200 });
+  }, [value, progress]);
 
   const trackStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(progress.value, [0, 1], ["#6B7280", "#F6482D"]),

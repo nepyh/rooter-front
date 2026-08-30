@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, FlatList, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -133,15 +133,15 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
 }
 
 function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; selectedIndex: number; onChange: (index: number) => void }) {
-  const listRef = useRef<FlatList<string>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
 
   const scrollToIndex = (index: number, animated = true) => {
-    listRef.current?.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
+    scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
   };
 
   // 이 컬럼은 시트가 슬라이드업되는 동안(400ms) 이미 레이아웃되어 있어서, onLayout 시점에
-  // scrollToOffset을 불러도 그 애니메이션과 겹쳐 씹히는 경우가 있습니다. 시트 애니메이션이
+  // scrollTo를 불러도 그 애니메이션과 겹쳐 씹히는 경우가 있습니다. 시트 애니메이션이
   // 끝난 뒤 한 번 더 위치를 맞춰서 확실히 보정합니다.
   useEffect(() => {
     const timer = setTimeout(() => scrollToIndex(selectedIndex, false), 450);
@@ -157,27 +157,20 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
   };
 
   return (
-    <FlatList
-      ref={listRef}
-      data={data}
-      keyExtractor={(label) => label}
+    <ScrollView
+      ref={scrollRef}
       style={{ height: WHEEL_HEIGHT, width: 64 }}
       showsVerticalScrollIndicator={false}
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
       onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
-      // 상시 마운트된 상태라 display:none일 땐 레이아웃 자체가 없다가, 다시 보이는
-      // 순간 onLayout이 뜹니다. 그 시점에 위치를 맞춰야 레이아웃이 잡히기 전에
-      // scrollToOffset이 무시되는 문제가 없습니다.
       onLayout={() => scrollToIndex(selectedIndex, false)}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
-      getItemLayout={(_, index) => ({ length: WHEEL_ITEM_HEIGHT, offset: WHEEL_ITEM_HEIGHT * (paddingRows + index), index })}
-      windowSize={3}
-      initialNumToRender={WHEEL_VISIBLE_ROWS + 4}
-      maxToRenderPerBatch={WHEEL_VISIBLE_ROWS + 2}
-      renderItem={({ item, index }) => (
+    >
+      {data.map((label, index) => (
         <Pressable
+          key={label}
           onPress={() => { scrollToIndex(index); onChange(index); }}
           style={{ height: WHEEL_ITEM_HEIGHT }}
           className="items-center justify-center"
@@ -187,11 +180,11 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
             weight={index === selectedIndex ? "medium" : "regular"}
             color={index === selectedIndex ? "primary" : "disabled"}
           >
-            {item}
+            {label}
           </Text>
         </Pressable>
-      )}
-    />
+      ))}
+    </ScrollView>
   );
 }
 
