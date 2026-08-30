@@ -37,14 +37,10 @@ export default function Login() {
 
         const status = error.response?.status;
 
-        if (status === 401) {
-          setPasswordErrorMessage("비밀번호가 옳지 않습니다.");
+        if (status === 401 || status === 404) {
+          setPasswordErrorMessage("이메일 또는 비밀번호가 일치하지 않습니다.\n다시 확인해주세요.");
           passwordRef.current?.focus();
-          return;
-        } if (status === 404) {
-          setResponseMessage("이메일을 찾을 수 없습니다.");
-          setShowToast(true);
-          setBtnVariant("primary");;
+          passwordRef.current?.setNativeProps({ selection: { start: password.length, end: password.length } });
           return;
         } if (status === 500) {
           setResponseMessage("서버 에러가 발생하였습니다.");
@@ -83,6 +79,7 @@ export default function Login() {
               label="이메일"
               placeholder="이메일을 입력해주세요"
               errorMessage={emailErrorMessage}
+              autoCapitalize="none"
             />
             <Input
               ref={passwordRef}
@@ -95,6 +92,10 @@ export default function Login() {
               placeholder="비밀번호를 입력해주세요"
               errorMessage={passwordErrorMessage}
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (btnVariant !== "disabled") handleSubmit();
+              }}
             />
           </Stack>
         </Stack>
