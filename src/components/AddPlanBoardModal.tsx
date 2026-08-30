@@ -161,7 +161,15 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
     >
       {data.map((label, index) => (
-        <View key={label} style={{ height: WHEEL_ITEM_HEIGHT }} className="items-center justify-center">
+        <Pressable
+          key={label}
+          onPress={() => {
+            scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated: true });
+            onChange(index);
+          }}
+          style={{ height: WHEEL_ITEM_HEIGHT }}
+          className="items-center justify-center"
+        >
           <Text
             variant="base-large"
             weight={index === selectedIndex ? "medium" : "regular"}
@@ -169,7 +177,7 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
           >
             {label}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </ScrollView>
   );
