@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, FlatList, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -133,24 +133,33 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
 }
 
 function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; selectedIndex: number; onChange: (index: number) => void }) {
-  const scrollRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<string>>(null);
   const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
 
+  const scrollToIndex = (index: number, animated = true) => {
+    listRef.current?.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
+  };
+
+  // getItemLayout 덕분에 실제 레이아웃 측정을 기다리지 않고도 마운트 직후 바로 정확한
+  // 위치로 이동할 수 있습니다. FlatList의 initialScrollIndex는 항목을 뷰포트 맨 위에
+  // 맞추기 때문에(가운데 정렬이 아님) 대신 이 방식으로 처리합니다.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: selectedIndex * WHEEL_ITEM_HEIGHT, animated: false });
+    scrollToIndex(selectedIndex, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(data.length - 1, index));
-    scrollRef.current?.scrollTo({ y: clamped * WHEEL_ITEM_HEIGHT, animated: true });
+    scrollToIndex(clamped);
     onChange(clamped);
   };
 
   return (
-    <ScrollView
-      ref={scrollRef}
+    <FlatList
+      ref={listRef}
+      data={data}
+      keyExtractor={(label) => label}
       style={{ height: WHEEL_HEIGHT, width: 64 }}
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
@@ -159,14 +168,13 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
       onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
-    >
-      {data.map((label, index) => (
+      getItemLayout={(_, index) => ({ length: WHEEL_ITEM_HEIGHT, offset: WHEEL_ITEM_HEIGHT * (paddingRows + index), index })}
+      windowSize={3}
+      initialNumToRender={WHEEL_VISIBLE_ROWS + 4}
+      maxToRenderPerBatch={WHEEL_VISIBLE_ROWS + 2}
+      renderItem={({ item, index }) => (
         <Pressable
-          key={label}
-          onPress={() => {
-            scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated: true });
-            onChange(index);
-          }}
+          onPress={() => { scrollToIndex(index); onChange(index); }}
           style={{ height: WHEEL_ITEM_HEIGHT }}
           className="items-center justify-center"
         >
@@ -175,11 +183,11 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
             weight={index === selectedIndex ? "medium" : "regular"}
             color={index === selectedIndex ? "primary" : "disabled"}
           >
-            {label}
+            {item}
           </Text>
         </Pressable>
-      ))}
-    </ScrollView>
+      )}
+    />
   );
 }
 
@@ -446,9 +454,9 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "start-date" && (
                           <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
                         )}
-                        {activePicker === "start-time" && (
+                        <View style={{ display: activePicker === "start-time" ? "flex" : "none" }}>
                           <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
-                        )}
+                        </View>
                       </View>
                     )}
 
@@ -464,9 +472,9 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "end-date" && (
                           <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
                         )}
-                        {activePicker === "end-time" && (
+                        <View style={{ display: activePicker === "end-time" ? "flex" : "none" }}>
                           <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
-                        )}
+                        </View>
                       </View>
                     )}
                   </View>
