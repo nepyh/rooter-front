@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, FlatList, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -133,16 +133,15 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
 }
 
 function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; selectedIndex: number; onChange: (index: number) => void }) {
-  const listRef = useRef<FlatList<string>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
 
   const scrollToIndex = (index: number, animated = true) => {
-    listRef.current?.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
+    scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
   };
 
-  // getItemLayout 덕분에 실제 레이아웃 측정을 기다리지 않고도 마운트 직후 바로 정확한
-  // 위치로 이동할 수 있습니다. FlatList의 initialScrollIndex는 항목을 뷰포트 맨 위에
-  // 맞추기 때문에(가운데 정렬이 아님) 대신 이 방식으로 처리합니다.
+  // 이 컬럼은 이제 상시 마운트된 채 display로만 보이고 감춰지므로, 최초 위치 맞춤은
+  // 마운트 시 한 번만 하면 되고 이후 다시 보일 때도 재계산 없이 그대로 유지됩니다.
   useEffect(() => {
     scrollToIndex(selectedIndex, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,24 +155,19 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
   };
 
   return (
-    <FlatList
-      ref={listRef}
-      data={data}
-      keyExtractor={(label) => label}
+    <ScrollView
+      ref={scrollRef}
       style={{ height: WHEEL_HEIGHT, width: 64 }}
       showsVerticalScrollIndicator={false}
-      nestedScrollEnabled
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
       onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
-      getItemLayout={(_, index) => ({ length: WHEEL_ITEM_HEIGHT, offset: WHEEL_ITEM_HEIGHT * (paddingRows + index), index })}
-      windowSize={3}
-      initialNumToRender={WHEEL_VISIBLE_ROWS + 4}
-      maxToRenderPerBatch={WHEEL_VISIBLE_ROWS + 2}
-      renderItem={({ item, index }) => (
+    >
+      {data.map((label, index) => (
         <Pressable
+          key={label}
           onPress={() => { scrollToIndex(index); onChange(index); }}
           style={{ height: WHEEL_ITEM_HEIGHT }}
           className="items-center justify-center"
@@ -183,11 +177,11 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
             weight={index === selectedIndex ? "medium" : "regular"}
             color={index === selectedIndex ? "primary" : "disabled"}
           >
-            {item}
+            {label}
           </Text>
         </Pressable>
-      )}
-    />
+      ))}
+    </ScrollView>
   );
 }
 
