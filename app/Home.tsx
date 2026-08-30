@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal } from "@/components";
@@ -316,6 +316,31 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
   );
 }
 
+function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable className="flex-1 bg-black/40 items-center justify-center px-l" onPress={onCancel}>
+        <Pressable style={{ width: "100%", maxWidth: 354 }}>
+          <Stack gap="xxl" width="full" className="bg-neutral-800 p-xl rounded-[20px]">
+            <Stack gap="s" width="full">
+              <Text variant="header-medium">{title}</Text>
+              <Text variant="base-medium" color="secondary">삭제하고 되돌릴 수 없습니다.</Text>
+            </Stack>
+            <Row gap="m" width="full">
+              <View className="flex-1">
+                <Button variant="disabled" disabled={false} className="py-l" onPress={onCancel}> 취소 </Button>
+              </View>
+              <View className="flex-1">
+                <Button variant="primary" className="py-l" onPress={onConfirm}> 삭제 </Button>
+              </View>
+            </Row>
+          </Stack>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 /**
  * 홈 화면
  * @description 오늘의 일정을 시간순으로 보여주고, 현재 시각/날짜를 실시간으로 반영합니다.
@@ -328,6 +353,8 @@ export default function Home() {
   const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
+  const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const todoGroups = useTodoStore((state) => state.groups);
@@ -380,12 +407,16 @@ export default function Home() {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (plan: Plan) => {
     setActiveId(null);
-    Alert.alert("일정 삭제", "이 일정을 삭제할까요?", [
-      { text: "취소", style: "cancel" },
-      { text: "삭제", style: "destructive", onPress: () => setPlans((prev) => prev.filter((plan) => plan.id !== id)) },
-    ]);
+    setDeleteTarget(plan);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    setPlans((prev) => prev.filter((plan) => plan.id !== deleteTarget.id));
+    setDeleteToast(`'${deleteTarget.title}' 일정이 삭제되었습니다.`);
+    setDeleteTarget(null);
   };
 
   const handlePlanCreated = (board: PlanBoard) => {
@@ -448,7 +479,7 @@ export default function Home() {
               onComplete={() => handleComplete(activePlan)}
               onFail={() => updateStatus(activePlan.id, "failed")}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
-              onDelete={() => handleDelete(activePlan.id)}
+              onDelete={() => handleDelete(activePlan)}
             />
           )}
         </View>
@@ -468,6 +499,16 @@ export default function Home() {
       {editingPlan && (
         <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />
       )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          title={`'${deleteTarget.title}' 일정을 삭제할까요?`}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
+
+      {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
 
       <AddPlanBoardModal
         visible={showAddPlan}
