@@ -328,10 +328,10 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
             </Stack>
             <Row gap="m" width="full">
               <View className="flex-1">
-                <Button variant="disabled" disabled={false} className="py-l" onPress={onCancel}> 취소 </Button>
+                <Button variant="disabled" disabled={false} style={{ paddingVertical: 16 }} onPress={onCancel}> 취소 </Button>
               </View>
               <View className="flex-1">
-                <Button variant="primary" className="py-l" onPress={onConfirm}> 삭제 </Button>
+                <Button variant="primary" style={{ paddingVertical: 16 }} onPress={onConfirm}> 삭제 </Button>
               </View>
             </Row>
           </Stack>
