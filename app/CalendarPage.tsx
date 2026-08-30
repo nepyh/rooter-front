@@ -144,7 +144,7 @@ function PlanDetailModal({ visible, date, event, onClose }: { visible: boolean; 
         <Pressable>
           <Animated.View style={sheetStyle}>
             <Stack gap="xxl" width="full" align="center" className="items-center bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
-              <View className="self-center w-[104px] h-[4px] rounded-full bg-neutral-600" />
+              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" style={{ alignSelf: "center" }} />
               <Stack gap="xxl" width="full" className="pb-xxl">
                 <Stack gap="xs" width="full">
                   <Row gap="s">
