@@ -153,8 +153,10 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
       ref={scrollRef}
       style={{ height: WHEEL_HEIGHT, width: 64 }}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
+      onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
     >
@@ -341,6 +343,12 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setActivePicker((prev) => (prev === target ? null : target));
   };
 
+  // 선택한 날짜에 주황색 원이 들어오는 걸 잠깐 보여준 뒤 달력을 접습니다.
+  const selectDate = (target: PickerTarget, date: Date) => {
+    applyPicked(target, date);
+    setTimeout(() => setActivePicker((prev) => (prev === target ? null : prev)), 700);
+  };
+
   const handleConfirmTextbook = () => {
     if (subjectId === null || textbookId === null || chapterId === null) return;
     const subjectName = subjects.find((s) => s.id === subjectId)?.name ?? "";
@@ -423,7 +431,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                           </Row>
                         </Row>
                         {activePicker === "start-date" && (
-                          <CalendarGrid value={start} onSelect={(date) => { applyPicked("start-date", date); setActivePicker(null); }} />
+                          <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
                         )}
                         {activePicker === "start-time" && (
                           <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
@@ -441,7 +449,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                           </Row>
                         </Row>
                         {activePicker === "end-date" && (
-                          <CalendarGrid value={end} onSelect={(date) => { applyPicked("end-date", date); setActivePicker(null); }} />
+                          <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
                         )}
                         {activePicker === "end-time" && (
                           <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
