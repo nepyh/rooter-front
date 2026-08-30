@@ -7,7 +7,8 @@ import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
-import { isSameDay } from "@/utils/date";
+import { buildMonthWeeks, isSameDay } from "@/utils/date";
+import type { CalendarCellData } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
 
 // ================================
@@ -18,11 +19,6 @@ interface CalendarEvent {
   label: string;
   category: Category;
   memo: string;
-}
-
-interface CalendarCellData {
-  date: Date;
-  inMonth: boolean;
 }
 
 // ================================
@@ -50,30 +46,6 @@ const buildMockEvents = (reference: Date): Record<string, CalendarEvent[]> => {
       { label: "사회 발표", category: "social", memo: "발표 자료 최종 점검" },
     ],
   };
-};
-
-const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
-  const startWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-  const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
-
-  const cells: CalendarCellData[] = [];
-  for (let i = 0; i < startWeekday; i++) {
-    cells.push({ date: new Date(year, month - 1, daysInPrevMonth - startWeekday + 1 + i), inMonth: false });
-  }
-  for (let day = 1; day <= daysInMonth; day++) {
-    cells.push({ date: new Date(year, month, day), inMonth: true });
-  }
-  for (let day = 1; cells.length < totalCells; day++) {
-    cells.push({ date: new Date(year, month + 1, day), inMonth: false });
-  }
-
-  const weeks: CalendarCellData[][] = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
-  return weeks;
 };
 
 // ================================

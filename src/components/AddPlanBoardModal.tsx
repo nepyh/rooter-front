@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { Dimensions, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Dimensions, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
 import { Icon } from "@/assets";
@@ -9,6 +8,8 @@ import { getSubjects, getTextbooksBySubject, getChaptersByTextbook } from "@/api
 import type { Subject, Textbook, Chapter } from "@/api/catalog";
 import { createPlanBoard } from "@/api/planBoard";
 import type { PlanBoard } from "@/api/planBoard";
+import { buildMonthWeeks, isSameDay } from "@/utils/date";
+import { WEEKDAYS } from "@/constants/date";
 
 // ================================
 // Types
@@ -30,6 +31,10 @@ interface Props {
 const pad = (n: number) => String(n).padStart(2, "0");
 const formatDatePill = (date: Date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
 const formatTimePill = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+const HOUR_LABELS = Array.from({ length: 12 }, (_, i) => String(i + 1));
+const MINUTE_LABELS = Array.from({ length: 60 }, (_, i) => pad(i));
+const MERIDIEM_LABELS = ["AM", "PM"];
 
 const roundToNextHour = (base: Date) => {
   const date = new Date(base);
@@ -55,15 +60,143 @@ const mergeTimePart = (base: Date, timePart: Date) => {
 // 화면 실측 높이로 직접 계산해 고정 픽셀 값을 써야 확실하게 동작합니다.
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 
+// 커스텀 시간 휠피커의 한 행 높이와, 화면에 동시에 보이는 행 수(가운데 1개 + 위아래 2개씩)입니다.
+const WHEEL_ITEM_HEIGHT = 40;
+const WHEEL_VISIBLE_ROWS = 5;
+const WHEEL_HEIGHT = WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_ROWS;
+
 // ================================
 // Components
 // ================================
 
-function DatePill({ label, onPress }: { label: string; onPress: () => void }) {
+function DatePill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} className="bg-neutral-600 px-m py-s rounded-full">
-      <Text variant="base-small" className="text-white">{label}</Text>
+      <Text variant="base-small" weight={active ? "medium" : "regular"} style={{ color: active ? "#F6482D" : "#FFFFFF" }}>{label}</Text>
     </Pressable>
+  );
+}
+
+function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date) => void }) {
+  const [viewYear, setViewYear] = useState(value.getFullYear());
+  const [viewMonth, setViewMonth] = useState(value.getMonth());
+  const weeks = buildMonthWeeks(viewYear, viewMonth);
+
+  const goPrevMonth = () => {
+    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); } else setViewMonth((m) => m - 1);
+  };
+  const goNextMonth = () => {
+    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else setViewMonth((m) => m + 1);
+  };
+
+  return (
+    <Stack gap="m" width="full">
+      <Row width="full" align="between" className="items-center">
+        <Pressable onPress={goPrevMonth} className="w-6 h-6 items-center justify-center">
+          <Icon name="chevronLeft" size={20} />
+        </Pressable>
+        <Text variant="base-large" weight="medium" className="text-white">{viewMonth + 1}월</Text>
+        <Pressable onPress={goNextMonth} className="w-6 h-6 items-center justify-center">
+          <Icon name="chevronRight" size={20} />
+        </Pressable>
+      </Row>
+      <Stack gap="s" width="full">
+        <Row width="full" className="justify-between">
+          {WEEKDAYS.map((weekday) => (
+            <View key={weekday} className="w-[32px] h-[32px] items-center justify-center">
+              <Text variant="base-medium" color="secondary">{weekday}</Text>
+            </View>
+          ))}
+        </Row>
+        {weeks.map((week, i) => (
+          <Row key={i} width="full" className="justify-between">
+            {week.map((cell, j) => {
+              const isSelected = isSameDay(cell.date, value);
+              return (
+                <Pressable
+                  key={j}
+                  onPress={() => onSelect(cell.date)}
+                  className="w-[32px] h-[32px] rounded-full items-center justify-center"
+                  style={isSelected ? { backgroundColor: "#F6482D" } : undefined}
+                >
+                  <Text variant="base-medium" weight="medium" color={cell.inMonth || isSelected ? "primary" : "disabled"}>
+                    {cell.date.getDate()}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </Row>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
+
+function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; selectedIndex: number; onChange: (index: number) => void }) {
+  const scrollRef = useRef<ScrollView>(null);
+  const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: selectedIndex * WHEEL_ITEM_HEIGHT, animated: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(data.length - 1, index));
+    scrollRef.current?.scrollTo({ y: clamped * WHEEL_ITEM_HEIGHT, animated: true });
+    onChange(clamped);
+  };
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      style={{ height: WHEEL_HEIGHT, width: 64 }}
+      showsVerticalScrollIndicator={false}
+      snapToInterval={WHEEL_ITEM_HEIGHT}
+      decelerationRate="fast"
+      onMomentumScrollEnd={handleMomentumEnd}
+      contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
+    >
+      {data.map((label, index) => (
+        <View key={label} style={{ height: WHEEL_ITEM_HEIGHT }} className="items-center justify-center">
+          <Text
+            variant="base-large"
+            weight={index === selectedIndex ? "medium" : "regular"}
+            color={index === selectedIndex ? "primary" : "disabled"}
+          >
+            {label}
+          </Text>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
+  const hour24 = value.getHours();
+  const meridiemIndex = hour24 >= 12 ? 1 : 0;
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  const minute = value.getMinutes();
+
+  const applyChange = (nextHour12: number, nextMinute: number, nextMeridiemIndex: number) => {
+    const next = new Date(value);
+    const hour = (nextHour12 % 12) + (nextMeridiemIndex === 1 ? 12 : 0);
+    next.setHours(hour, nextMinute, 0, 0);
+    onChange(next);
+  };
+
+  return (
+    <View className="bg-neutral-800 rounded-md flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
+      <View
+        pointerEvents="none"
+        className="absolute left-0 right-0 rounded-sm"
+        style={{ top: WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ROWS / 2), height: WHEEL_ITEM_HEIGHT, backgroundColor: "rgba(107,114,128,0.3)" }}
+      />
+      <WheelColumn data={HOUR_LABELS} selectedIndex={hour12 - 1} onChange={(i) => applyChange(i + 1, minute, meridiemIndex)} />
+      <WheelColumn data={MINUTE_LABELS} selectedIndex={minute} onChange={(i) => applyChange(hour12, i, meridiemIndex)} />
+      <WheelColumn data={MERIDIEM_LABELS} selectedIndex={meridiemIndex} onChange={(i) => applyChange(hour12, minute, i)} />
+    </View>
   );
 }
 
@@ -204,21 +337,8 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setter((prev) => merge(prev, picked));
   };
 
-  const openPicker = (target: PickerTarget) => {
-    const mode = target.endsWith("date") ? "date" : "time";
-    const value = target.startsWith("start") ? start : end;
-
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value,
-        mode,
-        is24Hour: true,
-        onValueChange: (_event, picked) => applyPicked(target, picked),
-      });
-      return;
-    }
-
-    setActivePicker(target);
+  const togglePicker = (target: PickerTarget) => {
+    setActivePicker((prev) => (prev === target ? null : target));
   };
 
   const handleConfirmTextbook = () => {
@@ -262,10 +382,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     }
   };
 
-  const activePickerValue = activePicker
-    ? (activePicker.startsWith("start") ? start : end)
-    : null;
-
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
@@ -292,25 +408,45 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">일시</Text>
                   <View className="w-full rounded-md overflow-hidden">
-                    <Row width="full" align="between" className="items-center bg-neutral-700 px-xl py-[18px] border-b-2 border-neutral-600">
+                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-xl py-[18px] ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
                       <Text variant="base-large" weight="medium" className="text-white">하루종일</Text>
                       <Switch value={allDay} onToggle={() => setAllDay((prev) => !prev)} />
                     </Row>
-                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-xl py-[18px] ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
-                      <Text variant="base-large" weight="medium" className="text-white">시작</Text>
-                      <Row gap="xs">
-                        <DatePill label={formatDatePill(start)} onPress={() => openPicker("start-date")} />
-                        {!allDay && <DatePill label={formatTimePill(start)} onPress={() => openPicker("start-time")} />}
-                      </Row>
-                    </Row>
+
                     {!allDay && (
-                      <Row width="full" align="between" className="items-center bg-neutral-700 px-xl py-l">
-                        <Text variant="base-large" weight="medium" className="text-white">종료</Text>
-                        <Row gap="xs">
-                          <DatePill label={formatDatePill(end)} onPress={() => openPicker("end-date")} />
-                          <DatePill label={formatTimePill(end)} onPress={() => openPicker("end-time")} />
+                      <View className="w-full bg-neutral-700 px-xl py-[16px] border-b-2 border-neutral-600" style={{ gap: 24 }}>
+                        <Row width="full" align="between" className="items-center">
+                          <Text variant="base-large" weight="medium" className="text-white">시작</Text>
+                          <Row gap="xs">
+                            <DatePill label={formatDatePill(start)} active={activePicker === "start-date"} onPress={() => togglePicker("start-date")} />
+                            <DatePill label={formatTimePill(start)} active={activePicker === "start-time"} onPress={() => togglePicker("start-time")} />
+                          </Row>
                         </Row>
-                      </Row>
+                        {activePicker === "start-date" && (
+                          <CalendarGrid value={start} onSelect={(date) => { applyPicked("start-date", date); setActivePicker(null); }} />
+                        )}
+                        {activePicker === "start-time" && (
+                          <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
+                        )}
+                      </View>
+                    )}
+
+                    {!allDay && (
+                      <View className="w-full bg-neutral-700 px-xl py-[16px]" style={{ gap: 24 }}>
+                        <Row width="full" align="between" className="items-center">
+                          <Text variant="base-large" weight="medium" className="text-white">종료</Text>
+                          <Row gap="xs">
+                            <DatePill label={formatDatePill(end)} active={activePicker === "end-date"} onPress={() => togglePicker("end-date")} />
+                            <DatePill label={formatTimePill(end)} active={activePicker === "end-time"} onPress={() => togglePicker("end-time")} />
+                          </Row>
+                        </Row>
+                        {activePicker === "end-date" && (
+                          <CalendarGrid value={end} onSelect={(date) => { applyPicked("end-date", date); setActivePicker(null); }} />
+                        )}
+                        {activePicker === "end-time" && (
+                          <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
+                        )}
+                      </View>
                     )}
                   </View>
                 </Stack>
@@ -365,23 +501,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
           </Animated.View>
         </Pressable>
       </Pressable>
-
-      {Platform.OS === "ios" && activePicker && activePickerValue && (
-        <View className="absolute bottom-0 w-full bg-neutral-700">
-          <Row width="full" align="end" className="px-l pt-s">
-            <Pressable onPress={() => setActivePicker(null)}>
-              <Text variant="base-medium" weight="medium" style={{ color: "#F6482D" }}>완료</Text>
-            </Pressable>
-          </Row>
-          <DateTimePicker
-            value={activePickerValue}
-            mode={activePicker.endsWith("date") ? "date" : "time"}
-            display="spinner"
-            themeVariant="dark"
-            onValueChange={(_event, picked) => applyPicked(activePicker, picked)}
-          />
-        </View>
-      )}
     </Modal>
   );
 }
