@@ -140,13 +140,6 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
     scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
   };
 
-  // 이 컬럼은 이제 상시 마운트된 채 display로만 보이고 감춰지므로, 최초 위치 맞춤은
-  // 마운트 시 한 번만 하면 되고 이후 다시 보일 때도 재계산 없이 그대로 유지됩니다.
-  useEffect(() => {
-    scrollToIndex(selectedIndex, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(data.length - 1, index));
@@ -163,6 +156,10 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
       decelerationRate="fast"
       onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
+      // 상시 마운트된 상태라 display:none일 땐 레이아웃이 없다가, 처음 보이는 순간
+      // onLayout이 뜹니다. useEffect보다 이 시점에 위치를 맞춰야 실제 레이아웃이
+      // 잡히기 전에 scrollTo가 무시되는 문제가 없습니다.
+      onLayout={() => scrollToIndex(selectedIndex, false)}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
     >
       {data.map((label, index) => (
