@@ -346,7 +346,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   // 선택한 날짜에 주황색 원이 들어오는 걸 잠깐 보여준 뒤 달력을 접습니다.
   const selectDate = (target: PickerTarget, date: Date) => {
     applyPicked(target, date);
-    setTimeout(() => setActivePicker((prev) => (prev === target ? null : prev)), 700);
+    setTimeout(() => setActivePicker((prev) => (prev === target ? null : prev)), 500);
   };
 
   const handleConfirmTextbook = () => {
@@ -406,7 +406,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Pressable>
             </Row>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} scrollEnabled={activePicker === null}>
               <Stack gap="xl" width="full">
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">제목</Text>
