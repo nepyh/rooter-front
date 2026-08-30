@@ -414,7 +414,12 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Pressable>
             </Row>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} scrollEnabled={activePicker === null}>
+            <ScrollView
+              className="flex-1"
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={activePicker === null}
+              {...({ delaysContentTouches: false } as object)}
+            >
               <Stack gap="xl" width="full">
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">제목</Text>
