@@ -331,7 +331,7 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
                 variant="disabled"
                 disabled={false}
                 width="auto"
-                style={{ width: 150, height: 52, borderRadius: 16, paddingVertical: 0 }}
+                style={{ width: 150, height: 52, borderRadius: 16, paddingTop: 0, paddingBottom: 0 }}
                 onPress={onCancel}
               >
                 취소
@@ -339,7 +339,7 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
               <Button
                 variant="primary"
                 width="auto"
-                style={{ width: 150, height: 52, borderRadius: 16, paddingVertical: 0 }}
+                style={{ width: 150, height: 52, borderRadius: 16, paddingTop: 0, paddingBottom: 0 }}
                 onPress={onConfirm}
               >
                 삭제
