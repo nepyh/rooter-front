@@ -449,7 +449,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "start-date" && (
                           <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
                         )}
-                        <View style={{ display: activePicker === "start-time" ? "flex" : "none" }}>
+                        <View style={{ height: activePicker === "start-time" ? WHEEL_HEIGHT : 0, overflow: "hidden" }}>
                           <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
                         </View>
                       </View>
@@ -467,7 +467,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "end-date" && (
                           <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
                         )}
-                        <View style={{ display: activePicker === "end-time" ? "flex" : "none" }}>
+                        <View style={{ height: activePicker === "end-time" ? WHEEL_HEIGHT : 0, overflow: "hidden" }}>
                           <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
                         </View>
                       </View>
