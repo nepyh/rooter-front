@@ -62,13 +62,8 @@ function TodoItemRow({ item, barColor, onPress }: { item: TodoItem; barColor: st
   );
 }
 
-function TodoGroupCard({ group, onToggle, onQuiz }: {
-  group: TodoGroup;
-  onToggle: (groupId: string, itemId: string) => void;
-  onQuiz: (group: TodoGroup) => void;
-}) {
+function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (groupId: string, itemId: string) => void }) {
   const colors = CATEGORY_COLORS[group.category];
-  const allDone = group.items.length > 0 && group.items.every((item) => item.done);
 
   return (
     <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
@@ -80,16 +75,6 @@ function TodoGroupCard({ group, onToggle, onQuiz }: {
             <TodoItemRow key={item.id} item={item} barColor={colors.bar} onPress={() => onToggle(group.id, item.id)} />
           ))}
         </Stack>
-        {allDone && (
-          <Pressable
-            onPress={() => onQuiz(group)}
-            className="self-start flex-row gap-xs items-center px-m py-s rounded-full border-2 border-primary-500"
-            style={{ backgroundColor: "rgba(246,72,45,0.15)" }}
-          >
-            <Icon name="sparkle" size={14} color="#F6482D" />
-            <Text variant="base-small" weight="medium" style={{ color: "#F6482D" }}>퀴즈 보기</Text>
-          </Pressable>
-        )}
       </Stack>
     </Row>
   );
@@ -104,10 +89,6 @@ export default function TodoPage() {
   const groups = useTodoStore((state) => state.groups);
   const toggleItem = useTodoStore((state) => state.toggleItem);
   const weekDates = getWeekDates(now);
-
-  const handleQuiz = (group: TodoGroup) => {
-    router.push({ pathname: "/QuizPage", params: { category: group.category } });
-  };
 
   return (
     <View className="flex-1">
@@ -134,7 +115,7 @@ export default function TodoPage() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
         <Stack gap="l" width="full">
           {groups.map((group) => (
-            <TodoGroupCard key={group.id} group={group} onToggle={toggleItem} onQuiz={handleQuiz} />
+            <TodoGroupCard key={group.id} group={group} onToggle={toggleItem} />
           ))}
         </Stack>
       </ScrollView>

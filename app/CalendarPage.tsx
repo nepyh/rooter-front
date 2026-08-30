@@ -123,7 +123,7 @@ function PlanDetailModal({ date, event, onClose }: { date: Date; event: Calendar
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
-          <Stack gap="xxl" width="full" align="center" className="bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
+          <Stack gap="xxl" width="full" align="center" className="items-center bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
             <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
             <Stack gap="xxl" width="full" className="pb-xxl">
               <Stack gap="xs" width="full">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal } from "@/components";
 import { Icon } from "@/assets";
@@ -371,6 +371,15 @@ export default function Home() {
     setActiveId(null);
   };
 
+  // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
+  const handleComplete = (plan: Plan) => {
+    const willComplete = plan.status !== "done";
+    updateStatus(plan.id, "done");
+    if (willComplete) {
+      router.push({ pathname: "/QuizPage", params: { category: plan.category } });
+    }
+  };
+
   const handleDelete = (id: string) => {
     setActiveId(null);
     Alert.alert("일정 삭제", "이 일정을 삭제할까요?", [
@@ -436,7 +445,7 @@ export default function Home() {
               key={activePlan.id}
               plan={activePlan}
               todoGroup={activeTodoGroup}
-              onComplete={() => updateStatus(activePlan.id, "done")}
+              onComplete={() => handleComplete(activePlan)}
               onFail={() => updateStatus(activePlan.id, "failed")}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
               onDelete={() => handleDelete(activePlan.id)}
