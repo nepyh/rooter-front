@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Modal, Pressable, View } from "react-native";
 import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
@@ -17,6 +17,7 @@ import { useNow } from "@/hooks/useNow";
 interface CalendarEvent {
   label: string;
   category: Category;
+  memo: string;
 }
 
 interface CalendarCellData {
@@ -35,12 +36,19 @@ const buildMockEvents = (reference: Date): Record<string, CalendarEvent[]> => {
   const makeDay = (day: number) => new Date(reference.getFullYear(), reference.getMonth(), day);
 
   return {
-    [dateKey(today)]: [{ label: "기말고사", category: "neutral" }, { label: "두줄", category: "social" }],
-    [dateKey(makeDay(3))]: [{ label: "수학 학원", category: "math" }],
-    [dateKey(makeDay(8))]: [{ label: "영어 단어시험", category: "english" }],
-    [dateKey(makeDay(13))]: [{ label: "방학식", category: "neutral" }],
-    [dateKey(makeDay(19))]: [{ label: "과학 실험", category: "science" }],
-    [dateKey(makeDay(24))]: [{ label: "동아리 모임", category: "social" }, { label: "사회 발표", category: "social" }],
+    [dateKey(today)]: [
+      { label: "기말고사", category: "neutral", memo: "마지막 시험, 끝나면 바로 놀러가기" },
+      { label: "두줄", category: "social", memo: "두줄 약속 장소는 학교 앞 카페" },
+    ],
+    [dateKey(makeDay(3))]: [{ label: "수학 학원", category: "math", memo: "숙제 다 풀고 가기" }],
+    [dateKey(makeDay(6))]: [{ label: "체육대회", category: "social", memo: "물, 모자 챙기기" }],
+    [dateKey(makeDay(8))]: [{ label: "영어 단어시험", category: "english", memo: "단어장 3단원까지 외우기" }],
+    [dateKey(makeDay(13))]: [{ label: "방학식", category: "neutral", memo: "방학식 빨리 오너라" }],
+    [dateKey(makeDay(19))]: [{ label: "과학 실험", category: "science", memo: "보호 안경 챙기기" }],
+    [dateKey(makeDay(24))]: [
+      { label: "동아리 모임", category: "social", memo: "회비 걷는 날, 만원 챙기기" },
+      { label: "사회 발표", category: "social", memo: "발표 자료 최종 점검" },
+    ],
   };
 };
 
@@ -72,33 +80,71 @@ const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
 // Components
 // ================================
 
-const CELL_HEIGHT = 120;
 const SLIDE_MS = 260;
 
-function CalendarCell({ cell, events, selected }: { cell: CalendarCellData; events: CalendarEvent[]; selected: boolean }) {
+function CalendarCell({ cell, events, isToday, onSelectEvent }: {
+  cell: CalendarCellData;
+  events: CalendarEvent[];
+  isToday: boolean;
+  onSelectEvent: (date: Date, event: CalendarEvent) => void;
+}) {
   const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
   const dimmed = !cell.inMonth || isWeekend;
-  const [primaryEvent, ...restEvents] = events;
 
   return (
-    <View style={{ flex: 1, height: CELL_HEIGHT }} className={`items-center px-m ${selected ? "py-m" : "py-l"}`}>
-      {selected ? (
-        <View className="items-center justify-center p-xs bg-primary-500 rounded-full">
-          <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
-        </View>
-      ) : (
-        <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
-      )}
-      {primaryEvent && (
-        <Row gap="xs" className="items-center rounded-xxs p-xs mt-xs w-full" style={{ backgroundColor: CATEGORY_COLORS[primaryEvent.category].bg }}>
-          <View className="w-[2px] rounded-full" style={{ backgroundColor: CATEGORY_COLORS[primaryEvent.category].bar }} />
-          <Text variant="base-caption" color="primary" numberOfLines={1} style={{ flexShrink: 1 }}>{primaryEvent.label}</Text>
-          {restEvents.length > 0 && (
-            <Text variant="base-caption" color="secondary">+{restEvents.length}</Text>
-          )}
-        </Row>
+    <View style={{ flex: 1, minHeight: 72 }} className="items-center px-xs py-m">
+      <View style={{ height: 28 }} className="items-center justify-center">
+        {isToday ? (
+          <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-full">
+            <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
+          </View>
+        ) : (
+          <Text variant="base-medium" color={dimmed ? "disabled" : "primary"}>{cell.date.getDate()}</Text>
+        )}
+      </View>
+      {events.length > 0 && (
+        <Stack gap="xxs" width="full" className="mt-s">
+          {events.map((event, i) => (
+            <Pressable key={i} onPress={() => onSelectEvent(cell.date, event)}>
+              <Row gap="xs" className="items-center rounded-xxs p-xs w-full" style={{ backgroundColor: CATEGORY_COLORS[event.category].bg }}>
+                <View className="w-[2px] self-stretch rounded-full" style={{ backgroundColor: CATEGORY_COLORS[event.category].bar }} />
+                <Text variant="base-caption" color="primary" numberOfLines={1} style={{ flexShrink: 1 }}>{event.label}</Text>
+              </Row>
+            </Pressable>
+          ))}
+        </Stack>
       )}
     </View>
+  );
+}
+
+function PlanDetailModal({ date, event, onClose }: { date: Date; event: CalendarEvent; onClose: () => void }) {
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
+        <Pressable>
+          <Stack gap="xxl" width="full" align="center" className="bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
+            <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
+            <Stack gap="xxl" width="full" className="pb-xxl">
+              <Stack gap="xs" width="full">
+                <Row gap="s">
+                  <Text variant="base-medium" color="secondary">{`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}</Text>
+                  <Text variant="base-medium" color="secondary">|</Text>
+                  <Text variant="base-medium" color="secondary">하루종일</Text>
+                </Row>
+                <Text variant="title-small">{event.label}</Text>
+              </Stack>
+              <Stack gap="s" width="full">
+                <Text variant="base-medium" weight="medium">메모</Text>
+                <View className="bg-neutral-700 p-m rounded-xs w-full" style={{ minHeight: 119 }}>
+                  <Text variant="base-medium">{event.memo}</Text>
+                </View>
+              </Stack>
+            </Stack>
+          </Stack>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -110,6 +156,7 @@ export default function CalendarPage() {
   const now = useNow(60_000);
   const [viewDate, setViewDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
   const [direction, setDirection] = useState<"next" | "prev">("next");
+  const [activePlan, setActivePlan] = useState<{ date: Date; event: CalendarEvent } | null>(null);
   const hasNavigated = useRef(false);
   const events = buildMockEvents(now);
 
@@ -168,7 +215,8 @@ export default function CalendarPage() {
                     key={j}
                     cell={cell}
                     events={events[dateKey(cell.date)] ?? []}
-                    selected={isSameDay(cell.date, now)}
+                    isToday={isSameDay(cell.date, now)}
+                    onSelectEvent={(date, event) => setActivePlan({ date, event })}
                   />
                 ))}
               </Row>
@@ -176,6 +224,10 @@ export default function CalendarPage() {
           </Stack>
         </Animated.View>
       </View>
+
+      {activePlan && (
+        <PlanDetailModal date={activePlan.date} event={activePlan.event} onClose={() => setActivePlan(null)} />
+      )}
     </View>
   );
 }

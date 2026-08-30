@@ -1,67 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
-import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { isSameDay } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
-
-// ================================
-// Types
-// ================================
-
-interface TodoItem {
-  id: string;
-  text: string;
-  done: boolean;
-}
-
-interface TodoGroup {
-  id: string;
-  title: string;
-  category: Category;
-  items: TodoItem[];
-}
-
-// ================================
-// Constants
-// ================================
-
-const INITIAL_GROUPS: TodoGroup[] = [
-  {
-    id: "math",
-    title: "수학",
-    category: "math",
-    items: [
-      { id: "math-1", text: "교과서 풀기", done: false },
-      { id: "math-2", text: "문제집 풀기", done: true },
-    ],
-  },
-  {
-    id: "english",
-    title: "영어",
-    category: "english",
-    items: [
-      { id: "english-1", text: "단어 외우기", done: false },
-      { id: "english-2", text: "기출 풀기", done: false },
-      { id: "english-3", text: "본문 외우기", done: false },
-      { id: "english-4", text: "문제집 풀기", done: true },
-      { id: "english-5", text: "교과서 풀기", done: true },
-    ],
-  },
-  {
-    id: "social",
-    title: "사회",
-    category: "social",
-    items: [
-      { id: "social-1", text: "잠자기", done: false },
-    ],
-  },
-];
+import { useTodoStore } from "@/store";
+import type { TodoGroup, TodoItem } from "@/store";
 
 // ================================
 // Helpers
@@ -113,8 +62,13 @@ function TodoItemRow({ item, barColor, onPress }: { item: TodoItem; barColor: st
   );
 }
 
-function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (groupId: string, itemId: string) => void }) {
+function TodoGroupCard({ group, onToggle, onQuiz }: {
+  group: TodoGroup;
+  onToggle: (groupId: string, itemId: string) => void;
+  onQuiz: (group: TodoGroup) => void;
+}) {
   const colors = CATEGORY_COLORS[group.category];
+  const allDone = group.items.length > 0 && group.items.every((item) => item.done);
 
   return (
     <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
@@ -126,6 +80,16 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
             <TodoItemRow key={item.id} item={item} barColor={colors.bar} onPress={() => onToggle(group.id, item.id)} />
           ))}
         </Stack>
+        {allDone && (
+          <Pressable
+            onPress={() => onQuiz(group)}
+            className="self-start flex-row gap-xs items-center px-m py-s rounded-full border-2 border-primary-500"
+            style={{ backgroundColor: "rgba(246,72,45,0.15)" }}
+          >
+            <Icon name="sparkle" size={14} color="#F6482D" />
+            <Text variant="base-small" weight="medium" style={{ color: "#F6482D" }}>퀴즈 보기</Text>
+          </Pressable>
+        )}
       </Stack>
     </Row>
   );
@@ -137,16 +101,12 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
  */
 export default function TodoPage() {
   const now = useNow(60_000);
-  const [groups, setGroups] = useState(INITIAL_GROUPS);
+  const groups = useTodoStore((state) => state.groups);
+  const toggleItem = useTodoStore((state) => state.toggleItem);
   const weekDates = getWeekDates(now);
 
-  const handleToggle = (groupId: string, itemId: string) => {
-    setGroups((prev) => prev.map((group) => (
-      group.id !== groupId ? group : {
-        ...group,
-        items: group.items.map((item) => item.id === itemId ? { ...item, done: !item.done } : item),
-      }
-    )));
+  const handleQuiz = (group: TodoGroup) => {
+    router.push({ pathname: "/QuizPage", params: { category: group.category } });
   };
 
   return (
@@ -174,13 +134,13 @@ export default function TodoPage() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
         <Stack gap="l" width="full">
           {groups.map((group) => (
-            <TodoGroupCard key={group.id} group={group} onToggle={handleToggle} />
+            <TodoGroupCard key={group.id} group={group} onToggle={toggleItem} onQuiz={handleQuiz} />
           ))}
         </Stack>
       </ScrollView>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        <Pressable className="bg-neutral-700 p-m rounded-full items-center justify-center">
+        <Pressable onPress={() => router.push("/AddTodo")} className="bg-neutral-600 p-m rounded-full items-center justify-center">
           <Icon name="plus" size={20} />
         </Pressable>
       </View>
