@@ -327,12 +327,23 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
               <Text variant="base-medium" color="secondary">삭제하고 되돌릴 수 없습니다.</Text>
             </Stack>
             <Row gap="m" width="full">
-              <View className="flex-1">
-                <Button variant="disabled" disabled={false} style={{ paddingVertical: 16 }} onPress={onCancel}> 취소 </Button>
-              </View>
-              <View className="flex-1">
-                <Button variant="primary" style={{ paddingVertical: 16 }} onPress={onConfirm}> 삭제 </Button>
-              </View>
+              <Button
+                variant="disabled"
+                disabled={false}
+                width="auto"
+                style={{ width: 150, height: 52, borderRadius: 16, paddingVertical: 0 }}
+                onPress={onCancel}
+              >
+                취소
+              </Button>
+              <Button
+                variant="primary"
+                width="auto"
+                style={{ width: 150, height: 52, borderRadius: 16, paddingVertical: 0 }}
+                onPress={onConfirm}
+              >
+                삭제
+              </Button>
             </Row>
           </Stack>
         </Pressable>
