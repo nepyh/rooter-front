@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, FlatList, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -133,11 +133,11 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
 }
 
 function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; selectedIndex: number; onChange: (index: number) => void }) {
-  const scrollRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<string>>(null);
   const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
 
   const scrollToIndex = (index: number, animated = true) => {
-    scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
+    listRef.current?.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
   };
 
   const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -148,23 +148,27 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
   };
 
   return (
-    <ScrollView
-      ref={scrollRef}
+    <FlatList
+      ref={listRef}
+      data={data}
+      keyExtractor={(label) => label}
       style={{ height: WHEEL_HEIGHT, width: 64 }}
       showsVerticalScrollIndicator={false}
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
       onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
-      // 상시 마운트된 상태라 display:none일 땐 레이아웃이 없다가, 처음 보이는 순간
-      // onLayout이 뜹니다. useEffect보다 이 시점에 위치를 맞춰야 실제 레이아웃이
-      // 잡히기 전에 scrollTo가 무시되는 문제가 없습니다.
+      // 상시 마운트된 상태라 display:none일 땐 레이아웃 자체가 없다가, 다시 보이는
+      // 순간 onLayout이 뜹니다. 그 시점에 위치를 맞춰야 레이아웃이 잡히기 전에
+      // scrollToOffset이 무시되는 문제가 없습니다.
       onLayout={() => scrollToIndex(selectedIndex, false)}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
-    >
-      {data.map((label, index) => (
+      getItemLayout={(_, index) => ({ length: WHEEL_ITEM_HEIGHT, offset: WHEEL_ITEM_HEIGHT * (paddingRows + index), index })}
+      windowSize={3}
+      initialNumToRender={WHEEL_VISIBLE_ROWS + 4}
+      maxToRenderPerBatch={WHEEL_VISIBLE_ROWS + 2}
+      renderItem={({ item, index }) => (
         <Pressable
-          key={label}
           onPress={() => { scrollToIndex(index); onChange(index); }}
           style={{ height: WHEEL_ITEM_HEIGHT }}
           className="items-center justify-center"
@@ -174,11 +178,11 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
             weight={index === selectedIndex ? "medium" : "regular"}
             color={index === selectedIndex ? "primary" : "disabled"}
           >
-            {label}
+            {item}
           </Text>
         </Pressable>
-      ))}
-    </ScrollView>
+      )}
+    />
   );
 }
 
