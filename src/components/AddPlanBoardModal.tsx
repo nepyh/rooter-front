@@ -140,6 +140,15 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
     listRef.current?.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
   };
 
+  // 이 컬럼은 시트가 슬라이드업되는 동안(400ms) 이미 레이아웃되어 있어서, onLayout 시점에
+  // scrollToOffset을 불러도 그 애니메이션과 겹쳐 씹히는 경우가 있습니다. 시트 애니메이션이
+  // 끝난 뒤 한 번 더 위치를 맞춰서 확실히 보정합니다.
+  useEffect(() => {
+    const timer = setTimeout(() => scrollToIndex(selectedIndex, false), 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(data.length - 1, index));
