@@ -368,6 +368,8 @@ export default function Home() {
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const viewportHeightRef = useRef(0);
   const todoGroups = useTodoStore((state) => state.groups);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
@@ -407,6 +409,28 @@ export default function Home() {
   const updateStatus = (id: string, status: PlanStatus) => {
     setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
     setActiveId(null);
+  };
+
+  // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
+  const handleSelectPlan = (plan: Plan) => {
+    const nextId = plan.id === activeId ? null : plan.id;
+    setActiveId(nextId);
+    if (!nextId) return;
+
+    const viewportHeight = viewportHeightRef.current;
+    if (!viewportHeight) return;
+
+    const showBelow = plan.start < POPOVER_HEIGHT + 8;
+    const menuTop = showBelow ? plan.start + plan.duration + 8 : plan.start - POPOVER_HEIGHT - 8;
+    const menuBottom = menuTop + POPOVER_HEIGHT;
+
+    const visibleTop = scrollYRef.current;
+    const visibleBottom = visibleTop + viewportHeight;
+    if (menuTop >= visibleTop && menuBottom <= visibleBottom) return;
+
+    const centerTarget = menuTop + POPOVER_HEIGHT / 2 - viewportHeight / 2;
+    const targetY = Math.max(0, Math.min(TIMELINE_HEIGHT - viewportHeight, centerTarget));
+    scrollRef.current?.scrollTo({ y: targetY, animated: true });
   };
 
   // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
@@ -467,6 +491,8 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+        onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       >
         <View style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
           {HOURS.map((hour, i) => (
@@ -477,7 +503,7 @@ export default function Home() {
           ))}
 
           {plans.map((plan) => (
-            <PlanBlock key={plan.id} plan={plan} onPress={() => setActiveId(plan.id === activeId ? null : plan.id)} />
+            <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
           ))}
 
           <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />
