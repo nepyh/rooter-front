@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text, Button } from "@/components";
 import { Icon } from "@/assets";
+import { CATEGORY_LABELS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 
 // ================================
@@ -118,6 +119,7 @@ export default function QuizPage() {
   const category = (params.category as Category) ?? "neutral";
   const questions = MOCK_QUIZZES[category] ?? [];
 
+  const [started, setStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -152,6 +154,36 @@ export default function QuizPage() {
 
   const primaryLabel = !confirmed ? "확인" : isLast ? "결과 보기" : "다음";
   const primaryVariant = !confirmed && selectedIndex === null ? "disabled" : "primary";
+
+  if (!started) {
+    return (
+      <View className="flex-1">
+        <StatusBar style="light" />
+        <Stack align="between" width="full" className="flex-1">
+          <Stack gap="xxl" width="full">
+            <Pressable onPress={() => router.back()} className="w-[28px] h-[28px] items-center justify-center">
+              <Icon name="close" size={24} />
+            </Pressable>
+            <Stack gap="xl" width="full">
+              <Icon name="mascotFace" size={100} />
+              <Stack gap="m" width="full">
+                <Row gap="m" className="items-center">
+                  <View className="px-s py-xs rounded-xs" style={{ backgroundColor: "rgba(246,72,45,0.2)" }}>
+                    <Text variant="base-medium" weight="medium" style={{ color: "#F6482D" }}>{CATEGORY_LABELS[category]}</Text>
+                  </View>
+                  <Text variant="title-medium">학습 테스트</Text>
+                </Row>
+                <Text variant="base-large">
+                  사용자의 학습이 제대로 되었는지{"\n"}확인하기 위해 학습 테스트를 시작할게요
+                </Text>
+              </Stack>
+            </Stack>
+          </Stack>
+          <Button variant="primary" onPress={() => setStarted(true)}> 시작 </Button>
+        </Stack>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1">
