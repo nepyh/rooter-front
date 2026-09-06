@@ -62,6 +62,17 @@ function TodoItemRow({ item, barColor, onPress }: { item: TodoItem; barColor: st
   );
 }
 
+function AddItemRow({ category }: { category: TodoGroup["category"] }) {
+  return (
+    <Pressable onPress={() => router.push({ pathname: "/AddTodo", params: { category } })}>
+      <Row gap="s" className="items-center">
+        <View className="w-[14px] h-[14px] rounded-xxs border border-neutral-400" />
+        <Text variant="base-medium" color="disabled" style={{ textDecorationLine: "underline" }}>눌러서 추가하기</Text>
+      </Row>
+    </Pressable>
+  );
+}
+
 function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (groupId: string, itemId: string) => void }) {
   const colors = CATEGORY_COLORS[group.category];
 
@@ -74,6 +85,7 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
           {group.items.map((item) => (
             <TodoItemRow key={item.id} item={item} barColor={colors.bar} onPress={() => onToggle(group.id, item.id)} />
           ))}
+          <AddItemRow category={group.category} />
         </Stack>
       </Stack>
     </Row>
@@ -119,12 +131,6 @@ export default function TodoPage() {
           ))}
         </Stack>
       </ScrollView>
-
-      <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        <Pressable onPress={() => router.push("/AddTodo")} className="bg-neutral-600 p-m rounded-full items-center justify-center">
-          <Icon name="plus" size={20} />
-        </Pressable>
-      </View>
     </View>
   );
 }
