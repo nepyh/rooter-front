@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal } from "@/components";
+import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
@@ -367,6 +367,7 @@ export default function Home() {
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
+  const [showAiChat, setShowAiChat] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
@@ -377,11 +378,11 @@ export default function Home() {
     if (toast === "success") setShowToast(true);
   }, [toast]);
 
-  // 플랜보드 추가 모달이 떠 있는 동안은 하단 NavBar를 숨깁니다.
+  // 플랜보드 추가 모달이나 AI 채팅 모달이 떠 있는 동안은 하단 NavBar를 숨깁니다.
   useEffect(() => {
-    setFullScreenModalOpen(showAddPlan);
+    setFullScreenModalOpen(showAddPlan || showAiChat);
     return () => setFullScreenModalOpen(false);
-  }, [showAddPlan, setFullScreenModalOpen]);
+  }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
   // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
   // TODO: 실제 플랜보드 데이터가 쌓이기 전까지는 API가 빈 값/에러를 주면 목업 하루 일정을 보여줍니다.
@@ -527,7 +528,7 @@ export default function Home() {
           <Pressable onPress={() => setShowAddPlan(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
-          <Pressable className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={() => setShowAiChat(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>
@@ -553,6 +554,8 @@ export default function Home() {
         onClose={() => setShowAddPlan(false)}
         onCreated={handlePlanCreated}
       />
+
+      <AiChatModal visible={showAiChat} onClose={() => setShowAiChat(false)} />
     </View>
   );
 }
