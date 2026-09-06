@@ -105,7 +105,7 @@ export function AiChatModal({ visible, onClose }: Props) {
               behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
               <Stack gap="xl" width="full" align="center" className="bg-background-primary pt-s pb-xxl px-xl rounded-t-[32px] flex-1">
-                <View className="bg-neutral-600 rounded-full" style={{ width: 104, height: 4 }} />
+                <View className="self-center bg-neutral-600 rounded-full" style={{ width: 104, height: 4 }} />
 
                 <ScrollView
                   ref={scrollRef}

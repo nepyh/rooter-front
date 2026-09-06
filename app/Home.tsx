@@ -478,7 +478,7 @@ export default function Home() {
       <StatusBar style="light" />
       {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
 
-      <Row width="full" align="between" className="items-center pb-l">
+      <Row width="full" align="between" className="items-center pt-m pb-l">
         <Text variant="header-large">{formatDateHeader(now)}</Text>
         <Row gap="s" className="items-center">
           <Text variant="base-small" color="secondary">기말고사</Text>
