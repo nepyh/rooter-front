@@ -12,6 +12,7 @@ interface Props extends TextInputProps{
   label?: string;
   errorMessage?: string;
   className?: string;
+  
 }
 
 /**
@@ -53,7 +54,7 @@ export const Input = forwardRef<TextInput, Props>(
               `}
               {...props}
             />
-            {value && (
+            {!!value && (
               <Pressable onPress={handleClear}>
                 <Icon name="clear" size={22} color="#6B7280" />
               </Pressable>
