@@ -63,12 +63,12 @@ const STUDY_STYLES: {
  * @description 여유/보통/어려움 중 하나를 선택하면 설문을 완료하고 홈으로 이동합니다.
  */
 export default function StudyStyle() {
-  const { school, grade, classNum } = useLocalSearchParams<{ school: string; grade: string; classNum: string }>();
+  const { school, grade, classNum, textbooks } = useLocalSearchParams<{ school: string; grade: string; classNum: string; textbooks?: string }>();
   const [selected, setSelected] = useState<StudyStyleKey | null>(null);
 
   const handleComplete = () => {
-    // TODO: 학교/학년/반/공부 스타일 설문 데이터를 저장하는 API가 정해지면 여기서 전송합니다.
-    console.log("survey result:", { school, grade, classNum, studyStyle: selected });
+    // TODO: 학교/학년/반/교과서/공부 스타일 설문 데이터를 저장하는 API가 정해지면 여기서 전송합니다.
+    console.log("survey result:", { school, grade, classNum, textbooks, studyStyle: selected });
     router.replace({ pathname: "/", params: { toast: "success" } });
   };
 
