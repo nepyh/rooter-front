@@ -27,7 +27,6 @@ function NotificationRow({ label, value, onToggle }: { label: string; value: boo
 
 /**
  * 알림 화면
- * @description 알림 종류별 on/off 토글을 보여줍니다. 실제 알림 발송 기능은 아직 없습니다.
  */
 export default function NotificationPage() {
   const [enabled, setEnabled] = useState(NOTIFICATION_ROWS.map((row) => row.defaultEnabled));

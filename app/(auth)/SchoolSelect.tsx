@@ -12,7 +12,6 @@ import { searchMiddleSchools, type School } from "@/api/school";
 
 /**
  * 학교 선택 및 정보 입력 화면
- * @description 학교명을 입력해 목록에서 검색하고, 학교를 선택하면 같은 화면에서 학년/반을 이어서 입력받습니다.
  */
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");

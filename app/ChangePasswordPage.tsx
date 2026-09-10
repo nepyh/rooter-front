@@ -11,7 +11,6 @@ type Step = "verify" | "reset";
 
 /**
  * 비밀번호 변경 화면
- * @description 현재 비밀번호 확인 후에만 새 비밀번호 입력창을 보여줍니다. 회원가입 화면과 동일한 구성을 따릅니다.
  */
 export default function ChangePasswordPage() {
   const [step, setStep] = useState<Step>("verify");

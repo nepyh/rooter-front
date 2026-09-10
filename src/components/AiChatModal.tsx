@@ -51,7 +51,8 @@ function Bubble({ message }: { message: Message }) {
 
 /**
  * AI 채팅 모달
- * @description 홈 화면 플러스 버튼 옆 AI 버튼을 누르면 뜨는 바텀시트로, 일정 관련 채팅을 나눕니다.
+ * @param visible 모달 표시 여부를 설정합니다.
+ * @param onClose 모달을 닫을 때 실행할 행동을 입력합니다.
  */
 export function AiChatModal({ visible, onClose }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);

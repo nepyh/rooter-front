@@ -18,7 +18,6 @@ const ANALYZE_MS = 1600;
 
 /**
  * 공부 스타일 분석 중 화면
- * @description 설문 결과를 잠시 보여주는 로딩 화면으로, 일정 시간 뒤 가입 완료로 이동합니다.
  */
 export default function StudySurveyLoading() {
   const { school, grade, classNum, answers } = useLocalSearchParams<{

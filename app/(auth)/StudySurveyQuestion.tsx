@@ -86,7 +86,6 @@ function OptionRow({ label, selected, onPress }: { label: string; selected: bool
 
 /**
  * 공부 스타일 설문 문항 화면
- * @description 문항 하나를 보여주고, 다음을 누르면 같은 화면을 다음 문항으로 다시 push합니다.
  */
 export default function StudySurveyQuestion() {
   const { school, grade, classNum, step, answers } = useLocalSearchParams<{

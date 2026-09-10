@@ -112,7 +112,6 @@ function OptionRow({ label, state, onPress }: { label: string; state: OptionStat
 
 /**
  * 퀴즈 화면
- * @description 과목별 할 일을 모두 완료하면 진입할 수 있는 목업 퀴즈입니다.
  */
 export default function QuizPage() {
   const params = useLocalSearchParams<{ category: string }>();

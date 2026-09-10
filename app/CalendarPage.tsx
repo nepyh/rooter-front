@@ -143,7 +143,6 @@ function PlanDetailModal({ visible, date, event, onClose }: { visible: boolean; 
 
 /**
  * 캘린더 화면
- * @description 월별 달력으로 일정을 보여주고, 월을 이동할 수 있습니다. 표시되는 날짜는 항상 오늘 기준입니다.
  */
 export default function CalendarPage() {
   const now = useNow(60_000);

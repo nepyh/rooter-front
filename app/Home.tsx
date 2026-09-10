@@ -408,7 +408,6 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
 
 /**
  * 홈 화면
- * @description 오늘의 일정을 시간순으로 보여주고, 현재 시각/날짜를 실시간으로 반영합니다.
  */
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();

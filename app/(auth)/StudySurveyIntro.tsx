@@ -10,7 +10,6 @@ import { Icon } from "@/assets";
 
 /**
  * 공부 스타일 설문 안내 화면
- * @description 설문을 시작하거나 건너뛸 수 있습니다. 건너뛰면 바로 가입 완료로 이동합니다.
  */
 export default function StudySurveyIntro() {
   const { school, grade, classNum } = useLocalSearchParams<{ school: string; grade: string; classNum: string }>();

@@ -6,7 +6,6 @@ import { Icon } from "@/assets";
 
 /**
  * 계정 설정 화면
- * @description 현재는 별도 기능 없이 헤더만 퍼블리싱된 화면입니다.
  */
 export default function AccountSettingPage() {
   return (

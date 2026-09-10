@@ -94,7 +94,6 @@ function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (group
 
 /**
  * 할 일 화면
- * @description 이번 주 요일을 보여주고, 과목별 할 일 목록을 체크할 수 있습니다.
  */
 export default function TodoPage() {
   const now = useNow(60_000);

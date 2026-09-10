@@ -143,7 +143,6 @@ function ContributionGraph() {
 
 /**
  * 마이페이지(설정) 화면
- * @description 로그인한 사용자 정보를 보여주고, 알림/계정 설정으로 이동할 수 있는 진입점을 제공합니다.
  */
 export default function SettingPage() {
   const router = useRouter();

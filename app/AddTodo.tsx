@@ -20,7 +20,6 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
 
 /**
  * 할 일 추가 화면
- * @description 과목을 선택하고 내용을 입력해 새로운 할 일을 추가합니다. (디자인 미정으로 임의 구성)
  */
 export default function AddTodo() {
   const { category: initialCategory } = useLocalSearchParams<{ category?: Category }>();

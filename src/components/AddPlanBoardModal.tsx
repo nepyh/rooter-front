@@ -255,7 +255,10 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
 
 /**
  * 플랜보드 추가 모달
- * @description 홈 화면 위에 뜨는 바텀시트로, 제목/일시/교과서를 입력해 새로운 플랜보드를 만듭니다.
+ * @param visible 모달 표시 여부를 설정합니다.
+ * @param baseDate 모달을 열 때 기준이 되는 날짜/시간을 입력합니다.
+ * @param onClose 모달을 닫을 때 실행할 행동을 입력합니다.
+ * @param onCreated 플랜보드가 생성된 뒤 실행할 행동을 입력합니다.
  */
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);

@@ -34,7 +34,6 @@ function MenuRow({ icon, label, onPress }: { icon?: IconName; label: string; onP
 
 /**
  * 프로필 화면
- * @description 이름/이메일은 조회만 가능하고, 소개글과 프로필 이미지는 수정 후 저장할 수 있습니다.
  */
 export default function ProfilePage() {
   const user = useUserStore((state) => state.user);
