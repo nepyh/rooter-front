@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/metro-runtime": "~56.0.17",
+    "@react-native-community/datetimepicker": "9.1.0",
     "axios": "^1.17.0",
     "babel-plugin-module-resolver": "^5.0.3",
     "babel-preset-expo": "^56.0.14",

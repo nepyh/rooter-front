@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
 import { signup } from '@/api/auth';
+import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/password';
 import axios from "axios";
 
 export default function Signup() {
@@ -29,6 +30,14 @@ export default function Signup() {
 
   const handleSubmit = async () => {
     setBtnVariant("disabled");
+
+    if (!isValidPassword(password)) {
+      setPasswordErrorMessage(PASSWORD_ERROR_MESSAGE);
+      passwordRef.current?.focus();
+      passwordRef.current?.setNativeProps({ selection: { start: password.length, end: password.length } });
+      setBtnVariant("primary");
+      return;
+    }
 
     if (password != checkPassword) {
       setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다.");

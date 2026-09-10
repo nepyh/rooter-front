@@ -1,13 +1,17 @@
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
-import { Stack, Row, Text } from "@/components";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Stack, Row, Text, Toast } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { WEEKDAYS } from "@/constants/date";
+
+const TOAST_MESSAGES: Record<string, string> = {
+  "password-changed": "비밀번호가 변경되었습니다.",
+};
 
 // ================================
 // Constants
@@ -143,15 +147,16 @@ function ContributionGraph() {
  */
 export default function SettingPage() {
   const router = useRouter();
+  const { toast } = useLocalSearchParams<{ toast?: string }>();
   const user = useUserStore((state) => state.user);
-  const logout = useUserStore((state) => state.logout);
   const username = user?.username ?? "게스트";
   const email = user?.email ?? "로그인이 필요합니다";
 
-  const handleLogout = () => {
-    logout();
-    router.replace("/");
-  };
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    if (toast && TOAST_MESSAGES[toast]) setShowToast(true);
+  }, [toast]);
 
   return (
     <View className="flex-1">
@@ -162,7 +167,7 @@ export default function SettingPage() {
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
-      <Pressable className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
+      <Pressable onPress={() => router.push("/ProfilePage")} className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
         <Row gap="m" className="items-center">
           <View className="w-[48px] h-[48px] rounded-full bg-primary-500 items-center justify-center">
             <Text variant="base-large" weight="medium" className="text-white">{username.slice(0, 1)}</Text>
@@ -178,8 +183,8 @@ export default function SettingPage() {
       <Stack gap="l" width="full" className="pt-xxl">
         <Text variant="base-medium" weight="medium" color="secondary">일반</Text>
         <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
-          <SettingRow icon="bell" label="알림" />
-          <SettingRow icon="lock" label="계정" />
+          <SettingRow icon="bell" label="알림" onPress={() => router.push("/NotificationPage")} />
+          <SettingRow icon="lock" label="계정" onPress={() => router.push("/AccountSettingPage")} />
         </Stack>
       </Stack>
 
@@ -188,17 +193,14 @@ export default function SettingPage() {
         <ContributionGraph />
       </Stack>
 
-      <Stack gap="l" width="full" className="pt-xxl">
-        <Text variant="base-medium" weight="medium" color="secondary">계정 관리</Text>
-        <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
-          <SettingRow icon="logout" label="로그아웃" onPress={handleLogout} />
-        </Stack>
-      </Stack>
-
       <Row width="full" className="justify-end pt-xxl" pointerEvents="none">
         <Icon name="mascotCharacter" size={120} />
       </Row>
       </ScrollView>
+
+      {showToast && toast && (
+        <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />
+      )}
     </View>
   );
 }

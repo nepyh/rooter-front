@@ -56,7 +56,18 @@ const INITIAL_GROUPS: TodoGroup[] = [
     title: "사회",
     category: "social",
     items: [
-      { id: "social-1", text: "잠자기", done: false },
+      { id: "social-1", text: "교과서 풀기", done: false },
+      { id: "social-2", text: "연표 정리하기", done: true },
+    ],
+  },
+  {
+    id: "science",
+    title: "과학",
+    category: "science",
+    items: [
+      { id: "science-1", text: "교과서 풀기", done: false },
+      { id: "science-2", text: "실험 관찰 일지 정리", done: false },
+      { id: "science-3", text: "문제집 풀기", done: true },
     ],
   },
 ];
