@@ -67,7 +67,6 @@ function NavItem({ tab, active, onPress }: { tab: Tab; active: boolean; onPress:
 
 /**
  * 하단 탭 내비게이션
- * @description 현재 경로에 따라 활성 탭을 표시하고, 탭을 누르면 해당 화면으로 이동합니다.
  */
 export function NavBar() {
   const pathname = usePathname();

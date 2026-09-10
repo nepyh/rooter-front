@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 
 /**
  * useNow
- * @description 지정한 간격마다 갱신되는 현재 시각을 반환합니다.
+ * @param intervalMs 현재 시각을 갱신할 간격(ms)을 설정합니다.
+ * @returns 갱신되는 현재 시각
  */
 export function useNow(intervalMs = 30_000) {
   const [now, setNow] = useState(() => new Date());
