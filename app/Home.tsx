@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
@@ -316,6 +317,59 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
   );
 }
 
+const ADD_MENU_OFFSCREEN_Y = 400;
+
+function AddMenuButton({ label, onPress }: { label: string; onPress?: () => void }) {
+  return (
+    <Pressable onPress={onPress} className="bg-neutral-700 h-16 rounded-md items-center justify-center w-full">
+      <Text variant="base-medium" weight="medium">{label}</Text>
+    </Pressable>
+  );
+}
+
+// onFullyClosed: 닫힘 애니메이션 도중 다른 Modal을 띄우면 두 Modal이 동시에 떠서 터치가 씹히는 문제가 있어,
+// 완전히 닫힌 뒤에 후속 동작을 실행하도록 호출 시점을 분리했습니다.
+function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule }: { visible: boolean; onClose: () => void; onFullyClosed: () => void; onCreateSchedule: () => void }) {
+  const translateY = useSharedValue(ADD_MENU_OFFSCREEN_Y);
+  const [isRendered, setIsRendered] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+      translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
+    } else {
+      translateY.value = withTiming(ADD_MENU_OFFSCREEN_Y, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
+        if (finished) {
+          runOnJS(setIsRendered)(false);
+          runOnJS(onFullyClosed)();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, translateY]);
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
+  return (
+    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
+      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
+        <Pressable>
+          <Animated.View style={sheetStyle}>
+            <View className="bg-background-primary rounded-t-[32px] items-center pt-s px-6 pb-xxl" style={{ gap: 24 }}>
+              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
+              <Stack gap="s" width="full">
+                <AddMenuButton label="일정 생성하기" onPress={onCreateSchedule} />
+                <AddMenuButton label="과목 생성하기" />
+                <AddMenuButton label="새 플랜 생성하기" />
+              </Stack>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onCancel: () => void; onConfirm: () => void }) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onCancel}>
@@ -367,10 +421,12 @@ export default function Home() {
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
+  const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const todoGroups = useTodoStore((state) => state.groups);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
@@ -525,7 +581,7 @@ export default function Home() {
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
-          <Pressable onPress={() => setShowAddPlan(true)} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
           <Pressable onPress={() => setShowAiChat(true)} className="p-m rounded-full items-center justify-center">
@@ -547,6 +603,19 @@ export default function Home() {
       )}
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
+
+      <AddMenu
+        visible={showAddMenu}
+        onClose={() => setShowAddMenu(false)}
+        onFullyClosed={() => {
+          afterAddMenuClosedRef.current?.();
+          afterAddMenuClosedRef.current = null;
+        }}
+        onCreateSchedule={() => {
+          afterAddMenuClosedRef.current = () => setShowAddPlan(true);
+          setShowAddMenu(false);
+        }}
+      />
 
       <AddPlanBoardModal
         visible={showAddPlan}
