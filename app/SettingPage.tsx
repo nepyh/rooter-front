@@ -6,6 +6,7 @@ import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
+import { logout } from "@/api/auth";
 
 // ================================
 // Components
@@ -30,12 +31,17 @@ function SettingRow({ icon, label, onPress }: { icon: IconName; label: string; o
 export default function SettingPage() {
   const router = useRouter();
   const user = useUserStore((state) => state.user);
-  const logout = useUserStore((state) => state.logout);
   const username = user?.username ?? "게스트";
   const email = user?.email ?? "로그인이 필요합니다";
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // logout()은 서버 호출 성공/실패와 무관하게 로컬 로그인 상태를 항상 정리합니다.
+    // 여기서는 네트워크 오류가 나도 화면 이동은 계속 진행되도록 감싸기만 합니다.
+    try {
+      await logout();
+    } catch {
+      // 로컬 상태는 이미 정리됐으므로 무시하고 화면만 이동합니다.
+    }
     router.replace("/");
   };
 

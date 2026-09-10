@@ -11,8 +11,9 @@ interface User {
 
 interface UserState {
   user: User | null;
+  token: string | null;
   isLogin: boolean;
-  setUser: (user: User) => void;
+  setUser: (user: User, token: string) => void;
   logout: () => void;
 }
 
@@ -22,8 +23,9 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set) => ({
   user: null,
+  token: null,
   isLogin: false,
 
-  setUser: (user) => set({ user, isLogin: true }),
-  logout: () => set({ user: null, isLogin: false }),
+  setUser: (user, token) => set({ user, token, isLogin: true }),
+  logout: () => set({ user: null, token: null, isLogin: false }),
 }));
