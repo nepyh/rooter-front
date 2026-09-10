@@ -20,8 +20,9 @@ interface Props extends TextInputProps{
  * @param label Input label을 추가합니다.
  */
 export const Input = forwardRef<TextInput, Props>(
-  ({ label, errorMessage, className = "", onChangeText, value, ...props }, ref) => {
+  ({ label, errorMessage, className = "", onChangeText, value, secureTextEntry, ...props }, ref) => {
     const [focused, setFocused] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const inputRef = useRef<TextInput>(null);
 
     useImperativeHandle(ref, () => inputRef.current as TextInput);
@@ -47,12 +48,18 @@ export const Input = forwardRef<TextInput, Props>(
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               placeholderTextColor="#C9CDD6"
+              secureTextEntry={secureTextEntry && !showPassword}
               className={`
                 flex-1 text-lg text-white
                 ${className}
               `}
               {...props}
             />
+            {secureTextEntry && (
+              <Pressable onPress={() => setShowPassword((prev) => !prev)}>
+                <Icon name={showPassword ? "eyeOff" : "eye"} size={22} color="#6B7280" />
+              </Pressable>
+            )}
             {value && (
               <Pressable onPress={handleClear}>
                 <Icon name="clear" size={22} color="#6B7280" />

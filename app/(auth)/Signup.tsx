@@ -108,6 +108,7 @@ export default function Signup() {
               label="이메일"
               placeholder="이메일을 입력해주세요"
               errorMessage={emailErrorMessage}
+              autoCapitalize="none"
             />
             <Input
               ref={passwordRef}
