@@ -74,6 +74,10 @@ export default function SettingPage() {
           <SettingRow icon="logout" label="로그아웃" onPress={handleLogout} />
         </Stack>
       </Stack>
+
+      <View className="absolute bottom-0 right-0" pointerEvents="none">
+        <Icon name="mascotCharacter" size={120} />
+      </View>
     </View>
   );
 }

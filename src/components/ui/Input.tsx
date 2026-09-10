@@ -68,7 +68,7 @@ export const Input = forwardRef<TextInput, Props>(
           </Row>
         </View>
         {errorMessage && (
-          <Text variant="base-small" style={{ color: "#FF4D4F" }}> {errorMessage} </Text>
+          <Text variant="base-small" style={{ color: "#FF4D4F" }}>{errorMessage}</Text>
         )}
       </Stack>
     );

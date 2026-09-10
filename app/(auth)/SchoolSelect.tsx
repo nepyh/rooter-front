@@ -21,6 +21,7 @@ export default function SchoolSelect() {
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
   const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const schoolRef = useRef<TextInput>(null);
 
@@ -34,11 +35,16 @@ export default function SchoolSelect() {
   };
 
   const handleSelect = (school: School) => {
+    const isSameSchool = selectedSchool?.code === school.code;
+
     setQuery(school.name);
     setSelected(true);
     setHasSelectedOnce(true);
-    setGrade("");
-    setClassNum("");
+    setSelectedSchool(school);
+    if (!isSameSchool) {
+      setGrade("");
+      setClassNum("");
+    }
     schoolRef.current?.blur();
   };
 
@@ -82,26 +88,30 @@ export default function SchoolSelect() {
             </Text>
           </Stack>
           <Stack width="full" gap="m">
-            <Input
-              ref={schoolRef}
-              value={query}
-              onChangeText={handleChangeQuery}
-              editable={!selected}
-              onPressIn={selected ? handleEditSchool : undefined}
-              label="학교명"
-              placeholder="학교 이름을 입력해주세요."
-            />
-            {showSuggestions && (
-              <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
-                {schools.map((school) => (
-                  <Pressable key={school.code} className="p-xl w-full" onPress={() => handleSelect(school)}>
-                    <Text variant="base-large" weight="medium">
-                      {school.name} ({school.region})
-                    </Text>
-                  </Pressable>
-                ))}
-              </Stack>
-            )}
+            <View className="relative z-10">
+              <Input
+                ref={schoolRef}
+                value={query}
+                onChangeText={handleChangeQuery}
+                editable={!selected}
+                onPressIn={selected ? handleEditSchool : undefined}
+                label="학교명"
+                placeholder="학교 이름을 입력해주세요."
+              />
+              {showSuggestions && (
+                <View className="absolute top-full mt-s w-full z-20 shadow-lg" style={{ elevation: 8 }}>
+                  <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
+                    {schools.map((school) => (
+                      <Pressable key={school.code} className="p-xl w-full" onPress={() => handleSelect(school)}>
+                        <Text variant="base-large" weight="medium">
+                          {school.name} ({school.region})
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </Stack>
+                </View>
+              )}
+            </View>
             {hasSelectedOnce && (
               <Row gap="m" width="full">
                 <View className="flex-1">
