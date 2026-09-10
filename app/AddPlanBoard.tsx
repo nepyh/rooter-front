@@ -3,13 +3,32 @@ import { Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
-import { getSubjects, getTextbooksBySubject, getChaptersByTextbook } from "@/api/catalog";
-import type { Subject, Textbook, Chapter } from "@/api/catalog";
+import { getSubjects, getTextbooksBySubject, getTextbookDetail } from "@/api/catalog";
+import type { Subject, Textbook, ChapterTree } from "@/api/catalog";
 import { createPlanBoard } from "@/api/planBoard";
+
+// ================================
+// Types
+// ================================
+
+interface FlatChapter {
+  id: number;
+  chapterName: string;
+  depth: number;
+}
 
 // ================================
 // Helpers
 // ================================
+
+// 단원은 대단원/소단원처럼 트리 구조로 내려와서, depth를 매겨 들여쓰기로 계층을 표현할 수 있게 평평하게 폅니다.
+const flattenChapterTree = (nodes: ChapterTree[], depth = 0): FlatChapter[] =>
+  [...nodes]
+    .sort((a, b) => a.chapterOrder - b.chapterOrder)
+    .flatMap((node) => [
+      { id: node.id, chapterName: node.chapterName, depth },
+      ...flattenChapterTree(node.children, depth + 1),
+    ]);
 
 const parseClock = (value: string) => {
   const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -32,12 +51,13 @@ const toIsoTime = (base: Date, value: string) => {
 // Components
 // ================================
 
-function PickerRow<T extends { id: number; name: string }>({ label, options, selectedId, onSelect, emptyText }: {
+function PickerRow<T extends { id: number }>({ label, options, selectedId, onSelect, emptyText, getLabel }: {
   label: string;
   options: T[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   emptyText: string;
+  getLabel: (option: T) => string;
 }) {
   return (
     <Stack gap="m">
@@ -59,12 +79,51 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
                 }}
               >
                 <Text weight="medium" style={{ color: isSelected ? "#F6482D" : "#8A919E" }}>
-                  {option.name}
+                  {getLabel(option)}
                 </Text>
               </Pressable>
             );
           })}
         </Row>
+      )}
+    </Stack>
+  );
+}
+
+// 대단원/소단원처럼 계층이 있는 단원은 pill 형태보다 들여쓰기로 구분되는 세로 목록이 더 잘 보여서 따로 뺐습니다.
+function ChapterPicker({ options, selectedId, onSelect, emptyText }: {
+  options: FlatChapter[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+  emptyText: string;
+}) {
+  return (
+    <Stack gap="m">
+      <Text variant="base-medium" weight="medium">단원</Text>
+      {options.length === 0 ? (
+        <Text color="disabled">{emptyText}</Text>
+      ) : (
+        <Stack gap="xs">
+          {options.map((chapter) => {
+            const isSelected = selectedId === chapter.id;
+            return (
+              <View key={chapter.id} style={{ marginLeft: chapter.depth * 16 }}>
+                <Pressable
+                  onPress={() => onSelect(chapter.id)}
+                  className="self-start px-l py-s rounded-sm border-2"
+                  style={{
+                    borderColor: isSelected ? "#F6482D" : "#525866",
+                    backgroundColor: isSelected ? "rgba(246,72,45,0.15)" : "transparent",
+                  }}
+                >
+                  <Text weight="medium" style={{ color: isSelected ? "#F6482D" : "#8A919E" }}>
+                    {chapter.chapterName}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })}
+        </Stack>
       )}
     </Stack>
   );
@@ -77,7 +136,7 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
 export default function AddPlanBoard() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [textbooks, setTextbooks] = useState<Textbook[]>([]);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chapters, setChapters] = useState<FlatChapter[]>([]);
 
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [textbookId, setTextbookId] = useState<number | null>(null);
@@ -109,7 +168,9 @@ export default function AddPlanBoard() {
       setChapters([]);
       return;
     }
-    getChaptersByTextbook(textbookId).then(setChapters).catch(() => setChapters([]));
+    getTextbookDetail(textbookId)
+      .then((detail) => setChapters(flattenChapterTree(detail.chapters)))
+      .catch(() => setChapters([]));
   }, [textbookId]);
 
   const canSubmit = title.trim().length > 0 && subjectId !== null && textbookId !== null && chapterId !== null && !submitting;
@@ -158,12 +219,12 @@ export default function AddPlanBoard() {
 
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <Stack gap="xl">
-            <PickerRow label="과목" options={subjects} selectedId={subjectId} onSelect={setSubjectId} emptyText="과목을 불러오는 중입니다." />
+            <PickerRow label="과목" options={subjects} selectedId={subjectId} onSelect={setSubjectId} emptyText="과목을 불러오는 중입니다." getLabel={(s) => s.name} />
             {subjectId !== null && (
-              <PickerRow label="교과서" options={textbooks} selectedId={textbookId} onSelect={setTextbookId} emptyText="교과서를 불러오는 중입니다." />
+              <PickerRow label="교과서" options={textbooks} selectedId={textbookId} onSelect={setTextbookId} emptyText="교과서를 불러오는 중입니다." getLabel={(t) => t.title} />
             )}
             {textbookId !== null && (
-              <PickerRow label="단원" options={chapters} selectedId={chapterId} onSelect={setChapterId} emptyText="단원을 불러오는 중입니다." />
+              <ChapterPicker options={chapters} selectedId={chapterId} onSelect={setChapterId} emptyText="단원을 불러오는 중입니다." />
             )}
 
             <Input label="제목" value={title} onChangeText={setTitle} placeholder="예: 수학 문제집 풀기" />
