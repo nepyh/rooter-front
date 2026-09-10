@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
 import { Icon } from "@/assets";
@@ -23,8 +23,9 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as Category[];
  * @description 과목을 선택하고 내용을 입력해 새로운 할 일을 추가합니다. (디자인 미정으로 임의 구성)
  */
 export default function AddTodo() {
+  const { category: initialCategory } = useLocalSearchParams<{ category?: Category }>();
   const addItem = useTodoStore((state) => state.addItem);
-  const [category, setCategory] = useState<Category>("math");
+  const [category, setCategory] = useState<Category>(initialCategory ?? "math");
   const [text, setText] = useState("");
 
   const canSubmit = text.trim().length > 0;
@@ -41,7 +42,12 @@ export default function AddTodo() {
       <Stack align="between" className="flex-1">
         <Stack gap="xxl">
           <Stack gap="s">
-            <Text variant="title-medium">할 일 추가</Text>
+            <Row gap="s" className="items-center">
+              <Pressable onPress={() => router.back()}>
+                <Icon name="chevronLeft" size={28} />
+              </Pressable>
+              <Text variant="header-large">할 일 추가</Text>
+            </Row>
             <Text color="secondary">과목을 선택하고 할 일을 입력해주세요</Text>
           </Stack>
 

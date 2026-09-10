@@ -1,13 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
-import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
+import Animated, { Easing, SlideInLeft, SlideInRight, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
-import { isSameDay } from "@/utils/date";
+import { buildMonthWeeks, isSameDay } from "@/utils/date";
+import type { CalendarCellData } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
 
 // ================================
@@ -18,11 +19,6 @@ interface CalendarEvent {
   label: string;
   category: Category;
   memo: string;
-}
-
-interface CalendarCellData {
-  date: Date;
-  inMonth: boolean;
 }
 
 // ================================
@@ -52,35 +48,13 @@ const buildMockEvents = (reference: Date): Record<string, CalendarEvent[]> => {
   };
 };
 
-const buildMonthWeeks = (year: number, month: number): CalendarCellData[][] => {
-  const startWeekday = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-  const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
-
-  const cells: CalendarCellData[] = [];
-  for (let i = 0; i < startWeekday; i++) {
-    cells.push({ date: new Date(year, month - 1, daysInPrevMonth - startWeekday + 1 + i), inMonth: false });
-  }
-  for (let day = 1; day <= daysInMonth; day++) {
-    cells.push({ date: new Date(year, month, day), inMonth: true });
-  }
-  for (let day = 1; cells.length < totalCells; day++) {
-    cells.push({ date: new Date(year, month + 1, day), inMonth: false });
-  }
-
-  const weeks: CalendarCellData[][] = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
-  return weeks;
-};
-
 // ================================
 // Components
 // ================================
 
 const SLIDE_MS = 260;
+// 플랜보드 추가 시트와 같은 방식: 배경은 즉시 덮고, 시트만 화면 밖(아래)에서 위로 슬라이드시킵니다.
+const DETAIL_SHEET_OFFSCREEN_Y = 700;
 
 function CalendarCell({ cell, events, isToday, onSelectEvent }: {
   cell: CalendarCellData;
@@ -118,30 +92,49 @@ function CalendarCell({ cell, events, isToday, onSelectEvent }: {
   );
 }
 
-function PlanDetailModal({ date, event, onClose }: { date: Date; event: CalendarEvent; onClose: () => void }) {
+function PlanDetailModal({ visible, date, event, onClose }: { visible: boolean; date: Date; event: CalendarEvent; onClose: () => void }) {
+  const translateY = useSharedValue(DETAIL_SHEET_OFFSCREEN_Y);
+  // AddPlanBoardModal과 동일하게, 닫힘 애니메이션이 끝난 뒤에야 실제로 Modal을 내려주기 위한 렌더링 상태입니다.
+  const [isRendered, setIsRendered] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+      translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
+    } else {
+      translateY.value = withTiming(DETAIL_SHEET_OFFSCREEN_Y, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
+        if (finished) runOnJS(setIsRendered)(false);
+      });
+    }
+  }, [visible, translateY]);
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose}>
+    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
-          <Stack gap="xxl" width="full" align="center" className="bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
-            <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
-            <Stack gap="xxl" width="full" className="pb-xxl">
-              <Stack gap="xs" width="full">
-                <Row gap="s">
-                  <Text variant="base-medium" color="secondary">{`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}</Text>
-                  <Text variant="base-medium" color="secondary">|</Text>
-                  <Text variant="base-medium" color="secondary">하루종일</Text>
-                </Row>
-                <Text variant="title-small">{event.label}</Text>
-              </Stack>
-              <Stack gap="s" width="full">
-                <Text variant="base-medium" weight="medium">메모</Text>
-                <View className="bg-neutral-700 p-m rounded-xs w-full" style={{ minHeight: 119 }}>
-                  <Text variant="base-medium">{event.memo}</Text>
-                </View>
+          <Animated.View style={sheetStyle}>
+            <Stack gap="xxl" width="full" align="center" className="items-center bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
+              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" style={{ alignSelf: "center" }} />
+              <Stack gap="xxl" width="full" className="pb-xxl">
+                <Stack gap="xs" width="full">
+                  <Row gap="s">
+                    <Text variant="base-medium" color="secondary">{`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}</Text>
+                    <Text variant="base-medium" color="secondary">|</Text>
+                    <Text variant="base-medium" color="secondary">하루종일</Text>
+                  </Row>
+                  <Text variant="title-small">{event.label}</Text>
+                </Stack>
+                <Stack gap="s" width="full">
+                  <Text variant="base-medium" weight="medium">메모</Text>
+                  <View className="bg-neutral-700 p-m rounded-xs w-full" style={{ minHeight: 119 }}>
+                    <Text variant="base-medium">{event.memo}</Text>
+                  </View>
+                </Stack>
               </Stack>
             </Stack>
-          </Stack>
+          </Animated.View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -157,6 +150,7 @@ export default function CalendarPage() {
   const [viewDate, setViewDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
   const [direction, setDirection] = useState<"next" | "prev">("next");
   const [activePlan, setActivePlan] = useState<{ date: Date; event: CalendarEvent } | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
   const hasNavigated = useRef(false);
   const events = buildMockEvents(now);
 
@@ -216,7 +210,7 @@ export default function CalendarPage() {
                     cell={cell}
                     events={events[dateKey(cell.date)] ?? []}
                     isToday={isSameDay(cell.date, now)}
-                    onSelectEvent={(date, event) => setActivePlan({ date, event })}
+                    onSelectEvent={(date, event) => { setActivePlan({ date, event }); setDetailVisible(true); }}
                   />
                 ))}
               </Row>
@@ -226,7 +220,12 @@ export default function CalendarPage() {
       </View>
 
       {activePlan && (
-        <PlanDetailModal date={activePlan.date} event={activePlan.event} onClose={() => setActivePlan(null)} />
+        <PlanDetailModal
+          visible={detailVisible}
+          date={activePlan.date}
+          event={activePlan.event}
+          onClose={() => setDetailVisible(false)}
+        />
       )}
     </View>
   );
