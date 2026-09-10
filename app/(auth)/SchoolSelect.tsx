@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Input, Button, Text } from "@/components";
 import type { Variant } from "@/components/ui/Button";
-import { searchMiddleSchools } from "@/api/school";
+import { searchMiddleSchools, type School } from "@/api/school";
 
 // ================================
 // Components
@@ -19,7 +19,7 @@ export default function SchoolSelect() {
   const [selected, setSelected] = useState(false);
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
-  const [schools, setSchools] = useState<string[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
 
   const schoolRef = useRef<TextInput>(null);
 
@@ -32,8 +32,8 @@ export default function SchoolSelect() {
     setSelected(false);
   };
 
-  const handleSelect = (school: string) => {
-    setQuery(school);
+  const handleSelect = (school: School) => {
+    setQuery(school.name);
     setSelected(true);
     schoolRef.current?.blur();
   };
@@ -90,8 +90,10 @@ export default function SchoolSelect() {
             {showSuggestions && (
               <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
                 {schools.map((school) => (
-                  <Pressable key={school} className="p-xl w-full" onPress={() => handleSelect(school)}>
-                    <Text variant="base-large" weight="medium"> {school} </Text>
+                  <Pressable key={school.code} className="p-xl w-full" onPress={() => handleSelect(school)}>
+                    <Text variant="base-large" weight="medium">
+                      {school.name} ({school.region})
+                    </Text>
                   </Pressable>
                 ))}
               </Stack>
