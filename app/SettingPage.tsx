@@ -8,6 +8,7 @@ import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { WEEKDAYS } from "@/constants/date";
+import { getStreak } from "@/api/user";
 
 const TOAST_MESSAGES: Record<string, string> = {
   "password-changed": "비밀번호가 변경되었습니다.",
@@ -22,12 +23,12 @@ const CONTRIBUTION_WEEK_COUNT = 53;
 // 잔디 색상 단계: 0(활동 없음)은 neutral-600, 1~5는 primary-500을 기준으로 투명도를 올려 표현합니다.
 const CONTRIBUTION_LEVEL_COLORS = ["#525866", "rgba(246,72,45,0.2)", "rgba(246,72,45,0.4)", "rgba(246,72,45,0.6)", "rgba(246,72,45,0.8)", "#F6482D"];
 
-// TODO: 실제 작업 수행량 데이터로 교체 예정. 지금은 최근 13일치 목업 값입니다 (index 0 = 오늘).
-const CONTRIBUTION_MOCK_LEVELS = [2, 0, 4, 1, 5, 3, 0, 2, 4, 1, 0, 3, 1];
-
 // ================================
 // Helpers
 // ================================
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const startOfWeek = (date: Date) => {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -35,13 +36,8 @@ const startOfWeek = (date: Date) => {
   return d;
 };
 
-const daysBetween = (a: Date, b: Date) => Math.round((a.getTime() - b.getTime()) / 86_400_000);
-
-const getMockContributionLevel = (date: Date, today: Date) => {
-  const diff = daysBetween(new Date(today.getFullYear(), today.getMonth(), today.getDate()), date);
-  if (diff < 0 || diff >= CONTRIBUTION_MOCK_LEVELS.length) return 0;
-  return CONTRIBUTION_MOCK_LEVELS[diff];
-};
+// completionRate(0~100)를 잔디 색상 단계(0~5)로 변환
+const completionRateToLevel = (rate: number) => (rate <= 0 ? 0 : Math.min(5, Math.ceil(rate / 20)));
 
 interface ContributionMonthGroup {
   label: string;
@@ -92,10 +88,27 @@ function SettingRow({ icon, label, onPress }: { icon: IconName; label: string; o
 }
 
 function ContributionGraph() {
+  const userId = useUserStore((state) => state.userId);
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const months = buildContributionMonths(today, CONTRIBUTION_WEEK_COUNT);
   const scrollRef = useRef<ScrollView>(null);
+  const [levels, setLevels] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (userId === null) return;
+    const start = startOfWeek(today);
+    start.setDate(start.getDate() - (CONTRIBUTION_WEEK_COUNT - 1) * 7);
+
+    getStreak(userId, toDateString(start), toDateString(startOfToday))
+      .then((streak) => {
+        const next: Record<string, number> = {};
+        streak.days.forEach((day) => { next[day.date] = completionRateToLevel(day.completionRate); });
+        setLevels(next);
+      })
+      .catch(() => setLevels({}));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   return (
     <Row gap="s" width="full" className="items-end bg-neutral-700 p-l rounded-md">
@@ -126,7 +139,7 @@ function ContributionGraph() {
                         <View
                           key={k}
                           className="w-[20px] h-[20px] rounded-xxs"
-                          style={{ backgroundColor: CONTRIBUTION_LEVEL_COLORS[getMockContributionLevel(day, today)] }}
+                          style={{ backgroundColor: CONTRIBUTION_LEVEL_COLORS[levels[toDateString(day)] ?? 0] }}
                         />
                       )
                     ))}
