@@ -1,5 +1,6 @@
 import api from './axios';
 import { useUserStore } from '@/store';
+import { decodeJwtPayload } from '@/utils/jwt';
 
 /**
  * 회원가입 API 함수
@@ -23,9 +24,11 @@ export const login = async (email: string, password: string) => {
   const response = await api.post('/auth/login', { email, password });
 
   const { username: userName, email: userEmail, token } = response.data;
+  const userId = decodeJwtPayload(token).userId as number;
   useUserStore.getState().setUser(
     { username: userName, email: userEmail },
-    token
+    token,
+    userId
   );
 
   return response.data;

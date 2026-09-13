@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 import { Stack, Input, Button, Text, Toast } from "@/components";
 import type { Variant } from "@/components/ui/Button";
 import { Icon } from "@/assets";
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/password";
+import { changePassword } from "@/api/user";
+import { useUserStore } from "@/store";
 
 type Step = "verify" | "reset";
 
@@ -13,6 +16,7 @@ type Step = "verify" | "reset";
  * 비밀번호 변경 화면
  */
 export default function ChangePasswordPage() {
+  const userId = useUserStore((state) => state.userId);
   const [step, setStep] = useState<Step>("verify");
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -44,13 +48,11 @@ export default function ChangePasswordPage() {
   };
 
   const handleVerify = () => {
-    // TODO: 실제로는 백엔드에 현재 비밀번호가 맞는지 확인하는 API를 호출해야 합니다.
-    // 아직 해당 API가 없어 지금은 입력만 있으면 통과시킵니다. API 연동 시 500 에러 등은
-    // 회원가입과 동일하게 이 화면의 Toast(responseMessage)로 안내합니다.
+    // 현재 비밀번호 검증은 새 비밀번호와 함께 한 번에(변경 API 호출 시) 서버가 처리
     setStep("reset");
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!isValidPassword(newPassword)) {
       setNewPasswordErrorMessage(PASSWORD_ERROR_MESSAGE);
       focusAtEnd(newPasswordRef, newPassword);
@@ -61,9 +63,20 @@ export default function ChangePasswordPage() {
       focusAtEnd(confirmPasswordRef, confirmPassword);
       return;
     }
+    if (userId === null) return;
 
-    // TODO: 실제 비밀번호 변경 API 연동 전까지는 성공한 것으로 간주합니다.
-    router.replace({ pathname: "/SettingPage", params: { toast: "password-changed" } });
+    try {
+      await changePassword(userId, { currentPassword, newPassword });
+      router.replace({ pathname: "/SettingPage", params: { toast: "password-changed" } });
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        setStep("verify");
+        setCurrentPasswordErrorMessage("현재 비밀번호가 일치하지 않습니다.");
+        return;
+      }
+      setResponseMessage("비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      setShowToast(true);
+    }
   };
 
   return (
