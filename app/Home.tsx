@@ -10,8 +10,8 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { getPlanBoards } from "@/api/planBoard";
-import type { PlanBoard } from "@/api/planBoard";
+import { getDailyTasks } from "@/api/planBoard";
+import type { PlanTask } from "@/api/planBoard";
 import { useTodoStore, useUIStore } from "@/store";
 import type { TodoGroup } from "@/store";
 
@@ -48,11 +48,7 @@ const POPOVER_HEIGHT = 92;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
 
-// 플랜보드엔 과목별 고정 카테고리가 없어서, 과목 ID로 기존 5색 팔레트를 순환 배정합니다.
-const CATEGORY_CYCLE = Object.keys(CATEGORY_COLORS) as Category[];
-const categoryForSubject = (subjectId: number): Category => CATEGORY_CYCLE[subjectId % CATEGORY_CYCLE.length];
-
-// TODO: 실제 플랜보드 데이터로 교체 예정. 지금은 플랜보드 API가 빈 값을 주거나 실패했을 때 보여줄
+// TODO: 실제 플랜태스크 데이터로 교체 예정. 지금은 플랜태스크 API가 빈 값을 주거나 실패했을 때 보여줄
 // 목업 하루 일정입니다. 과목(수학/영어/사회)은 할 일 목록 목업(useTodoStore)과 동일한 카테고리를 써서
 // 플랜을 눌렀을 때 나오는 체크리스트가 할 일 화면과 같은 데이터를 보여주도록 맞췄습니다.
 const MOCK_PLANS: Plan[] = [
@@ -127,21 +123,25 @@ const parseClock = (value: string) => {
   return h * 60 + m;
 };
 
-const mapPlanBoardToPlan = (board: PlanBoard): Plan => {
-  const startDate = new Date(board.startAt);
-  const endDate = new Date(board.endAt);
-  const duration = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60_000));
+const parseHHmm = (value: string) => {
+  const [h, m] = value.split(":").map(Number);
+  return h * 60 + m;
+};
+
+// 과목 연결 API 미구현으로 전부 neutral 처리
+const mapPlanTaskToPlan = (task: PlanTask): Plan => {
+  const startMin = parseHHmm(task.startTime);
+  const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
 
   return {
-    id: String(board.id),
-    title: board.title,
-    category: categoryForSubject(board.subjectId),
-    start: minutesSinceWindowStart(startDate),
-    duration,
-    status: board.status,
+    id: String(task.id),
+    title: task.taskName,
+    category: "neutral",
+    start,
+    duration: task.estimatedMinutes,
+    status: task.isCompleted ? "done" : "pending",
     lines: [
-      { icon: "book", text: `${board.textbookName} | ${board.chapterName}` },
-      { icon: "history", text: `${formatClock(startDate)} - ${formatClock(endDate)} | ${formatDuration(duration)}` },
+      { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
     ],
   };
 };
@@ -439,18 +439,18 @@ export default function Home() {
     return () => setFullScreenModalOpen(false);
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
-  // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
-  // TODO: 실제 플랜보드 데이터가 쌓이기 전까지는 API가 빈 값/에러를 주면 목업 하루 일정을 보여줍니다.
-  useFocusEffect(
-    useCallback(() => {
-      getPlanBoards()
-        .then((boards) => {
-          const mapped = boards.map(mapPlanBoardToPlan);
-          setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
-        })
-        .catch(() => setPlans(MOCK_PLANS));
-    }, [])
-  );
+  // 일정 생성 후 복귀 시 최신 목록 반영 위해 포커스마다 재조회
+  // TODO: 플랜태스크 데이터 없거나 API 실패 시 목업 하루 일정으로 대체
+  const loadDailyTasks = useCallback(() => {
+    getDailyTasks()
+      .then((daily) => {
+        const mapped = daily.tasks.map(mapPlanTaskToPlan);
+        setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
+      })
+      .catch(() => setPlans(MOCK_PLANS));
+  }, []);
+
+  useFocusEffect(loadDailyTasks);
 
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
@@ -510,9 +510,10 @@ export default function Home() {
     setDeleteTarget(null);
   };
 
-  const handlePlanCreated = (board: PlanBoard) => {
-    setPlans((prev) => [...prev.filter((plan) => !plan.id.startsWith("mock-")), mapPlanBoardToPlan(board)]);
+  // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
+  const handlePlanCreated = () => {
     setShowAddPlan(false);
+    loadDailyTasks();
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {

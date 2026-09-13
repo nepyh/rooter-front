@@ -6,8 +6,7 @@ import { Text, Input, Switch } from "@/components/ui";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject, getTextbookDetail } from "@/api/catalog";
 import type { Subject, Textbook, ChapterTree } from "@/api/catalog";
-import { createPlanBoard } from "@/api/planBoard";
-import type { PlanBoard } from "@/api/planBoard";
+import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import { WEEKDAYS } from "@/constants/date";
 
@@ -27,7 +26,7 @@ interface Props {
   visible: boolean;
   baseDate: Date;
   onClose: () => void;
-  onCreated: (board: PlanBoard) => void;
+  onCreated: () => void;
 }
 
 // ================================
@@ -37,6 +36,7 @@ interface Props {
 const pad = (n: number) => String(n).padStart(2, "0");
 const formatDatePill = (date: Date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
 const formatTimePill = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const HOUR_LABELS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const MINUTE_LABELS = Array.from({ length: 60 }, (_, i) => pad(i));
@@ -313,7 +313,7 @@ function ChapterPicker({ options, selectedId, onSelect, emptyText }: {
  * @param visible 모달 표시 여부를 설정합니다.
  * @param baseDate 모달을 열 때 기준이 되는 날짜/시간을 입력합니다.
  * @param onClose 모달을 닫을 때 실행할 행동을 입력합니다.
- * @param onCreated 플랜보드가 생성된 뒤 실행할 행동을 입력합니다.
+ * @param onCreated 일정이 생성된 뒤 실행할 행동을 입력합니다.
  */
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
@@ -447,17 +447,20 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setError("");
     setSubmitting(true);
     try {
-      const board = await createPlanBoard({
-        title: title.trim(),
-        subjectId,
-        textbookId,
-        chapterId,
-        startAt: startAt.toISOString(),
-        endAt: endAt.toISOString(),
+      // 태스크 생성 API에 과목/교과서/단원 필드 없음, 선택값은 화면 표시만 하고 미전송
+      const board = await getOrCreateCurrentPlanBoard();
+      const estimatedMinutes = Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000));
+      await createPlanTask({
+        planBoardId: board.id,
+        planDate: toDateString(startAt),
+        taskName: title.trim(),
+        startTime: formatTimePill(startAt),
+        endTime: formatTimePill(endAt),
+        estimatedMinutes,
       });
-      onCreated(board);
+      onCreated();
     } catch {
-      setError("플랜보드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      setError("일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }
