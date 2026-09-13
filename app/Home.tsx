@@ -293,7 +293,7 @@ function AddMenuButton({ label, onPress }: { label: string; onPress?: () => void
 
 // onFullyClosed: 닫힘 애니메이션 도중 다른 Modal을 띄우면 두 Modal이 동시에 떠서 터치가 씹히는 문제가 있어,
 // 완전히 닫힌 뒤에 후속 동작을 실행하도록 호출 시점을 분리했습니다.
-function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule }: { visible: boolean; onClose: () => void; onFullyClosed: () => void; onCreateSchedule: () => void }) {
+function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule, onCreatePlan }: { visible: boolean; onClose: () => void; onFullyClosed: () => void; onCreateSchedule: () => void; onCreatePlan: () => void }) {
   const translateY = useSharedValue(ADD_MENU_OFFSCREEN_Y);
   const [isRendered, setIsRendered] = useState(visible);
 
@@ -324,7 +324,7 @@ function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule }: { visibl
               <Stack gap="s" width="full">
                 <AddMenuButton label="일정 생성하기" onPress={onCreateSchedule} />
                 <AddMenuButton label="과목 생성하기" />
-                <AddMenuButton label="새 플랜 생성하기" />
+                <AddMenuButton label="새 플랜 생성하기" onPress={onCreatePlan} />
               </Stack>
             </View>
           </Animated.View>
@@ -583,6 +583,10 @@ export default function Home() {
         }}
         onCreateSchedule={() => {
           afterAddMenuClosedRef.current = () => setShowAddPlan(true);
+          setShowAddMenu(false);
+        }}
+        onCreatePlan={() => {
+          afterAddMenuClosedRef.current = () => router.push("/ExamDatePage");
           setShowAddMenu(false);
         }}
       />
