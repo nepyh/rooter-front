@@ -4,7 +4,7 @@ import { View, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Input, Button, Text, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
-import { signup } from '@/api/auth';
+import { signup, login } from '@/api/auth';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/password';
 import axios from "axios";
 
@@ -48,6 +48,8 @@ export default function Signup() {
 
     try {
       await signup(user, email, password);
+      // 이후 학교/학년/반 저장 API가 로그인 토큰을 요구해서, 가입 직후 바로 로그인해둡니다.
+      await login(email, password);
 
       router.push("/SchoolSelect");
     } catch (error) {

@@ -86,11 +86,11 @@ function OptionRow({ label, selected, onPress }: { label: string; selected: bool
 
 /**
  * 공부 스타일 설문 문항 화면
- * @description 문항 하나를 보여주고, 다음을 누르면 같은 화면을 다음 문항으로 다시 push합니다.
  */
 export default function StudySurveyQuestion() {
-  const { school, grade, classNum, step, answers } = useLocalSearchParams<{
+  const { school, schoolId, grade, classNum, step, answers } = useLocalSearchParams<{
     school: string;
+    schoolId: string;
     grade: string;
     classNum: string;
     step: string;
@@ -108,13 +108,13 @@ export default function StudySurveyQuestion() {
     const nextAnswers = [...prevAnswers, String(selected)].join(",");
 
     if (isLast) {
-      router.push({ pathname: "/StudySurveyLoading", params: { school, grade, classNum, answers: nextAnswers } });
+      router.push({ pathname: "/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
       return;
     }
 
     router.push({
       pathname: "/StudySurveyQuestion",
-      params: { school, grade, classNum, step: String(stepIndex + 2), answers: nextAnswers },
+      params: { school, schoolId, grade, classNum, step: String(stepIndex + 2), answers: nextAnswers },
     });
   };
 

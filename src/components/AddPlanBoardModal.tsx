@@ -4,10 +4,9 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
 import { Icon } from "@/assets";
-import { getSubjects, getTextbooksBySubject, getChaptersByTextbook } from "@/api/catalog";
-import type { Subject, Textbook, Chapter } from "@/api/catalog";
-import { createPlanBoard } from "@/api/planBoard";
-import type { PlanBoard } from "@/api/planBoard";
+import { getSubjects, getTextbooksBySubject, getTextbookDetail } from "@/api/catalog";
+import type { Subject, Textbook, ChapterTree } from "@/api/catalog";
+import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import { WEEKDAYS } from "@/constants/date";
 
@@ -17,11 +16,17 @@ import { WEEKDAYS } from "@/constants/date";
 
 type PickerTarget = "start-date" | "start-time" | "end-date" | "end-time";
 
+interface FlatChapter {
+  id: number;
+  chapterName: string;
+  depth: number;
+}
+
 interface Props {
   visible: boolean;
   baseDate: Date;
   onClose: () => void;
-  onCreated: (board: PlanBoard) => void;
+  onCreated: () => void;
 }
 
 // ================================
@@ -31,6 +36,7 @@ interface Props {
 const pad = (n: number) => String(n).padStart(2, "0");
 const formatDatePill = (date: Date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
 const formatTimePill = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const HOUR_LABELS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const MINUTE_LABELS = Array.from({ length: 60 }, (_, i) => pad(i));
@@ -54,6 +60,15 @@ const mergeTimePart = (base: Date, timePart: Date) => {
   next.setHours(timePart.getHours(), timePart.getMinutes(), 0, 0);
   return next;
 };
+
+// 단원은 대단원/소단원처럼 트리 구조로 내려와서, depth를 매겨 들여쓰기로 계층을 표현할 수 있게 평평하게 폅니다.
+const flattenChapterTree = (nodes: ChapterTree[], depth = 0): FlatChapter[] =>
+  [...nodes]
+    .sort((a, b) => a.chapterOrder - b.chapterOrder)
+    .flatMap((node) => [
+      { id: node.id, chapterName: node.chapterName, depth },
+      ...flattenChapterTree(node.children, depth + 1),
+    ]);
 
 // "90%" 같은 퍼센트 값은 부모 체인에 명확한 높이가 없으면(여기서는 배경을 감싸는 Pressable이
 // 그 경우) 제대로 해석되지 않아 시트가 내용물 크기로만 줄어들고 스크롤도 먹통이 됩니다.
@@ -215,12 +230,13 @@ function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Da
   );
 }
 
-function PickerRow<T extends { id: number; name: string }>({ label, options, selectedId, onSelect, emptyText }: {
+function PickerRow<T extends { id: number }>({ label, options, selectedId, onSelect, emptyText, getLabel }: {
   label: string;
   options: T[];
   selectedId: number | null;
   onSelect: (id: number) => void;
   emptyText: string;
+  getLabel: (option: T) => string;
 }) {
   return (
     <Stack gap="m">
@@ -242,7 +258,7 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
                 }}
               >
                 <Text weight="medium" style={{ color: isSelected ? "#F6482D" : "#8A919E" }}>
-                  {option.name}
+                  {getLabel(option)}
                 </Text>
               </Pressable>
             );
@@ -253,9 +269,51 @@ function PickerRow<T extends { id: number; name: string }>({ label, options, sel
   );
 }
 
+// 대단원/소단원처럼 계층이 있는 단원은 pill 형태보다 들여쓰기로 구분되는 세로 목록이 더 잘 보여서 따로 뺐습니다.
+function ChapterPicker({ options, selectedId, onSelect, emptyText }: {
+  options: FlatChapter[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+  emptyText: string;
+}) {
+  return (
+    <Stack gap="m">
+      <Text variant="base-medium" weight="medium">단원</Text>
+      {options.length === 0 ? (
+        <Text color="disabled">{emptyText}</Text>
+      ) : (
+        <Stack gap="xs">
+          {options.map((chapter) => {
+            const isSelected = selectedId === chapter.id;
+            return (
+              <View key={chapter.id} style={{ marginLeft: chapter.depth * 16 }}>
+                <Pressable
+                  onPress={() => onSelect(chapter.id)}
+                  className="self-start px-l py-s rounded-sm border-2"
+                  style={{
+                    borderColor: isSelected ? "#F6482D" : "#525866",
+                    backgroundColor: isSelected ? "rgba(246,72,45,0.15)" : "transparent",
+                  }}
+                >
+                  <Text weight="medium" style={{ color: isSelected ? "#F6482D" : "#8A919E" }}>
+                    {chapter.chapterName}
+                  </Text>
+                </Pressable>
+              </View>
+            );
+          })}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
 /**
  * 플랜보드 추가 모달
- * @description 홈 화면 위에 뜨는 바텀시트로, 제목/일시/교과서를 입력해 새로운 플랜보드를 만듭니다.
+ * @param visible 모달 표시 여부를 설정합니다.
+ * @param baseDate 모달을 열 때 기준이 되는 날짜/시간을 입력합니다.
+ * @param onClose 모달을 닫을 때 실행할 행동을 입력합니다.
+ * @param onCreated 일정이 생성된 뒤 실행할 행동을 입력합니다.
  */
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
@@ -290,7 +348,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [textbooks, setTextbooks] = useState<Textbook[]>([]);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chapters, setChapters] = useState<FlatChapter[]>([]);
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [textbookId, setTextbookId] = useState<number | null>(null);
   const [chapterId, setChapterId] = useState<number | null>(null);
@@ -341,7 +399,9 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
       setChapters([]);
       return;
     }
-    getChaptersByTextbook(textbookId).then(setChapters).catch(() => setChapters([]));
+    getTextbookDetail(textbookId)
+      .then((detail) => setChapters(flattenChapterTree(detail.chapters)))
+      .catch(() => setChapters([]));
   }, [textbookId]);
 
   const canSubmit = title.trim().length > 0 && subjectId !== null && textbookId !== null && chapterId !== null && !submitting;
@@ -365,7 +425,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const handleConfirmTextbook = () => {
     if (subjectId === null || textbookId === null || chapterId === null) return;
     const subjectName = subjects.find((s) => s.id === subjectId)?.name ?? "";
-    const textbookName = textbooks.find((t) => t.id === textbookId)?.name ?? "";
+    const textbookName = textbooks.find((t) => t.id === textbookId)?.title ?? "";
     setTextbookLabel({ subjectName, textbookName });
     setShowTextbookPicker(false);
   };
@@ -387,17 +447,20 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setError("");
     setSubmitting(true);
     try {
-      const board = await createPlanBoard({
-        title: title.trim(),
-        subjectId,
-        textbookId,
-        chapterId,
-        startAt: startAt.toISOString(),
-        endAt: endAt.toISOString(),
+      // 태스크 생성 API에 과목/교과서/단원 필드 없음, 선택값은 화면 표시만 하고 미전송
+      const board = await getOrCreateCurrentPlanBoard();
+      const estimatedMinutes = Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000));
+      await createPlanTask({
+        planBoardId: board.id,
+        planDate: toDateString(startAt),
+        taskName: title.trim(),
+        startTime: formatTimePill(startAt),
+        endTime: formatTimePill(endAt),
+        estimatedMinutes,
       });
-      onCreated(board);
+      onCreated();
     } catch {
-      setError("플랜보드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      setError("일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -481,12 +544,12 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                   <Text variant="base-medium">교과서</Text>
                   {showTextbookPicker ? (
                     <Stack gap="xl" width="full" className="bg-neutral-700 p-l rounded-md">
-                      <PickerRow label="과목" options={subjects} selectedId={subjectId} onSelect={setSubjectId} emptyText="과목을 불러오는 중입니다." />
+                      <PickerRow label="과목" options={subjects} selectedId={subjectId} onSelect={setSubjectId} emptyText="과목을 불러오는 중입니다." getLabel={(s) => s.name} />
                       {subjectId !== null && (
-                        <PickerRow label="교과서" options={textbooks} selectedId={textbookId} onSelect={setTextbookId} emptyText="교과서를 불러오는 중입니다." />
+                        <PickerRow label="교과서" options={textbooks} selectedId={textbookId} onSelect={setTextbookId} emptyText="교과서를 불러오는 중입니다." getLabel={(t) => t.title} />
                       )}
                       {textbookId !== null && (
-                        <PickerRow label="단원" options={chapters} selectedId={chapterId} onSelect={setChapterId} emptyText="단원을 불러오는 중입니다." />
+                        <ChapterPicker options={chapters} selectedId={chapterId} onSelect={setChapterId} emptyText="단원을 불러오는 중입니다." />
                       )}
                       <Pressable
                         onPress={handleConfirmTextbook}

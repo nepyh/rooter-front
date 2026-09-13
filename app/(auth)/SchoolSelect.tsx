@@ -12,7 +12,6 @@ import { searchMiddleSchools, type School } from "@/api/school";
 
 /**
  * 학교 선택 및 정보 입력 화면
- * @description 학교명을 입력해 목록에서 검색하고, 학교를 선택하면 같은 화면에서 학년/반을 이어서 입력받습니다.
  */
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");
@@ -35,7 +34,7 @@ export default function SchoolSelect() {
   };
 
   const handleSelect = (school: School) => {
-    const isSameSchool = selectedSchool?.code === school.code;
+    const isSameSchool = selectedSchool?.schoolId === school.schoolId;
 
     setQuery(school.name);
     setSelected(true);
@@ -54,7 +53,10 @@ export default function SchoolSelect() {
   };
 
   const handleComplete = () => {
-    router.push({ pathname: "/StudySurveyIntro", params: { school: query, grade, classNum } });
+    router.push({
+      pathname: "/StudySurveyIntro",
+      params: { school: query, schoolId: selectedSchool?.schoolId ?? "", grade, classNum },
+    });
   };
 
   useEffect(() => {
@@ -102,7 +104,7 @@ export default function SchoolSelect() {
                 <View className="absolute top-full mt-s w-full z-20 shadow-lg" style={{ elevation: 8 }}>
                   <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
                     {schools.map((school) => (
-                      <Pressable key={school.code} className="p-xl w-full" onPress={() => handleSelect(school)}>
+                      <Pressable key={school.schoolId} className="p-xl w-full" onPress={() => handleSelect(school)}>
                         <Text variant="base-large" weight="medium">
                           {school.name} ({school.region})
                         </Text>

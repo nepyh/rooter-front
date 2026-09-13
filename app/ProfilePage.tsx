@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -7,6 +7,8 @@ import { Stack, Row, Text, Input, Button } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
+import { logout } from "@/api/auth";
+import { getAvatarUrl, getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
 
 // ================================
 // Components
@@ -34,15 +36,27 @@ function MenuRow({ icon, label, onPress }: { icon?: IconName; label: string; onP
 
 /**
  * 프로필 화면
- * @description 이름/이메일은 조회만 가능하고, 소개글과 프로필 이미지는 수정 후 저장할 수 있습니다.
  */
 export default function ProfilePage() {
   const user = useUserStore((state) => state.user);
+  const userId = useUserStore((state) => state.userId);
   const updateProfile = useUserStore((state) => state.updateProfile);
-  const logout = useUserStore((state) => state.logout);
 
   const [bio, setBio] = useState(user?.bio ?? "");
   const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
+
+  // 로그인 응답엔 소개(bio)/아바타가 없어서, 화면 진입 시 서버에서 최신 값을 받아옵니다.
+  useEffect(() => {
+    if (userId === null) return;
+    getUserInfo(userId)
+      .then((info) => {
+        setBio(info.bio ?? "");
+        if (info.avatarImageKey) setProfileImageUri(getAvatarUrl(info.avatarImageKey));
+        updateProfile({ bio: info.bio ?? "" });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -58,18 +72,38 @@ export default function ProfilePage() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      setProfileImageUri(result.assets[0].uri);
+    if (result.canceled || userId === null) return;
+
+    const asset = result.assets[0];
+    setProfileImageUri(asset.uri);
+
+    try {
+      await uploadAvatar(userId, { uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType });
+      updateProfile({ profileImageUri: asset.uri });
+    } catch {
+      Alert.alert("업로드 실패", "프로필 사진 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
   };
 
-  const handleSave = () => {
-    updateProfile({ bio, profileImageUri });
-    router.replace("/SettingPage");
+  const handleSave = async () => {
+    if (userId === null) return;
+
+    try {
+      await updateUserProfile(userId, { bio });
+      updateProfile({ bio, profileImageUri });
+      router.replace("/SettingPage");
+    } catch {
+      Alert.alert("저장 실패", "소개 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // logout()은 서버 호출 성공/실패와 무관하게 로컬 로그인 상태를 항상 정리합니다.
+    try {
+      await logout();
+    } catch {
+      // 로컬 상태는 이미 정리됐으므로 무시하고 화면만 이동합니다.
+    }
     router.replace("/");
   };
 
