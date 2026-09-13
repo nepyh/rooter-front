@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useUserStore } from '@/store';
 
 const api = axios.create({
-  baseURL: 'https://ro-897fe1b87ce043b3968caf53c5ef0699.ecs.ap-northeast-2.on.aws/api',
+  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json',
