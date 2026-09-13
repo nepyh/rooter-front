@@ -75,7 +75,7 @@ function TaskRow({ task, onToggle }: { task: PlanTask; onToggle: () => void }) {
 
 function AddTaskRow({ date }: { date: Date }) {
   return (
-    <Pressable onPress={() => router.push({ pathname: "/AddTodo", params: { date: toDateString(date) } })}>
+    <Pressable onPress={() => router.push({ pathname: "/todo/AddTodo", params: { date: toDateString(date) } })}>
       <Row gap="s" className="items-center">
         <View className="w-[14px] h-[14px] rounded-xxs border border-neutral-400" />
         <Text variant="base-medium" color="disabled" style={{ textDecorationLine: "underline" }}>눌러서 추가하기</Text>
