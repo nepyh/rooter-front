@@ -34,7 +34,7 @@ export default function SchoolSelect() {
   };
 
   const handleSelect = (school: School) => {
-    const isSameSchool = selectedSchool?.code === school.code;
+    const isSameSchool = selectedSchool?.schoolId === school.schoolId;
 
     setQuery(school.name);
     setSelected(true);
@@ -55,7 +55,7 @@ export default function SchoolSelect() {
   const handleComplete = () => {
     router.push({
       pathname: "/StudySurveyIntro",
-      params: { school: query, schoolId: selectedSchool?.code ?? "", grade, classNum },
+      params: { school: query, schoolId: selectedSchool?.schoolId ?? "", grade, classNum },
     });
   };
 
@@ -104,7 +104,7 @@ export default function SchoolSelect() {
                 <View className="absolute top-full mt-s w-full z-20 shadow-lg" style={{ elevation: 8 }}>
                   <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
                     {schools.map((school) => (
-                      <Pressable key={school.code} className="p-xl w-full" onPress={() => handleSelect(school)}>
+                      <Pressable key={school.schoolId} className="p-xl w-full" onPress={() => handleSelect(school)}>
                         <Text variant="base-large" weight="medium">
                           {school.name} ({school.region})
                         </Text>
