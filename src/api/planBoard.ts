@@ -46,6 +46,12 @@ export interface CreatePlanTaskInput {
   estimatedMinutes: number;
 }
 
+export interface WeeklyPlan {
+  weekStart: string; // yyyy-MM-dd
+  weekEnd: string; // yyyy-MM-dd
+  days: DailyPlan[];
+}
+
 // ================================
 // Helpers
 // ================================
@@ -93,6 +99,16 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
  */
 export const getDailyTasks = async (date?: string): Promise<DailyPlan> => {
   const response = await api.get('/plan-tasks', { params: date ? { date } : undefined });
+  return response.data;
+};
+
+/**
+ * 할 일 탭 주간 과제 목록 조회 API 함수
+ * @param date 이 날짜가 속한 주(월~일)를 조회, 생략 시 오늘이 속한 주
+ * @returns 주간 시작/종료일과 요일별 태스크 목록
+ */
+export const getWeeklyTasks = async (date?: string): Promise<WeeklyPlan> => {
+  const response = await api.get('/plan-tasks/week', { params: date ? { date } : undefined });
   return response.data;
 };
 

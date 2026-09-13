@@ -12,8 +12,7 @@ import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
 import { completeTask, getDailyTasks } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
-import { useTodoStore, useUIStore } from "@/store";
-import type { TodoGroup } from "@/store";
+import { useUIStore } from "@/store";
 
 // ================================
 // Types
@@ -48,9 +47,7 @@ const POPOVER_HEIGHT = 92;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
 
-// TODO: 실제 플랜태스크 데이터로 교체 예정. 지금은 플랜태스크 API가 빈 값을 주거나 실패했을 때 보여줄
-// 목업 하루 일정입니다. 과목(수학/영어/사회)은 할 일 목록 목업(useTodoStore)과 동일한 카테고리를 써서
-// 플랜을 눌렀을 때 나오는 체크리스트가 할 일 화면과 같은 데이터를 보여주도록 맞췄습니다.
+// 플랜태스크 API가 빈 값을 주거나 실패했을 때 보여줄 목업 하루 일정
 const MOCK_PLANS: Plan[] = [
   {
     id: "mock-school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending",
@@ -193,37 +190,7 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
-function TodoSummary({ group, barColor }: { group: TodoGroup; barColor: string }) {
-  return (
-    <Row gap="m" className="p-m items-stretch">
-      <View className="w-1 rounded-full" style={{ backgroundColor: barColor }} />
-      <Stack gap="s">
-        <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
-        <Stack gap="m">
-          {group.items.map((item) => (
-            <Row key={item.id} gap="s" className="items-center">
-              <View
-                className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
-                style={item.done ? { backgroundColor: barColor } : { borderWidth: 1, borderColor: "#8A919E" }}
-              >
-                {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
-              </View>
-              <Text
-                variant="base-medium"
-                color={item.done ? "disabled" : "primary"}
-                style={item.done ? { textDecorationLine: "line-through" } : undefined}
-              >
-                {item.text}
-              </Text>
-            </Row>
-          ))}
-        </Stack>
-      </Stack>
-    </Row>
-  );
-}
-
-function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: { plan: Plan; todoGroup: TodoGroup | null; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
+function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
   const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
@@ -232,9 +199,6 @@ function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: {
     <View style={{ position: "absolute", top, left: TIMELINE_LEFT }} className="items-center">
       {showBelow && <View className="w-3 h-3 -mb-1.5 bg-neutral-700 border-l border-t border-neutral-600 rotate-45" />}
       <Stack gap="s" className="bg-neutral-700 border border-neutral-600 rounded-md p-xs" onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}>
-        {todoGroup && todoGroup.items.length > 0 && (
-          <TodoSummary group={todoGroup} barColor={CATEGORY_COLORS[plan.category].bar} />
-        )}
         <Row gap="none" className="items-center">
           <ActionButton icon="check" label="완료" onPress={onComplete} />
           <ActionButton icon="close" label="실패" onPress={onFail} />
@@ -426,7 +390,6 @@ export default function Home() {
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
-  const todoGroups = useTodoStore((state) => state.groups);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
   useEffect(() => {
@@ -460,7 +423,6 @@ export default function Home() {
 
   const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
-  const activeTodoGroup = activePlan ? todoGroups.find((group) => group.category === activePlan.category) ?? null : null;
 
   const updateStatus = (id: string, status: PlanStatus) => {
     setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
@@ -578,7 +540,6 @@ export default function Home() {
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
-              todoGroup={activeTodoGroup}
               onComplete={() => handleComplete(activePlan)}
               onFail={() => updateStatus(activePlan.id, "failed")}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}

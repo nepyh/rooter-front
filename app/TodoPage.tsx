@@ -1,20 +1,28 @@
-import { useEffect, useRef } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
-import { CATEGORY_COLORS } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { isSameDay } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
-import { useTodoStore } from "@/store";
-import type { TodoGroup, TodoItem } from "@/store";
+import { completeTask, getWeeklyTasks } from "@/api/planBoard";
+import type { PlanTask, WeeklyPlan } from "@/api/planBoard";
+
+// ================================
+// Constants
+// ================================
+
+const EMPTY_WEEK: WeeklyPlan = { weekStart: "", weekEnd: "", days: [] };
 
 // ================================
 // Helpers
 // ================================
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const getWeekDates = (center: Date) => {
   const start = new Date(center.getFullYear(), center.getMonth(), center.getDate() - 3);
@@ -25,7 +33,7 @@ const getWeekDates = (center: Date) => {
 // Components
 // ================================
 
-function TodoItemRow({ item, barColor, onPress }: { item: TodoItem; barColor: string; onPress: () => void }) {
+function TaskRow({ task, onToggle }: { task: PlanTask; onToggle: () => void }) {
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
 
@@ -34,37 +42,40 @@ function TodoItemRow({ item, barColor, onPress }: { item: TodoItem; barColor: st
       isFirstRender.current = false;
       return;
     }
-    if (item.done) {
+    if (task.isCompleted) {
       scale.value = withSequence(withTiming(1.35, { duration: 120 }), withTiming(1, { duration: 160 }));
     }
-  }, [item.done, scale]);
+  }, [task.isCompleted, scale]);
 
   const boxStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onToggle}>
       <Row gap="s" className="items-center">
         <Animated.View
           className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
-          style={[item.done ? { backgroundColor: barColor } : { borderWidth: 1, borderColor: "#8A919E" }, boxStyle]}
+          style={[task.isCompleted ? { backgroundColor: "#F6482D" } : { borderWidth: 1, borderColor: "#8A919E" }, boxStyle]}
         >
-          {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
+          {task.isCompleted && <Icon name="check" size={8} color="#FFFFFF" />}
         </Animated.View>
-        <Text
-          variant="base-medium"
-          color={item.done ? "disabled" : "primary"}
-          style={item.done ? { textDecorationLine: "line-through" } : undefined}
-        >
-          {item.text}
-        </Text>
+        <Stack gap="xxs" className="flex-1">
+          <Text
+            variant="base-medium"
+            color={task.isCompleted ? "disabled" : "primary"}
+            style={task.isCompleted ? { textDecorationLine: "line-through" } : undefined}
+          >
+            {task.taskName}
+          </Text>
+          <Text variant="base-caption" color="disabled">{`${task.startTime} - ${task.endTime}`}</Text>
+        </Stack>
       </Row>
     </Pressable>
   );
 }
 
-function AddItemRow({ category }: { category: TodoGroup["category"] }) {
+function AddTaskRow({ date }: { date: Date }) {
   return (
-    <Pressable onPress={() => router.push({ pathname: "/AddTodo", params: { category } })}>
+    <Pressable onPress={() => router.push({ pathname: "/AddTodo", params: { date: toDateString(date) } })}>
       <Row gap="s" className="items-center">
         <View className="w-[14px] h-[14px] rounded-xxs border border-neutral-400" />
         <Text variant="base-medium" color="disabled" style={{ textDecorationLine: "underline" }}>눌러서 추가하기</Text>
@@ -73,33 +84,45 @@ function AddItemRow({ category }: { category: TodoGroup["category"] }) {
   );
 }
 
-function TodoGroupCard({ group, onToggle }: { group: TodoGroup; onToggle: (groupId: string, itemId: string) => void }) {
-  const colors = CATEGORY_COLORS[group.category];
-
-  return (
-    <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
-      <View className="w-1 rounded-full" style={{ backgroundColor: colors.bar }} />
-      <Stack gap="s" className="flex-1 p-s">
-        <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
-        <Stack gap="m">
-          {group.items.map((item) => (
-            <TodoItemRow key={item.id} item={item} barColor={colors.bar} onPress={() => onToggle(group.id, item.id)} />
-          ))}
-          <AddItemRow category={group.category} />
-        </Stack>
-      </Stack>
-    </Row>
-  );
-}
-
 /**
  * 할 일 화면
  */
 export default function TodoPage() {
   const now = useNow(60_000);
-  const groups = useTodoStore((state) => state.groups);
-  const toggleItem = useTodoStore((state) => state.toggleItem);
+  const [selectedDate, setSelectedDate] = useState(now);
+  const [week, setWeek] = useState<WeeklyPlan>(EMPTY_WEEK);
   const weekDates = getWeekDates(now);
+  const selectedKey = toDateString(selectedDate);
+
+  const loadWeek = useCallback(() => {
+    getWeeklyTasks(selectedKey)
+      .then(setWeek)
+      .catch(() => setWeek(EMPTY_WEEK));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey]);
+
+  useFocusEffect(loadWeek);
+
+  const tasks = week.days.find((day) => day.planDate === selectedKey)?.tasks ?? [];
+
+  const handleToggle = (task: PlanTask) => {
+    const nextCompleted = !task.isCompleted;
+    const applyLocal = (isCompleted: boolean) => {
+      setWeek((prev) => ({
+        ...prev,
+        days: prev.days.map((day) => day.planDate !== selectedKey ? day : {
+          ...day,
+          tasks: day.tasks.map((t) => t.id === task.id ? { ...t, isCompleted } : t),
+        }),
+      }));
+    };
+
+    applyLocal(nextCompleted);
+    completeTask(task.id, nextCompleted).catch(() => {
+      applyLocal(task.isCompleted); // 실패 시 이전 상태로 되돌림
+      Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    });
+  };
 
   return (
     <View className="flex-1">
@@ -111,24 +134,29 @@ export default function TodoPage() {
 
       <Row width="full" className="border-b border-neutral-600 pb-s">
         {weekDates.map((date, i) => {
-          const color = isSameDay(date, now) ? "primary" : "disabled";
+          const isSelected = isSameDay(date, selectedDate);
+          const color = isSelected ? "primary" : "disabled";
           return (
-            <View key={i} className="flex-1 items-center py-s rounded-sm">
+            <Pressable key={i} onPress={() => setSelectedDate(date)} className="flex-1 items-center py-s rounded-sm">
               <Stack gap="xs" align="center" className="items-center">
                 <Text variant="base-small" color={color}>{WEEKDAYS[date.getDay()]}</Text>
                 <Text variant="base-small" weight="medium" color={color}>{date.getDate()}</Text>
               </Stack>
-            </View>
+            </Pressable>
           );
         })}
       </Row>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        <Stack gap="l" width="full">
-          {groups.map((group) => (
-            <TodoGroupCard key={group.id} group={group} onToggle={toggleItem} />
-          ))}
-        </Stack>
+        <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
+          <View className="w-1 rounded-full bg-primary-500" />
+          <Stack gap="m" className="flex-1 p-s">
+            {tasks.map((task) => (
+              <TaskRow key={task.id} task={task} onToggle={() => handleToggle(task)} />
+            ))}
+            <AddTaskRow date={selectedDate} />
+          </Stack>
+        </Row>
       </ScrollView>
     </View>
   );
