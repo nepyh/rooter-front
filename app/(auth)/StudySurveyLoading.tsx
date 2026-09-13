@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { Text } from "@/components";
 import { Icon } from "@/assets";
 import { createStudentProfile } from "@/api/user";
+import { submitStudyStyle } from "@/api/studyStyle";
 import { useUserStore } from "@/store";
 
 // ================================
@@ -22,10 +23,11 @@ const ANALYZE_MS = 1600;
  * 공부 스타일 분석 중 화면
  */
 export default function StudySurveyLoading() {
-  const { schoolId, grade, classNum } = useLocalSearchParams<{
+  const { schoolId, grade, classNum, answers } = useLocalSearchParams<{
     schoolId: string;
     grade: string;
     classNum: string;
+    answers?: string;
   }>();
   const userId = useUserStore((state) => state.userId);
 
@@ -37,9 +39,15 @@ export default function StudySurveyLoading() {
   }, [rotation]);
 
   useEffect(() => {
-    // 설문 문항(answers) 저장 API는 아직 없어서 학교/학년/반만 저장
     if (userId !== null) {
       createStudentProfile(userId, { schoolId, grade: Number(grade), classNumber: Number(classNum) }).catch(() => {});
+    }
+    if (answers) {
+      const studyStyleAnswers = answers.split(",").map((selectedIndex, i) => ({
+        questionNumber: i + 1,
+        answerOption: Number(selectedIndex) + 1,
+      }));
+      submitStudyStyle(studyStyleAnswers).catch(() => {});
     }
     const timer = setTimeout(() => {
       router.replace({ pathname: "/", params: { toast: "success" } });
