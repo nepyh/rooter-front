@@ -8,7 +8,7 @@ import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { logout } from "@/api/auth";
-import { getUserInfo, updateUserProfile } from "@/api/user";
+import { getAvatarUrl, getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
 
 // ================================
 // Components
@@ -45,12 +45,13 @@ export default function ProfilePage() {
   const [bio, setBio] = useState(user?.bio ?? "");
   const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
 
-  // 로그인 응답엔 소개(bio)가 없어서, 화면 진입 시 서버에서 최신 값을 받아옵니다.
+  // 로그인 응답엔 소개(bio)/아바타가 없어서, 화면 진입 시 서버에서 최신 값을 받아옵니다.
   useEffect(() => {
     if (userId === null) return;
     getUserInfo(userId)
       .then((info) => {
         setBio(info.bio ?? "");
+        if (info.avatarImageKey) setProfileImageUri(getAvatarUrl(info.avatarImageKey));
         updateProfile({ bio: info.bio ?? "" });
       })
       .catch(() => {});
@@ -71,8 +72,16 @@ export default function ProfilePage() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      setProfileImageUri(result.assets[0].uri);
+    if (result.canceled || userId === null) return;
+
+    const asset = result.assets[0];
+    setProfileImageUri(asset.uri);
+
+    try {
+      await uploadAvatar(userId, { uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType });
+      updateProfile({ profileImageUri: asset.uri });
+    } catch {
+      Alert.alert("업로드 실패", "프로필 사진 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
   };
 
