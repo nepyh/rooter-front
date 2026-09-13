@@ -5,6 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text } from "@/components";
 import { Icon } from "@/assets";
+import { createStudentProfile } from "@/api/user";
+import { useUserStore } from "@/store";
 
 // ================================
 // Constants
@@ -20,12 +22,12 @@ const ANALYZE_MS = 1600;
  * 공부 스타일 분석 중 화면
  */
 export default function StudySurveyLoading() {
-  const { school, grade, classNum, answers } = useLocalSearchParams<{
-    school: string;
+  const { schoolId, grade, classNum } = useLocalSearchParams<{
+    schoolId: string;
     grade: string;
     classNum: string;
-    answers?: string;
   }>();
+  const userId = useUserStore((state) => state.userId);
 
   const rotation = useSharedValue(0);
   const spinnerStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
@@ -35,8 +37,10 @@ export default function StudySurveyLoading() {
   }, [rotation]);
 
   useEffect(() => {
-    // TODO: 학교/학년/반/설문 응답을 저장하는 API가 정해지면 여기서 전송합니다.
-    console.log("survey result:", { school, grade, classNum, answers: answers ? answers.split(",") : [] });
+    // 설문 문항(answers) 저장 API는 아직 없어서 학교/학년/반만 저장
+    if (userId !== null) {
+      createStudentProfile(userId, { schoolId, grade: Number(grade), classNumber: Number(classNum) }).catch(() => {});
+    }
     const timer = setTimeout(() => {
       router.replace({ pathname: "/", params: { toast: "success" } });
     }, ANALYZE_MS);

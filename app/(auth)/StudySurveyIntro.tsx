@@ -3,6 +3,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Button, Text } from "@/components";
 import { Icon } from "@/assets";
+import { createStudentProfile } from "@/api/user";
+import { useUserStore } from "@/store";
 
 // ================================
 // Components
@@ -12,14 +14,23 @@ import { Icon } from "@/assets";
  * 공부 스타일 설문 안내 화면
  */
 export default function StudySurveyIntro() {
-  const { school, grade, classNum } = useLocalSearchParams<{ school: string; grade: string; classNum: string }>();
+  const { school, schoolId, grade, classNum } = useLocalSearchParams<{
+    school: string;
+    schoolId: string;
+    grade: string;
+    classNum: string;
+  }>();
+  const userId = useUserStore((state) => state.userId);
 
   const handleSkip = () => {
+    if (userId !== null) {
+      createStudentProfile(userId, { schoolId, grade: Number(grade), classNumber: Number(classNum) }).catch(() => {});
+    }
     router.replace({ pathname: "/", params: { toast: "success" } });
   };
 
   const handleStart = () => {
-    router.push({ pathname: "/StudySurveyQuestion", params: { school, grade, classNum, step: "1", answers: "" } });
+    router.push({ pathname: "/StudySurveyQuestion", params: { school, schoolId, grade, classNum, step: "1", answers: "" } });
   };
 
   return (

@@ -53,7 +53,10 @@ export default function SchoolSelect() {
   };
 
   const handleComplete = () => {
-    router.push({ pathname: "/StudySurveyIntro", params: { school: query, grade, classNum } });
+    router.push({
+      pathname: "/StudySurveyIntro",
+      params: { school: query, schoolId: selectedSchool?.code ?? "", grade, classNum },
+    });
   };
 
   useEffect(() => {

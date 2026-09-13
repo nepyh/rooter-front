@@ -52,6 +52,20 @@ export interface AvatarUploadResult {
   avatarImageKey: string;
 }
 
+export interface StudentProfileInput {
+  schoolId: string;
+  grade: number;
+  classNumber: number;
+}
+
+export interface StudentProfileResult {
+  id: number;
+  userId: number;
+  schoolId: string;
+  grade: number;
+  classNumber: number;
+}
+
 // avatarImageKey는 저장 경로일 뿐이라, 파일 서빙 엔드포인트(/files) 기준으로 표시용 URL을 만들어 씀
 export const getAvatarUrl = (avatarImageKey: string) =>
   `${process.env.EXPO_PUBLIC_API_BASE_URL}/files/${avatarImageKey}`;
@@ -117,5 +131,16 @@ export const uploadAvatar = async (userId: number, input: AvatarUploadInput): Pr
   const response = await api.put(`/users/${userId}/avatar`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+  return response.data;
+};
+
+/**
+ * 학생 프로필 생성 API 함수
+ * @param userId 유저 ID
+ * @param input 학교/학년/반 정보
+ * @returns 생성된 학생 프로필
+ */
+export const createStudentProfile = async (userId: number, input: StudentProfileInput): Promise<StudentProfileResult> => {
+  const response = await api.post(`/users/${userId}/profile`, input);
   return response.data;
 };
