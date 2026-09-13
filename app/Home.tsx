@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -10,7 +10,7 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { getDailyTasks } from "@/api/planBoard";
+import { completeTask, getDailyTasks } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useTodoStore, useUIStore } from "@/store";
 import type { TodoGroup } from "@/store";
@@ -493,6 +493,15 @@ export default function Home() {
   const handleComplete = (plan: Plan) => {
     const willComplete = plan.status !== "done";
     updateStatus(plan.id, "done");
+
+    // 목업 일정은 실제 태스크가 아니라 서버에 저장할 수 없어 로컬 토글만 반영
+    if (!plan.id.startsWith("mock-")) {
+      completeTask(Number(plan.id), willComplete).catch(() => {
+        updateStatus(plan.id, "done"); // 실패 시 이전 상태로 되돌림
+        Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
+    }
+
     if (willComplete) {
       router.push({ pathname: "/QuizPage", params: { category: plan.category } });
     }

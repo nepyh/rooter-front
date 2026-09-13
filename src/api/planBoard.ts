@@ -103,3 +103,14 @@ export const getDailyTasks = async (date?: string): Promise<DailyPlan> => {
 export const createPlanTask = async (input: CreatePlanTaskInput): Promise<void> => {
   await api.post('/plan-tasks', input);
 };
+
+/**
+ * 태스크 완료 처리/취소 API 함수
+ * @param taskId 태스크 ID
+ * @param isCompleted 완료 여부
+ * @returns 갱신된 태스크
+ */
+export const completeTask = async (taskId: number, isCompleted: boolean): Promise<PlanTask> => {
+  const response = await api.patch(`/plan-tasks/${taskId}/complete`, { isCompleted });
+  return response.data;
+};
