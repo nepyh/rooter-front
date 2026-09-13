@@ -7,6 +7,8 @@ import { Stack, Row, Text, Input, Button } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
+import { logout } from "@/api/auth";
+import { updateUserProfile } from "@/api/user";
 
 // ================================
 // Components
@@ -37,8 +39,8 @@ function MenuRow({ icon, label, onPress }: { icon?: IconName; label: string; onP
  */
 export default function ProfilePage() {
   const user = useUserStore((state) => state.user);
+  const userId = useUserStore((state) => state.userId);
   const updateProfile = useUserStore((state) => state.updateProfile);
-  const logout = useUserStore((state) => state.logout);
 
   const [bio, setBio] = useState(user?.bio ?? "");
   const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
@@ -62,13 +64,25 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSave = () => {
-    updateProfile({ bio, profileImageUri });
-    router.replace("/SettingPage");
+  const handleSave = async () => {
+    if (userId === null) return;
+
+    try {
+      await updateUserProfile(userId, { bio });
+      updateProfile({ bio, profileImageUri });
+      router.replace("/SettingPage");
+    } catch {
+      Alert.alert("저장 실패", "소개 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    // logout()은 서버 호출 성공/실패와 무관하게 로컬 로그인 상태를 항상 정리합니다.
+    try {
+      await logout();
+    } catch {
+      // 로컬 상태는 이미 정리됐으므로 무시하고 화면만 이동합니다.
+    }
     router.replace("/");
   };
 
