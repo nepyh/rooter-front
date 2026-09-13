@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -8,7 +8,7 @@ import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { logout } from "@/api/auth";
-import { updateUserProfile } from "@/api/user";
+import { getUserInfo, updateUserProfile } from "@/api/user";
 
 // ================================
 // Components
@@ -44,6 +44,18 @@ export default function ProfilePage() {
 
   const [bio, setBio] = useState(user?.bio ?? "");
   const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
+
+  // 로그인 응답엔 소개(bio)가 없어서, 화면 진입 시 서버에서 최신 값을 받아옵니다.
+  useEffect(() => {
+    if (userId === null) return;
+    getUserInfo(userId)
+      .then((info) => {
+        setBio(info.bio ?? "");
+        updateProfile({ bio: info.bio ?? "" });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();

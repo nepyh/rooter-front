@@ -20,6 +20,18 @@ export interface UpdateProfileResult {
   bio?: string | null;
 }
 
+export interface UserInfo {
+  id: number;
+  username: string;
+  email: string;
+  schoolId: string;
+  grade: number;
+  classNumber: number;
+  createdAt: string;
+  avatarImageKey?: string | null;
+  bio?: string | null;
+}
+
 export interface StreakDay {
   date: string; // yyyy-MM-dd
   completionRate: number; // 0~100
@@ -37,6 +49,16 @@ export interface Streak {
  */
 export const changePassword = async (userId: number, input: ChangePasswordInput) => {
   const response = await api.put(`/users/${userId}/password`, input);
+  return response.data;
+};
+
+/**
+ * 유저 정보 조회 API 함수
+ * @param userId 유저 ID
+ * @returns 유저 상세 정보
+ */
+export const getUserInfo = async (userId: number): Promise<UserInfo> => {
+  const response = await api.get(`/users/${userId}`);
   return response.data;
 };
 
