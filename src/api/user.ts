@@ -66,6 +66,22 @@ export interface StudentProfileResult {
   classNumber: number;
 }
 
+export const DAY_OF_WEEK_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
+export const DAY_OF_WEEK_NAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+
+export interface AddUnavailableTimeInput {
+  dayOfWeek: number; // 1(월)~7(일)
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+}
+
+export interface UnavailableTime {
+  id: number;
+  dayOfWeek: typeof DAY_OF_WEEK_NAMES[number];
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+}
+
 // avatarImageKey는 저장 경로일 뿐이라, 파일 서빙 엔드포인트(/files) 기준으로 표시용 URL을 만들어 씀
 export const getAvatarUrl = (avatarImageKey: string) =>
   `${process.env.EXPO_PUBLIC_API_BASE_URL}/files/${avatarImageKey}`;
@@ -142,5 +158,26 @@ export const uploadAvatar = async (userId: number, input: AvatarUploadInput): Pr
  */
 export const createStudentProfile = async (userId: number, input: StudentProfileInput): Promise<StudentProfileResult> => {
   const response = await api.post(`/users/${userId}/profile`, input);
+  return response.data;
+};
+
+/**
+ * 불가능 시간 목록 조회 API 함수
+ * @param userId 유저 ID
+ * @returns 등록된 불가능 시간 배열
+ */
+export const getUnavailableTimes = async (userId: number): Promise<UnavailableTime[]> => {
+  const response = await api.get(`/users/${userId}/unavailable-times`);
+  return response.data;
+};
+
+/**
+ * 불가능 시간 추가 API 함수
+ * @param userId 유저 ID
+ * @param input 요일과 시작/종료 시간
+ * @returns 추가된 불가능 시간
+ */
+export const addUnavailableTime = async (userId: number, input: AddUnavailableTimeInput): Promise<UnavailableTime> => {
+  const response = await api.post(`/users/${userId}/unavailable-times`, input);
   return response.data;
 };
