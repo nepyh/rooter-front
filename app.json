@@ -29,11 +29,6 @@
     "web": {
       "bundler": "metro"
     },
-    "fonts": [
-      "./src/assets/fonts/Pretendard-Regular.otf",
-      "./src/assets/fonts/Pretendard-Medium.otf",
-      "./src/assets/fonts/Pretendard-Bold.otf"
-    ],
     "plugins": [
       "expo-router",
       "expo-status-bar",
@@ -45,7 +40,16 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-font"
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./src/assets/fonts/Pretendard-Regular.otf",
+            "./src/assets/fonts/Pretendard-Medium.otf",
+            "./src/assets/fonts/Pretendard-Bold.otf"
+          ]
+        }
+      ]
     ],
     "backgroundColor": "#33363F"
   }
