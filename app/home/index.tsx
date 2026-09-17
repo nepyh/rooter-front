@@ -56,50 +56,6 @@ const EDIT_ERROR_MESSAGES: Record<string, string> = {
   "INVALID_ESTIMATED_MINUTES": "소요 시간을 다시 확인해주세요.",
 };
 
-// 플랜태스크 API가 빈 값을 주거나 실패했을 때 보여줄 목업 하루 일정
-const MOCK_PLANS: Plan[] = [
-  {
-    id: "mock-school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending",
-    lines: [{ icon: "history", text: "08:30 - 16:30 | 8시간" }],
-  },
-  {
-    id: "mock-math", title: "수학", category: "math", start: 690, duration: 120, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.30 ~ p.48" },
-      { icon: "history", text: "17:30 - 19:30 | 2시간" },
-    ],
-  },
-  {
-    id: "mock-meal", title: "식사", category: "neutral", start: 810, duration: 60, status: "pending",
-    lines: [{ icon: "history", text: "19:30 - 20:30 | 1시간" }],
-  },
-  {
-    id: "mock-english", title: "영어", category: "english", start: 870, duration: 60, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.111 ~ p.122" },
-      { icon: "history", text: "20:30 - 21:30 | 1시간" },
-    ],
-  },
-  {
-    id: "mock-science", title: "과학", category: "science", start: 960, duration: 120, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.22 ~ p.37" },
-      { icon: "history", text: "22:00 - 24:00 | 2시간" },
-    ],
-  },
-  {
-    id: "mock-social", title: "사회", category: "social", start: 1080, duration: 60, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.8 ~ p.10" },
-      { icon: "history", text: "24:00 - 01:00 | 1시간" },
-    ],
-  },
-  {
-    id: "mock-sleep", title: "수면", category: "neutral", start: 1140, duration: 400, status: "pending",
-    lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }],
-  },
-];
-
 // ================================
 // Helpers
 // ================================
@@ -386,8 +342,7 @@ export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const now = useNow(30_000);
-  // 실제 API 응답을 기다리는 동안 화면이 비어 보이지 않도록, 목업 일정을 먼저 보여주고 실제 데이터가 오면 교체합니다.
-  const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
@@ -414,17 +369,15 @@ export default function Home() {
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
   // 일정 생성 후 복귀 시 최신 목록 반영 위해 포커스마다 재조회
-  // TODO: 플랜태스크 데이터 없거나 API 실패 시 목업 하루 일정으로 대체
   const loadDailyTasks = useCallback(() => {
     getDailyTasks()
       .then((daily) => {
         setChatDailyPlanId(daily.tasks[0]?.dailyPlanId ?? null);
-        const mapped = daily.tasks.map(mapPlanTaskToPlan);
-        setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
+        setPlans(daily.tasks.map(mapPlanTaskToPlan));
       })
       .catch(() => {
         setChatDailyPlanId(null);
-        setPlans(MOCK_PLANS);
+        setPlans([]);
       });
   }, []);
 
@@ -471,13 +424,10 @@ export default function Home() {
     const willComplete = plan.status !== "done";
     updateStatus(plan.id, "done");
 
-    // 목업 일정은 실제 태스크가 아니라 서버에 저장할 수 없어 로컬 토글만 반영
-    if (!plan.id.startsWith("mock-")) {
-      completeTask(Number(plan.id), willComplete).catch(() => {
-        updateStatus(plan.id, "done"); // 실패 시 이전 상태로 되돌림
-        Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
-      });
-    }
+    completeTask(Number(plan.id), willComplete).catch(() => {
+      updateStatus(plan.id, "done"); // 실패 시 이전 상태로 되돌림
+      Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    });
 
     if (willComplete) {
       router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
@@ -494,12 +444,6 @@ export default function Home() {
     const target = deleteTarget;
     setPlans((prev) => prev.filter((plan) => plan.id !== target.id));
     setDeleteTarget(null);
-
-    // 목업 일정은 서버에 없으므로 로컬 삭제만 반영
-    if (target.id.startsWith("mock-")) {
-      setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`);
-      return;
-    }
 
     deletePlanTask(Number(target.id))
       .then(() => setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`))
@@ -531,8 +475,7 @@ export default function Home() {
     }));
     setEditingId(null);
 
-    // 목업 일정은 서버에 없으므로 로컬 수정만 반영
-    if (!id || id.startsWith("mock-")) return;
+    if (!id) return;
 
     updatePlanTask(Number(id), { taskName: title, startTime, endTime, estimatedMinutes: duration })
       .catch((error) => {
@@ -554,6 +497,16 @@ export default function Home() {
           <Text variant="header-medium">D-20</Text>
         </Row>
       </Row>
+
+      {plans.length === 0 && (
+        <Stack gap="m" width="full" className="items-center bg-neutral-700 p-xl rounded-md mb-l">
+          <Text variant="base-large" weight="medium">아직 오늘의 계획이 없어요</Text>
+          <Text variant="base-medium" color="secondary" className="text-center">
+            새 플랜을 만들면 여기에 오늘 할 일이 채워져요
+          </Text>
+          <Button variant="primary" onPress={() => router.push("/ExamDatePage")}>새 플랜 생성하기</Button>
+        </Stack>
+      )}
 
       <ScrollView
         ref={scrollRef}
