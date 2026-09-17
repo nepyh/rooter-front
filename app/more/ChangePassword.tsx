@@ -64,7 +64,7 @@ export default function ChangePasswordPage() {
     }
 
     // TODO: 실제 비밀번호 변경 API 연동 전까지는 성공한 것으로 간주합니다.
-    router.replace({ pathname: "/SettingPage", params: { toast: "password-changed" } });
+    router.replace({ pathname: "/more", params: { toast: "password-changed" } });
   };
 
   return (

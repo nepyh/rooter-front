@@ -439,7 +439,7 @@ export default function Home() {
     const willComplete = plan.status !== "done";
     updateStatus(plan.id, "done");
     if (willComplete) {
-      router.push({ pathname: "/QuizPage", params: { category: plan.category } });
+      router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
     }
   };
 
