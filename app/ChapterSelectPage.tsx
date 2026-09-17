@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { Alert, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
-import type { ChapterTree } from "@/api/catalog";
+import type { ChapterTree, TextbookDetail } from "@/api/catalog";
+import { generatePlan } from "@/api/planGeneration";
+import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 
 // ================================
 // Helpers
@@ -14,6 +16,14 @@ import type { ChapterTree } from "@/api/catalog";
 
 // 스크롤이 바닥에서 이 거리(px) 안으로 들어오면 하단 흐림 효과를 감춥니다
 const BOTTOM_FADE_THRESHOLD = 24;
+
+// 화면에 그리는 순서(대단원→중단원→소단원, chapterOrder 오름차순)대로 소단원만 뽑아냅니다.
+// AI 계획 생성 API가 교과서당 시작~끝 소단원 하나의 범위만 받기 때문에, 선택된 소단원 중 이 순서상
+// 처음/마지막 것을 그 교과서의 startChapterId/endChapterId로 씁니다.
+const flattenLeaves = (nodes: ChapterTree[]): ChapterTree[] =>
+  [...nodes]
+    .sort((a, b) => a.chapterOrder - b.chapterOrder)
+    .flatMap((node) => (node.children.length === 0 ? [node] : flattenLeaves(node.children)));
 
 // ================================
 // Components
@@ -90,16 +100,18 @@ function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaf
  * 목차 선택 화면
  */
 export default function ChapterSelectPage() {
-  const { textbookIds } = useLocalSearchParams<{ examDate: string; textbookIds: string }>();
-  const [roots, setRoots] = useState<ChapterTree[]>([]);
+  const { examDate, textbookIds } = useLocalSearchParams<{ examDate: string; textbookIds: string }>();
+  const [textbooks, setTextbooks] = useState<TextbookDetail[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
   const overlayOpacity = useSharedValue(1);
+  const roots = textbooks.flatMap((tb) => tb.chapters);
 
   useEffect(() => {
     const ids = (textbookIds ?? "").split(",").filter(Boolean).map(Number);
     Promise.all(ids.map((id) => getTextbookDetail(id).catch(() => null)))
-      .then((details) => setRoots(details.filter((d): d is NonNullable<typeof d> => d !== null).flatMap((d) => d.chapters)));
+      .then((details) => setTextbooks(details.filter((d): d is TextbookDetail => d !== null)));
   }, [textbookIds]);
 
   const toggleLeaf = (id: number) => {
@@ -108,6 +120,36 @@ export default function ChapterSelectPage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const handleSubmit = async () => {
+    const subjects: PlanGenerationSubjectInput[] = textbooks
+      .map((tb) => {
+        const selectedLeaves = flattenLeaves(tb.chapters).filter((leaf) => selectedIds.has(leaf.id));
+        if (selectedLeaves.length === 0) return null;
+        return {
+          textbookId: tb.id,
+          startChapterId: selectedLeaves[0].id,
+          endChapterId: selectedLeaves[selectedLeaves.length - 1].id,
+        };
+      })
+      .filter((subject): subject is PlanGenerationSubjectInput => subject !== null);
+
+    if (subjects.length === 0) return;
+
+    setSubmitting(true);
+    try {
+      await generatePlan({
+        title: examDate ? `${examDate} 시험 대비` : "새 학습 계획",
+        subjects,
+        examDate: examDate || undefined,
+      });
+      router.replace("/home");
+    } catch {
+      Alert.alert("계획 생성 실패", "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -161,6 +203,17 @@ export default function ChapterSelectPage() {
             style={[{ position: "absolute", left: 0, right: 0, bottom: 0, height: 56, backgroundColor: "#33363F" }, overlayStyle]}
           />
         </View>
+
+        <Pressable
+          onPress={handleSubmit}
+          disabled={selectedIds.size === 0 || submitting}
+          className="h-16 rounded-md items-center justify-center w-full mt-l mb-xl"
+          style={{ backgroundColor: selectedIds.size > 0 && !submitting ? "#F6482D" : "#3F4552" }}
+        >
+          <Text variant="base-medium" weight="medium" className="text-white">
+            {submitting ? "계획 생성 중..." : "AI 학습 계획 생성"}
+          </Text>
+        </Pressable>
       </View>
     </Animated.View>
   );
