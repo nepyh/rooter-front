@@ -45,16 +45,6 @@ export interface QuizResult {
 }
 
 /**
- * 일일 퀴즈 생성 API 함수
- * @param date 대상 날짜 (yyyy-MM-dd), 생략 시 오늘
- * @returns 생성된 퀴즈 문제
- */
-export const generateQuiz = async (date?: string): Promise<Quiz> => {
-  const response = await api.post('/quiz/generate', { date: date ?? null });
-  return response.data;
-};
-
-/**
  * 퀴즈 문제 조회 API 함수
  * @param dailyPlanId 일일 계획 ID
  * @returns 퀴즈 문제 (정답 미포함)

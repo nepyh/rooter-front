@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text, Button } from "@/components";
 import { Icon } from "@/assets";
-import { generateQuiz, submitQuiz } from "@/api/quiz";
+import { getQuiz, submitQuiz } from "@/api/quiz";
 import type { Quiz, QuizResult } from "@/api/quiz";
 
 // ================================
@@ -38,6 +38,7 @@ function OptionRow({ label, state, onPress }: { label: string; state: OptionStat
  * 퀴즈 화면
  */
 export default function QuizPage() {
+  const { dailyPlanId } = useLocalSearchParams<{ dailyPlanId?: string }>();
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,10 +55,16 @@ export default function QuizPage() {
 
   const handleStart = async () => {
     setStarted(true);
+
+    if (!dailyPlanId) {
+      setError("오늘의 학습 계획을 찾을 수 없어요. 홈에서 다시 시도해주세요.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
-      setQuiz(await generateQuiz());
+      setQuiz(await getQuiz(Number(dailyPlanId)));
     } catch {
       setError("퀴즈를 준비하지 못했습니다. 완료한 학습이 있는지 확인해주세요.");
     } finally {
