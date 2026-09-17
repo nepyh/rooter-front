@@ -26,11 +26,11 @@ export default function StudySurveyIntro() {
     if (userId !== null) {
       createStudentProfile(userId, { schoolId, grade: Number(grade), classNumber: Number(classNum) }).catch(() => {});
     }
-    router.replace({ pathname: "/", params: { toast: "success" } });
+    router.replace({ pathname: "/home", params: { toast: "success" } });
   };
 
   const handleStart = () => {
-    router.push({ pathname: "/StudySurveyQuestion", params: { school, schoolId, grade, classNum, step: "1", answers: "" } });
+    router.push({ pathname: "/auth/StudySurveyQuestion", params: { school, schoolId, grade, classNum, step: "1", answers: "" } });
   };
 
   return (

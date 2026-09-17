@@ -50,7 +50,7 @@ export default function StudySurveyLoading() {
       submitStudyStyle(studyStyleAnswers).catch(() => {});
     }
     const timer = setTimeout(() => {
-      router.replace({ pathname: "/", params: { toast: "success" } });
+      router.replace({ pathname: "/home", params: { toast: "success" } });
     }, ANALYZE_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

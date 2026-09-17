@@ -51,7 +51,7 @@ export default function Signup() {
       // 이후 학교/학년/반 저장 API가 로그인 토큰을 요구해서, 가입 직후 바로 로그인해둡니다.
       await login(email, password);
 
-      router.push("/SchoolSelect");
+      router.push("/auth/SchoolSelect");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.log("==============================")

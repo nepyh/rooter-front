@@ -108,12 +108,12 @@ export default function StudySurveyQuestion() {
     const nextAnswers = [...prevAnswers, String(selected)].join(",");
 
     if (isLast) {
-      router.push({ pathname: "/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
+      router.push({ pathname: "/auth/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
       return;
     }
 
     router.push({
-      pathname: "/StudySurveyQuestion",
+      pathname: "/auth/StudySurveyQuestion",
       params: { school, schoolId, grade, classNum, step: String(stepIndex + 2), answers: nextAnswers },
     });
   };
