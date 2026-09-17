@@ -167,7 +167,7 @@ export default function SettingPage() {
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
-      <Pressable onPress={() => router.push("/ProfilePage")} className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
+      <Pressable onPress={() => router.push("/more/ProfilePage")} className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
         <Row gap="m" className="items-center">
           <View className="w-[48px] h-[48px] rounded-full bg-primary-500 items-center justify-center">
             <Text variant="base-large" weight="medium" className="text-white">{username.slice(0, 1)}</Text>
@@ -183,8 +183,8 @@ export default function SettingPage() {
       <Stack gap="l" width="full" className="pt-xxl">
         <Text variant="base-medium" weight="medium" color="secondary">일반</Text>
         <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
-          <SettingRow icon="bell" label="알림" onPress={() => router.push("/NotificationPage")} />
-          <SettingRow icon="lock" label="계정" onPress={() => router.push("/AccountSettingPage")} />
+          <SettingRow icon="bell" label="알림" onPress={() => router.push("/more/NotificationPage")} />
+          <SettingRow icon="lock" label="계정" onPress={() => router.push("/more/AccountSettingPage")} />
         </Stack>
       </Stack>
 
