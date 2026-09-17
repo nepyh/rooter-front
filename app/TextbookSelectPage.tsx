@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
+import { TEXTBOOK_COVERS, TEXTBOOK_PUBLISHERS } from "@/assets/covers/textbookCovers";
 
 // ================================
 // Types
@@ -31,13 +32,20 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
 }
 
 function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
+  const cover = TEXTBOOK_COVERS[textbook.id];
+  const publisherName = TEXTBOOK_PUBLISHERS[textbook.id] ?? textbook.subjectName;
+
   return (
     <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
       <View
-        className="rounded-xxs bg-neutral-700 items-center justify-center"
+        className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
         style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: "#F6482D" }}
       >
-        <Icon name="book" size={32} color="#8A919E" />
+        {cover ? (
+          <Image source={cover} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+        ) : (
+          <Icon name="book" size={32} color="#8A919E" />
+        )}
         {selected && <View className="absolute inset-0 rounded-xxs" style={{ backgroundColor: "rgba(246,72,45,0.3)" }} />}
         {selected && (
           <View className="absolute top-xs right-xs w-5 h-5 rounded-full bg-primary-500 items-center justify-center">
@@ -47,7 +55,7 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
       </View>
       <Stack gap="xxs" width="full">
         <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title}</Text>
-        <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.subjectName}</Text>
+        <Text variant="base-small" color="secondary" numberOfLines={1}>{publisherName}</Text>
       </Stack>
     </Pressable>
   );
