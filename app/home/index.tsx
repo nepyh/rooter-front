@@ -465,7 +465,7 @@ export default function Home() {
     }
 
     if (willComplete) {
-      router.push("/QuizPage");
+      router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
     }
   };
 

@@ -67,7 +67,7 @@ export default function ChangePasswordPage() {
 
     try {
       await changePassword(userId, { currentPassword, newPassword });
-      router.replace({ pathname: "/SettingPage", params: { toast: "password-changed" } });
+      router.replace({ pathname: "/more", params: { toast: "password-changed" } });
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         setStep("verify");
