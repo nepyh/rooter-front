@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Button, Text, Toast } from '@/components';
 import { Icon } from '@/assets';
+import { useUserStore } from '@/store';
 
 export default function App() {
   const router = useRouter();
   const { toast } = useLocalSearchParams();
   const [showToast, setShowToast] = useState(false);
+  const isLogin = useUserStore((state) => state.isLogin);
 
   useEffect(() => {
     if (toast === "success") {
       setShowToast(true);
     }
   }, [toast]);
+
+  if (isLogin) return <Redirect href="/home" />;
 
   return (
     <View className="flex-1 pb-10 justify-end">

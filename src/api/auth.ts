@@ -22,11 +22,11 @@ export const signup = async (username: string, email: string, password: string) 
 export const login = async (email: string, password: string) => {
   const response = await api.post('/auth/login', { email, password });
 
-  const { username: userName, email: userEmail } = response.data;
-  useUserStore.getState().setUser({
+  const { username: userName, email: userEmail, token } = response.data;
+  await useUserStore.getState().setUser({
     username: userName,
     email: userEmail,
-  });
+  }, token);
 
   return response.data;
 };
