@@ -4,9 +4,10 @@ import api from './axios';
 // Types
 // ================================
 
-// difficulty 허용 값은 스펙에 문자열로만 명시(enum 미공개) — 실제 값은 백엔드에 확인 필요
+export type Difficulty = "쉬움" | "적당" | "어려움";
+
 export interface SubmitFeedbackInput {
-  difficulty: string;
+  difficulty: Difficulty;
   timeSpentMinutes?: number;
   focusLevel?: number; // 1~5
 }

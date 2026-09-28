@@ -198,8 +198,13 @@ export default function QuizPage() {
           )}
         </Stack>
 
-        {loading ? null : result ? (
-          <Button variant="primary" onPress={() => router.back()}>완료</Button>
+        {loading ? null : result && quiz ? (
+          <Button
+            variant="primary"
+            onPress={() => router.replace({ pathname: "/home/FeedbackPage", params: { dailyPlanId: String(quiz.dailyPlanId) } })}
+          >
+            다음
+          </Button>
         ) : error || questions.length === 0 ? (
           <Button variant="primary" onPress={() => router.back()}>확인</Button>
         ) : (
