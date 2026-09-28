@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { AI_TIMEOUT_MS } from './axios';
 
 // ================================
 // Types
@@ -42,7 +42,7 @@ export interface LevelTestResult {
  * @returns 생성된 테스트 문제
  */
 export const generateLevelTest = async (grade: number): Promise<LevelTest> => {
-  const response = await api.post('/level-test/generate', { grade });
+  const response = await api.post('/level-test/generate', { grade }, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
 

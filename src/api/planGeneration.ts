@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { AI_TIMEOUT_MS } from './axios';
 
 // ================================
 // Types
@@ -53,6 +53,6 @@ export interface GeneratedPlan {
  * @returns 생성된 플랜보드와 일자별 계획
  */
 export const generatePlan = async (input: GeneratePlanInput): Promise<GeneratedPlan> => {
-  const response = await api.post('/plan-generation', input);
+  const response = await api.post('/plan-generation', input, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };

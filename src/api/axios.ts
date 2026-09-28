@@ -2,9 +2,12 @@ import axios from 'axios';
 import { router } from 'expo-router';
 import { useUserStore } from '@/store';
 
+// AI 호출 API(계획 생성·퀴즈·피드백·챗봇) 전용 timeout
+export const AI_TIMEOUT_MS = 60_000;
+
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_BASE_URL,
-  timeout: 5000,
+  timeout: 15_000,
   headers: {
     'Content-Type': 'application/json',
   },

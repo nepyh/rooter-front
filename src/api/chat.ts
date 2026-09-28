@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { AI_TIMEOUT_MS } from './axios';
 import type { PlanTask } from './planBoard';
 
 // ================================
@@ -17,13 +17,6 @@ export interface ChatTurn {
   createdAt: string;
 }
 
-// ================================
-// Constants
-// ================================
-
-// AI 응답 대기 시간 고려한 챗봇 전용 timeout
-const CHAT_TIMEOUT_MS = 30_000;
-
 /**
  * 챗봇 메시지 전송 API 함수
  * @param dailyPlanId 일일 계획 ID
@@ -31,7 +24,7 @@ const CHAT_TIMEOUT_MS = 30_000;
  * @returns AI 답변과 계획 변경 여부
  */
 export const sendChatMessage = async (dailyPlanId: number, message: string): Promise<ChatReply> => {
-  const response = await api.post(`/daily-plans/${dailyPlanId}/chat/message`, { message }, { timeout: CHAT_TIMEOUT_MS });
+  const response = await api.post(`/daily-plans/${dailyPlanId}/chat/message`, { message }, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
 

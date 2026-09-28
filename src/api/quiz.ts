@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { AI_TIMEOUT_MS } from './axios';
 
 // ================================
 // Types
@@ -50,7 +50,7 @@ export interface QuizResult {
  * @returns 생성된 퀴즈 문제
  */
 export const generateQuiz = async (date?: string): Promise<Quiz> => {
-  const response = await api.post('/quiz/generate', { date: date ?? null });
+  const response = await api.post('/quiz/generate', { date: date ?? null }, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
 
@@ -71,6 +71,6 @@ export const getQuiz = async (dailyPlanId: number): Promise<Quiz> => {
  * @returns 채점 결과
  */
 export const submitQuiz = async (dailyPlanId: number, answers: QuizAnswer[]): Promise<QuizResult> => {
-  const response = await api.post(`/quiz/${dailyPlanId}/submit`, { answers });
+  const response = await api.post(`/quiz/${dailyPlanId}/submit`, { answers }, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
