@@ -8,7 +8,7 @@ import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { logout } from "@/api/auth";
-import { getAvatarUrl, getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
+import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
 
 // ================================
 // Components
@@ -51,7 +51,7 @@ export default function ProfilePage() {
     getUserInfo(userId)
       .then((info) => {
         setBio(info.bio ?? "");
-        if (info.avatarImageKey) setProfileImageUri(getAvatarUrl(info.avatarImageKey));
+        if (info.avatarUrl) setProfileImageUri(info.avatarUrl);
         updateProfile({ bio: info.bio ?? "" });
       })
       .catch(() => {});
