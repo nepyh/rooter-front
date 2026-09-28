@@ -11,9 +11,10 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/planBoard";
+import { completeTask, deletePlanTask, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useUIStore } from "@/store";
+import { toLocalDateString } from "@/utils/date";
 
 // ================================
 // Types
@@ -91,6 +92,13 @@ const parseHHmm = (value: string) => {
 };
 
 // 과목 연결 API 미구현으로 전부 neutral 처리
+// 오늘부터 시험일까지 남은 일수, 시험 당일은 0
+const getDDay = (examDate: string, now: Date) => {
+  const [y, m, d] = examDate.split("-").map(Number);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
+};
+
 const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -383,6 +391,24 @@ export default function Home() {
 
   useFocusEffect(loadDailyTasks);
 
+  // 플랜보드 중 오늘 이후 가장 가까운 시험일
+  const [nextExamDate, setNextExamDate] = useState<string | null>(null);
+  const loadNextExam = useCallback(() => {
+    const today = toLocalDateString(new Date());
+    getPlanBoards()
+      .then((boards) => {
+        const upcoming = boards
+          .map((board) => board.examDate)
+          .filter((date): date is string => !!date && date >= today)
+          .sort();
+        setNextExamDate(upcoming[0] ?? null);
+      })
+      .catch(() => setNextExamDate(null));
+  }, []);
+
+  useFocusEffect(loadNextExam);
+  const examDDay = nextExamDate ? getDDay(nextExamDate, now) : null;
+
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: offset, animated: false }));
@@ -492,10 +518,12 @@ export default function Home() {
 
       <Row width="full" align="between" className="items-center pt-m pb-l">
         <Text variant="header-large">{formatDateHeader(now)}</Text>
-        <Row gap="s" className="items-center">
-          <Text variant="base-small" color="secondary">기말고사</Text>
-          <Text variant="header-medium">D-20</Text>
-        </Row>
+        {examDDay !== null && examDDay >= 0 && (
+          <Row gap="s" className="items-center">
+            <Text variant="base-small" color="secondary">시험</Text>
+            <Text variant="header-medium">{examDDay === 0 ? "D-Day" : `D-${examDDay}`}</Text>
+          </Row>
+        )}
       </Row>
 
       {plans.length === 0 && (
