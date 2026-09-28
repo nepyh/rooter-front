@@ -9,6 +9,7 @@ export interface PlanBoard {
   title: string;
   startDate: string; // yyyy-MM-dd
   endDate: string; // yyyy-MM-dd
+  examDate: string | null; // yyyy-MM-dd
   createdAt: string;
 }
 
@@ -16,6 +17,7 @@ export interface CreatePlanBoardInput {
   title: string;
   startDate: string; // yyyy-MM-dd
   endDate: string; // yyyy-MM-dd
+  examDate?: string; // yyyy-MM-dd
 }
 
 export interface CreatePlanBoardResult {
@@ -97,7 +99,7 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
 
   const oneYearLater = toDateString(new Date(Date.now() + 365 * 24 * 60 * 60_000));
   const created = await createPlanBoard({ title: '기본 플랜보드', startDate: today, endDate: oneYearLater });
-  return { id: created.id, title: '기본 플랜보드', startDate: today, endDate: oneYearLater, createdAt: new Date().toISOString() };
+  return { id: created.id, title: '기본 플랜보드', startDate: today, endDate: oneYearLater, examDate: null, createdAt: new Date().toISOString() };
 };
 
 /**
