@@ -66,7 +66,9 @@ export interface WeeklyPlan {
 // Helpers
 // ================================
 
-const toDateString = (date: Date) => date.toISOString().slice(0, 10);
+const pad = (n: number) => String(n).padStart(2, '0');
+// toISOString은 UTC 기준이라 한국 새벽에 전날이 되므로 기기 시간 기준으로 포맷
+const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 /**
  * 플랜보드 목록 조회 API 함수
