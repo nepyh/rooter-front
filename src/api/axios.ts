@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { router } from 'expo-router';
 import { useUserStore } from '@/store';
 
 const api = axios.create({
@@ -18,5 +19,19 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// 토큰 만료·무효(code=UNAUTHORIZED) 시 로그아웃 후 첫 화면 이동
+// BAD_CREDENTIALS, WRONG_CURRENT_PASSWORD 같은 다른 401은 각 화면에서 처리
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isUnauthorized = error.response?.status === 401 && error.response?.data?.code === 'UNAUTHORIZED';
+    if (isUnauthorized && useUserStore.getState().isLogin) {
+      useUserStore.getState().logout();
+      router.replace({ pathname: '/', params: { toast: 'session-expired' } });
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default api;
