@@ -17,6 +17,7 @@ type Step = "verify" | "reset";
  */
 export default function ChangePasswordPage() {
   const userId = useUserStore((state) => state.userId);
+  const logout = useUserStore((state) => state.logout);
   const [step, setStep] = useState<Step>("verify");
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -67,9 +68,11 @@ export default function ChangePasswordPage() {
 
     try {
       await changePassword(userId, { currentPassword, newPassword });
-      router.replace({ pathname: "/more", params: { toast: "password-changed" } });
+      // 비밀번호 변경 시 백엔드가 기존 토큰 무효화, 다시 로그인 필요
+      logout();
+      router.replace({ pathname: "/", params: { toast: "password-changed" } });
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.data?.code === "WRONG_CURRENT_PASSWORD") {
         setStep("verify");
         setCurrentPasswordErrorMessage("현재 비밀번호가 일치하지 않습니다.");
         return;
