@@ -1,3 +1,12 @@
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * 기기 시간 기준 yyyy-MM-dd 문자열 변환 함수
+ * @param date 변환할 날짜
+ * @returns yyyy-MM-dd 문자열
+ */
+export const toLocalDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
 export const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 

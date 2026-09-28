@@ -92,6 +92,8 @@ export default function Login() {
               placeholder="비밀번호를 입력해주세요"
               errorMessage={passwordErrorMessage}
               secureTextEntry
+              textContentType="oneTimeCode"
+              autoComplete="off"
               returnKeyType="done"
               onSubmitEditing={() => {
                 if (btnVariant !== "disabled") handleSubmit();
