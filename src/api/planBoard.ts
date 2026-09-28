@@ -25,6 +25,7 @@ export interface CreatePlanBoardResult {
 
 export interface PlanTask {
   id: number;
+  dailyPlanId: number;
   taskName: string;
   startTime: string; // HH:mm
   endTime: string; // HH:mm
@@ -44,6 +45,13 @@ export interface CreatePlanTaskInput {
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   estimatedMinutes: number;
+}
+
+export interface UpdatePlanTaskInput {
+  taskName?: string;
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
+  estimatedMinutes?: number;
 }
 
 export interface WeeklyPlan {
@@ -129,4 +137,23 @@ export const createPlanTask = async (input: CreatePlanTaskInput): Promise<void> 
 export const completeTask = async (taskId: number, isCompleted: boolean): Promise<PlanTask> => {
   const response = await api.patch(`/plan-tasks/${taskId}/complete`, { isCompleted });
   return response.data;
+};
+
+/**
+ * 태스크 수정 API 함수
+ * @param taskId 태스크 ID
+ * @param input 수정할 필드
+ * @returns 수정된 태스크
+ */
+export const updatePlanTask = async (taskId: number, input: UpdatePlanTaskInput): Promise<PlanTask> => {
+  const response = await api.patch(`/plan-tasks/${taskId}`, input);
+  return response.data;
+};
+
+/**
+ * 태스크 삭제 API 함수
+ * @param taskId 태스크 ID
+ */
+export const deletePlanTask = async (taskId: number): Promise<void> => {
+  await api.delete(`/plan-tasks/${taskId}`);
 };

@@ -3,6 +3,7 @@ import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
@@ -10,7 +11,7 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, getDailyTasks } from "@/api/planBoard";
+import { completeTask, deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useUIStore } from "@/store";
 
@@ -46,6 +47,14 @@ const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
+
+// 태스크 수정 실패 시 백엔드 code별 안내 문구
+const EDIT_ERROR_MESSAGES: Record<string, string> = {
+  "INVALID_TASK_NAME": "일정 이름을 다시 확인해주세요.",
+  "INVALID_TIME_RANGE": "종료 시간은 시작 시간보다 늦어야 해요. 자정을 넘기는 일정은 저장할 수 없어요.",
+  "INVALID_TIME_FORMAT": "시간 형식이 올바르지 않아요.",
+  "INVALID_ESTIMATED_MINUTES": "소요 시간을 다시 확인해주세요.",
+};
 
 // 플랜태스크 API가 빈 값을 주거나 실패했을 때 보여줄 목업 하루 일정
 const MOCK_PLANS: Plan[] = [
@@ -476,9 +485,22 @@ export default function Home() {
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    setPlans((prev) => prev.filter((plan) => plan.id !== deleteTarget.id));
-    setDeleteToast(`'${deleteTarget.title}' 일정이 삭제되었습니다.`);
+    const target = deleteTarget;
+    setPlans((prev) => prev.filter((plan) => plan.id !== target.id));
     setDeleteTarget(null);
+
+    // 목업 일정은 서버에 없으므로 로컬 삭제만 반영
+    if (target.id.startsWith("mock-")) {
+      setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`);
+      return;
+    }
+
+    deletePlanTask(Number(target.id))
+      .then(() => setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`))
+      .catch(() => {
+        loadDailyTasks(); // 실패 시 서버 목록으로 복구
+        Alert.alert("삭제 실패", "일정 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
   };
 
   // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
@@ -488,16 +510,30 @@ export default function Home() {
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
+    const id = editingId;
+    const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
+    const endMin = (startMin + duration) % DAY_MIN;
+    const startTime = `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)}`;
+    const endTime = `${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
+
     setPlans((prev) => prev.map((plan) => {
-      if (plan.id !== editingId) return plan;
-      const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
-      const endMin = (startMin + duration) % DAY_MIN;
+      if (plan.id !== id) return plan;
       const lines = plan.lines.map((line) => line.icon === "history"
-        ? { ...line, text: `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)} - ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)} | ${formatDuration(duration)}` }
+        ? { ...line, text: `${startTime} - ${endTime} | ${formatDuration(duration)}` }
         : line);
       return { ...plan, title, start, duration, lines };
     }));
     setEditingId(null);
+
+    // 목업 일정은 서버에 없으므로 로컬 수정만 반영
+    if (!id || id.startsWith("mock-")) return;
+
+    updatePlanTask(Number(id), { taskName: title, startTime, endTime, estimatedMinutes: duration })
+      .catch((error) => {
+        loadDailyTasks(); // 실패 시 서버 목록으로 복구
+        const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+        Alert.alert("수정 실패", EDIT_ERROR_MESSAGES[code] ?? "일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
   };
 
   return (
