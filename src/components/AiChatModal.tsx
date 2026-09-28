@@ -4,6 +4,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing
 import { Stack, Row } from "@/components/layout";
 import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
+import { getChatHistory, sendChatMessage } from "@/api/chat";
 
 // ================================
 // Types
@@ -17,7 +18,9 @@ interface Message {
 
 interface Props {
   visible: boolean;
+  dailyPlanId: number | null;
   onClose: () => void;
+  onPlanChanged?: () => void;
 }
 
 // ================================
@@ -28,8 +31,8 @@ interface Props {
 // 화면 실측 높이로 고정 픽셀 값을 계산합니다.
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 
-// TODO: 실제 AI 응답 API 연동 전까지 보여줄 목업 답변입니다.
-const MOCK_REPLY = "네, 확인했어요! 오늘 일정 조정해볼게요.";
+const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
+const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
 
 // ================================
 // Components
@@ -52,13 +55,16 @@ function Bubble({ message }: { message: Message }) {
 /**
  * AI 채팅 모달
  * @param visible 모달 표시 여부를 설정합니다.
+ * @param dailyPlanId 대화할 일일 계획 ID를 설정합니다.
  * @param onClose 모달을 닫을 때 실행할 행동을 입력합니다.
+ * @param onPlanChanged AI가 계획을 바꿨을 때 실행할 행동을 입력합니다.
  */
-export function AiChatModal({ visible, onClose }: Props) {
+export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
   const [isRendered, setIsRendered] = useState(visible);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -72,28 +78,52 @@ export function AiChatModal({ visible, onClose }: Props) {
     }
   }, [visible, translateY]);
 
-  // 모달을 새로 열 때마다 이전 대화를 초기화합니다.
+  // 모달 열 때마다 서버 대화 이력으로 초기화
   useEffect(() => {
     if (!visible) return;
     setMessages([]);
     setInput("");
-  }, [visible]);
+    if (!dailyPlanId) return;
+    getChatHistory(dailyPlanId)
+      .then((turns) => setMessages(turns.map((turn, i) => ({
+        id: `${turn.createdAt}-${i}`,
+        role: turn.role.toLowerCase() === "user" ? "user" : "assistant",
+        text: turn.content,
+      }))))
+      .catch(() => setMessages([]));
+  }, [visible, dailyPlanId]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const handleSend = () => {
+  const addAssistantMessage = (text: string) => {
+    setMessages((prev) => [...prev, { id: `${Date.now()}-assistant`, role: "assistant", text }]);
+  };
+
+  const handleSend = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || sending) return;
 
     const userMessage: Message = { id: `${Date.now()}-user`, role: "user", text };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { id: `${Date.now()}-assistant`, role: "assistant", text: MOCK_REPLY }]);
-    }, 600);
+    if (!dailyPlanId) {
+      addAssistantMessage(NO_PLAN_MESSAGE);
+      return;
+    }
+
+    setSending(true);
+    try {
+      const result = await sendChatMessage(dailyPlanId, text);
+      addAssistantMessage(result.reply);
+      if (result.planChanged) onPlanChanged?.();
+    } catch {
+      addAssistantMessage(ERROR_MESSAGE);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -118,6 +148,7 @@ export function AiChatModal({ visible, onClose }: Props) {
                   {messages.map((message) => (
                     <Bubble key={message.id} message={message} />
                   ))}
+                  {sending && <Bubble message={{ id: "typing", role: "assistant", text: "..." }} />}
                 </ScrollView>
 
                 <Row
@@ -136,8 +167,8 @@ export function AiChatModal({ visible, onClose }: Props) {
                   />
                   <Pressable
                     onPress={handleSend}
-                    disabled={!input.trim()}
-                    className={`items-center justify-center rounded-full ${input.trim() ? "bg-primary-500" : "bg-neutral-600"}`}
+                    disabled={!input.trim() || sending}
+                    className={`items-center justify-center rounded-full ${input.trim() && !sending ? "bg-primary-500" : "bg-neutral-600"}`}
                     style={{ width: 44, height: 44 }}
                   >
                     <Icon name="arrowUp" size={24} color="#FFFFFF" />

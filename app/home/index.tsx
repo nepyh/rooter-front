@@ -395,6 +395,8 @@ export default function Home() {
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
+  // 여러 플랜보드면 dailyPlanId가 여러 개라 첫 태스크 기준 사용
+  const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
@@ -416,10 +418,14 @@ export default function Home() {
   const loadDailyTasks = useCallback(() => {
     getDailyTasks()
       .then((daily) => {
+        setChatDailyPlanId(daily.tasks[0]?.dailyPlanId ?? null);
         const mapped = daily.tasks.map(mapPlanTaskToPlan);
         setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
       })
-      .catch(() => setPlans(MOCK_PLANS));
+      .catch(() => {
+        setChatDailyPlanId(null);
+        setPlans(MOCK_PLANS);
+      });
   }, []);
 
   useFocusEffect(loadDailyTasks);
@@ -634,7 +640,12 @@ export default function Home() {
         onCreated={handlePlanCreated}
       />
 
-      <AiChatModal visible={showAiChat} onClose={() => setShowAiChat(false)} />
+      <AiChatModal
+        visible={showAiChat}
+        dailyPlanId={chatDailyPlanId}
+        onClose={() => setShowAiChat(false)}
+        onPlanChanged={loadDailyTasks}
+      />
     </View>
   );
 }
