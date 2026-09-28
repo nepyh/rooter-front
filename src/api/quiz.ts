@@ -1,4 +1,5 @@
 import api, { AI_TIMEOUT_MS } from './axios';
+import { toLocalDateString } from '@/utils/date';
 
 // ================================
 // Types
@@ -50,7 +51,8 @@ export interface QuizResult {
  * @returns 생성된 퀴즈 문제
  */
 export const generateQuiz = async (date?: string): Promise<Quiz> => {
-  const response = await api.post('/quiz/generate', { date: date ?? null }, { timeout: AI_TIMEOUT_MS });
+  // 서버의 오늘이 UTC 기준이라 날짜 생략 시 기기 기준 오늘 날짜 전달
+  const response = await api.post('/quiz/generate', { date: date ?? toLocalDateString(new Date()) }, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
 

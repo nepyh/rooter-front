@@ -1,4 +1,5 @@
 import api from './axios';
+import { toLocalDateString } from '@/utils/date';
 
 // ================================
 // Types
@@ -62,14 +63,6 @@ export interface WeeklyPlan {
   days: DailyPlan[];
 }
 
-// ================================
-// Helpers
-// ================================
-
-const pad = (n: number) => String(n).padStart(2, '0');
-// toISOString은 UTC 기준이라 한국 새벽에 전날이 되므로 기기 시간 기준으로 포맷
-const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
 /**
  * 플랜보드 목록 조회 API 함수
  * @returns 플랜보드 배열
@@ -94,12 +87,12 @@ export const createPlanBoard = async (input: CreatePlanBoardInput): Promise<Crea
  * @returns 오늘 기준으로 쓸 플랜보드
  */
 export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
-  const today = toDateString(new Date());
+  const today = toLocalDateString(new Date());
   const boards = await getPlanBoards();
   const current = boards.find((board) => board.startDate <= today && today <= board.endDate);
   if (current) return current;
 
-  const oneYearLater = toDateString(new Date(Date.now() + 365 * 24 * 60 * 60_000));
+  const oneYearLater = toLocalDateString(new Date(Date.now() + 365 * 24 * 60 * 60_000));
   const created = await createPlanBoard({ title: '기본 플랜보드', startDate: today, endDate: oneYearLater });
   return { id: created.id, title: '기본 플랜보드', startDate: today, endDate: oneYearLater, examDate: null, createdAt: new Date().toISOString() };
 };
@@ -110,7 +103,8 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
  * @returns 해당 날짜의 태스크 목록
  */
 export const getDailyTasks = async (date?: string): Promise<DailyPlan> => {
-  const response = await api.get('/plan-tasks', { params: date ? { date } : undefined });
+  // 서버의 오늘이 UTC 기준이라 날짜 생략 시 기기 기준 오늘 날짜 전달
+  const response = await api.get('/plan-tasks', { params: { date: date ?? toLocalDateString(new Date()) } });
   return response.data;
 };
 
@@ -120,7 +114,7 @@ export const getDailyTasks = async (date?: string): Promise<DailyPlan> => {
  * @returns 주간 시작/종료일과 요일별 태스크 목록
  */
 export const getWeeklyTasks = async (date?: string): Promise<WeeklyPlan> => {
-  const response = await api.get('/plan-tasks/week', { params: date ? { date } : undefined });
+  const response = await api.get('/plan-tasks/week', { params: { date: date ?? toLocalDateString(new Date()) } });
   return response.data;
 };
 
