@@ -45,6 +45,12 @@ export interface CreateCalendarEventInput {
   memo?: string;
 }
 
+export interface UpdateCalendarEventInput {
+  title?: string;
+  eventDate?: string; // yyyy-MM-dd
+  memo?: string;
+}
+
 /**
  * 기간별 캘린더 조회 API 함수
  * @param start 조회 시작일 (yyyy-MM-dd)
@@ -82,4 +88,15 @@ export const createCalendarEvent = async (input: CreateCalendarEventInput): Prom
  */
 export const deleteCalendarEvent = async (eventId: number): Promise<void> => {
   await api.delete(`/calendar/events/${eventId}`);
+};
+
+/**
+ * 개인 일정 수정 API 함수
+ * @param eventId 수정할 일정 ID
+ * @param input 수정할 필드
+ * @returns 수정된 일정
+ */
+export const updateCalendarEvent = async (eventId: number, input: UpdateCalendarEventInput): Promise<CalendarEvent> => {
+  const response = await api.patch(`/calendar/events/${eventId}`, input);
+  return response.data;
 };

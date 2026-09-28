@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, View } from "react-native";
 import Animated, { Easing, SlideInLeft, SlideInRight, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 import { Stack, Row, Text, Input, Button } from "@/components";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
@@ -10,7 +11,7 @@ import { WEEKDAYS } from "@/constants/date";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import type { CalendarCellData } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
-import { getCalendarRange, createCalendarEvent, deleteCalendarEvent } from "@/api/calendar";
+import { getCalendarRange, createCalendarEvent, deleteCalendarEvent, updateCalendarEvent } from "@/api/calendar";
 import type { CalendarRange } from "@/api/calendar";
 
 // ================================
@@ -33,6 +34,18 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 const EMPTY_RANGE: CalendarRange = { days: [], exams: [], events: [] };
+
+// 일정 추가·수정 실패 시 백엔드 code별 안내 문구
+const EVENT_ERROR_MESSAGES: Record<string, string> = {
+  "CALENDAR_004": "제목은 1~100자로 입력해주세요.",
+  "CALENDAR_002": "날짜 형식이 올바르지 않아요.",
+  "CALENDAR_EVENT_NOT_FOUND": "이미 삭제되었거나 찾을 수 없는 일정이에요.",
+};
+
+const getEventErrorMessage = (error: unknown, fallback: string) => {
+  const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+  return EVENT_ERROR_MESSAGES[code] ?? fallback;
+};
 
 const buildItemsByDate = (range: CalendarRange): Record<string, CalendarItem[]> => {
   const map: Record<string, CalendarItem[]> = {};
@@ -90,16 +103,23 @@ function CalendarCell({ cell, items, isToday, onSelectItem, onSelectDay }: {
   );
 }
 
-function PlanDetailModal({ visible, date, item, onClose, onDelete }: {
+function PlanDetailModal({ visible, date, item, onClose, onHidden, onEdit, onDelete }: {
   visible: boolean;
   date: Date;
   item: CalendarItem;
   onClose: () => void;
+  onHidden: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const translateY = useSharedValue(DETAIL_SHEET_OFFSCREEN_Y);
   // AddPlanBoardModal과 동일하게, 닫힘 애니메이션이 끝난 뒤에야 실제로 Modal을 내려주기 위한 렌더링 상태입니다.
   const [isRendered, setIsRendered] = useState(visible);
+
+  const handleHidden = () => {
+    setIsRendered(false);
+    onHidden();
+  };
 
   useEffect(() => {
     if (visible) {
@@ -107,7 +127,7 @@ function PlanDetailModal({ visible, date, item, onClose, onDelete }: {
       translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
     } else {
       translateY.value = withTiming(DETAIL_SHEET_OFFSCREEN_Y, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(setIsRendered)(false);
+        if (finished) runOnJS(handleHidden)();
       });
     }
   }, [visible, translateY]);
@@ -137,7 +157,14 @@ function PlanDetailModal({ visible, date, item, onClose, onDelete }: {
                   </View>
                 </Stack>
                 {item.kind === "event" && (
-                  <Button variant="disabled" disabled={false} onPress={onDelete}>삭제</Button>
+                  <Row gap="m" width="full">
+                    <View className="flex-1">
+                      <Button variant="disabled" disabled={false} onPress={onDelete}>삭제</Button>
+                    </View>
+                    <View className="flex-1">
+                      <Button variant="primary" onPress={onEdit}>수정</Button>
+                    </View>
+                  </Row>
                 )}
               </Stack>
             </Stack>
@@ -148,9 +175,11 @@ function PlanDetailModal({ visible, date, item, onClose, onDelete }: {
   );
 }
 
-function AddEventModal({ visible, date, onClose, onSubmit }: {
+function EventFormModal({ visible, date, initial, submitLabel, onClose, onSubmit }: {
   visible: boolean;
   date: Date | null;
+  initial?: { title: string; memo: string };
+  submitLabel: string;
   onClose: () => void;
   onSubmit: (title: string, memo: string) => void;
 }) {
@@ -159,9 +188,10 @@ function AddEventModal({ visible, date, onClose, onSubmit }: {
 
   useEffect(() => {
     if (visible) {
-      setTitle("");
-      setMemo("");
+      setTitle(initial?.title ?? "");
+      setMemo(initial?.memo ?? "");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   if (!date) return null;
@@ -170,7 +200,7 @@ function AddEventModal({ visible, date, onClose, onSubmit }: {
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View className="flex-1 bg-black/50 justify-end">
         <Stack gap="l" className="bg-background-primary p-xl rounded-t-md">
-          <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 추가`}</Text>
+          <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${submitLabel}`}</Text>
           <Input label="제목" value={title} onChangeText={setTitle} />
           <Input label="메모" value={memo} onChangeText={setMemo} multiline style={{ height: 80, textAlignVertical: "top" }} />
           <Row gap="m" width="full">
@@ -178,7 +208,7 @@ function AddEventModal({ visible, date, onClose, onSubmit }: {
               <Button variant="disabled" disabled={false} onPress={onClose}> 취소 </Button>
             </View>
             <View className="flex-1">
-              <Button variant={title.trim() ? "primary" : "disabled"} onPress={() => onSubmit(title.trim(), memo.trim())}> 추가 </Button>
+              <Button variant={title.trim() ? "primary" : "disabled"} onPress={() => onSubmit(title.trim(), memo.trim())}> {submitLabel} </Button>
             </View>
           </Row>
         </Stack>
@@ -198,6 +228,9 @@ export default function CalendarPage() {
   const [activeItem, setActiveItem] = useState<{ date: Date; item: CalendarItem } | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [addingDate, setAddingDate] = useState<Date | null>(null);
+  const [editingItem, setEditingItem] = useState<{ date: Date; item: CalendarItem } | null>(null);
+  // iOS는 모달이 닫히는 중 다른 모달을 못 띄워서, 상세 시트가 완전히 내려간 뒤 수정 모달 열기
+  const pendingEditRef = useRef<{ date: Date; item: CalendarItem } | null>(null);
   const hasNavigated = useRef(false);
 
   const weeks = buildMonthWeeks(viewDate.getFullYear(), viewDate.getMonth());
@@ -238,8 +271,31 @@ export default function CalendarPage() {
       await createCalendarEvent({ title, eventDate: toDateString(addingDate), memo: memo || undefined });
       setAddingDate(null);
       loadRange();
-    } catch {
-      Alert.alert("추가 실패", "일정 추가에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } catch (error) {
+      Alert.alert("추가 실패", getEventErrorMessage(error, "일정 추가에 실패했습니다. 잠시 후 다시 시도해주세요."));
+    }
+  };
+
+  const handleStartEdit = () => {
+    if (!activeItem) return;
+    pendingEditRef.current = activeItem;
+    setDetailVisible(false);
+  };
+
+  const handleDetailHidden = () => {
+    if (!pendingEditRef.current) return;
+    setEditingItem(pendingEditRef.current);
+    pendingEditRef.current = null;
+  };
+
+  const handleUpdateEvent = async (title: string, memo: string) => {
+    if (!editingItem?.item.id || !title) return;
+    try {
+      await updateCalendarEvent(editingItem.item.id, { title, memo });
+      setEditingItem(null);
+      loadRange();
+    } catch (error) {
+      Alert.alert("수정 실패", getEventErrorMessage(error, "일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요."));
     }
   };
 
@@ -308,15 +364,27 @@ export default function CalendarPage() {
           date={activeItem.date}
           item={activeItem.item}
           onClose={() => setDetailVisible(false)}
+          onHidden={handleDetailHidden}
+          onEdit={handleStartEdit}
           onDelete={handleDeleteEvent}
         />
       )}
 
-      <AddEventModal
+      <EventFormModal
         visible={addingDate !== null}
         date={addingDate}
+        submitLabel="추가"
         onClose={() => setAddingDate(null)}
         onSubmit={handleCreateEvent}
+      />
+
+      <EventFormModal
+        visible={editingItem !== null}
+        date={editingItem?.date ?? null}
+        initial={editingItem ? { title: editingItem.item.label, memo: editingItem.item.memo } : undefined}
+        submitLabel="수정"
+        onClose={() => setEditingItem(null)}
+        onSubmit={handleUpdateEvent}
       />
     </View>
   );
