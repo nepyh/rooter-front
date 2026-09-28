@@ -6,7 +6,7 @@ import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
-import { TEXTBOOK_COVERS, TEXTBOOK_PUBLISHERS } from "@/assets/covers/textbookCovers";
+import { TEXTBOOK_COVERS } from "@/assets/covers/textbookCovers";
 
 // ================================
 // Types
@@ -33,7 +33,8 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
 
 function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
   const cover = TEXTBOOK_COVERS[textbook.id];
-  const publisherName = TEXTBOOK_PUBLISHERS[textbook.id] ?? textbook.subjectName;
+  // catalog 응답에 출판사 이름이 없어 제목 괄호 안 출판사 사용
+  const publisherName = textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
 
   return (
     <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
