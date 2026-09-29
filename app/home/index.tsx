@@ -11,7 +11,7 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, deletePlanTask, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
+import { completeTask, deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useUIStore, useUserStore } from "@/store";
 import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
@@ -37,6 +37,7 @@ interface Plan {
   start: number; // 타임라인 시작(00:00) 기준 오프셋(분)
   duration: number; // 분
   status: PlanStatus;
+  dailyPlanId?: number;
 }
 
 // ================================
@@ -144,6 +145,7 @@ const mapPlanTaskToPlan = (task: PlanTask): Plan => {
     start,
     duration: task.estimatedMinutes,
     status: task.isCompleted ? "done" : "pending",
+    dailyPlanId: task.dailyPlanId,
     lines: [
       { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
     ],
@@ -220,7 +222,7 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
-function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
+function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: { plan: Plan; canDelete: boolean; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
   const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
@@ -233,7 +235,8 @@ function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan
           <ActionButton icon="check" label="완료" onPress={onComplete} />
           <ActionButton icon="close" label="실패" onPress={onFail} />
           <ActionButton icon="pencil" label="수정" onPress={onEdit} />
-          <ActionButton icon="trash" label="삭제" onPress={onDelete} />
+          {/* AI가 만든 계획은 삭제 불가, 직접 추가한 계획만 */}
+          {canDelete && <ActionButton icon="trash" label="삭제" onPress={onDelete} />}
         </Row>
       </Stack>
       {!showBelow && <View className="w-3 h-3 -mt-1.5 bg-neutral-700 border-r border-b border-neutral-600 rotate-45" />}
@@ -465,6 +468,16 @@ export default function Home() {
 
   useFocusEffect(loadNextExam);
 
+  // 직접 추가한 계획 = 시험일 없는 기본 보드의 오늘 dailyPlanId
+  const [manualDailyPlanIds, setManualDailyPlanIds] = useState<Set<number>>(new Set());
+  const loadManualDailyPlanIds = useCallback(() => {
+    getPlanBoards()
+      .then((boards) => Promise.all(boards.filter((board) => board.examDate === null).map((board) => getBoardDaily(board.id))))
+      .then((dailies) => setManualDailyPlanIds(new Set(dailies.map((daily) => daily.dailyPlanId).filter((id): id is number => typeof id === "number"))))
+      .catch(() => setManualDailyPlanIds(new Set()));
+  }, []);
+  useFocusEffect(loadManualDailyPlanIds);
+
   // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
   const userId = useUserStore((state) => state.userId);
   const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
@@ -492,6 +505,7 @@ export default function Home() {
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
+    if (plan.status === "done") return; // 완료한 계획은 메뉴 없음
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
@@ -553,6 +567,7 @@ export default function Home() {
   const handlePlanCreated = () => {
     setShowAddPlan(false);
     loadDailyTasks();
+    loadManualDailyPlanIds(); // 기본 보드가 새로 생겼을 수 있음
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
@@ -637,6 +652,7 @@ export default function Home() {
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
+              canDelete={activePlan.dailyPlanId !== undefined && manualDailyPlanIds.has(activePlan.dailyPlanId)}
               onComplete={() => handleComplete(activePlan)}
               onFail={() => handleFail(activePlan)}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
