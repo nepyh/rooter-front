@@ -13,7 +13,9 @@ import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
 import { completeTask, deletePlanTask, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
-import { useUIStore } from "@/store";
+import { useUIStore, useUserStore } from "@/store";
+import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
+import type { UnavailableTime } from "@/api/user";
 import { toLocalDateString } from "@/utils/date";
 
 // ================================
@@ -99,6 +101,40 @@ const getDDay = (examDate: string, now: Date) => {
   return Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
 };
 
+// 백엔드 PlanTaskScheduler 기본 수면 시간(00:00~06:30, 23:00~24:00)과 같은 값
+const SLEEP_RANGES: [string, string][] = [["00:00", "06:30"], ["23:00", "24:00"]];
+
+interface BusyBlock {
+  key: string;
+  title: string;
+  start: number; // 06:00 기준 오프셋(분)
+  duration: number;
+  label: string;
+}
+
+// 06:00 시작 타임라인에서 자정을 넘는 구간은 두 조각으로 나눔
+const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
+  const s = parseHHmm(startTime);
+  const e = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
+  const end = e <= s ? e + DAY_MIN : e;
+  const label = `${startTime} - ${endTime}`;
+  const offset = (minute: number) => (minute - WINDOW_START_MIN + DAY_MIN * 2) % DAY_MIN;
+  const pieces: [number, number][] = s < WINDOW_START_MIN && end > WINDOW_START_MIN
+    ? [[WINDOW_START_MIN, end], [s + DAY_MIN, WINDOW_START_MIN + DAY_MIN]]
+    : [[s, end]];
+  return pieces.map(([from, to], i) => ({ key: `${key}-${i}`, title, start: offset(from), duration: to - from, label }));
+};
+
+const buildBusyBlocks = (unavailable: UnavailableTime[], today: Date): BusyBlock[] => {
+  const todayName = DAY_OF_WEEK_NAMES[(today.getDay() + 6) % 7];
+  return [
+    ...SLEEP_RANGES.flatMap(([start, end], i) => toBusyBlocks(`sleep-${i}`, "수면", start, end)),
+    ...unavailable
+      .filter((time) => time.dayOfWeek === todayName)
+      .flatMap((time) => toBusyBlocks(`busy-${time.id}`, "불가능 시간", time.startTime, time.endTime)),
+  ];
+};
+
 const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -125,6 +161,29 @@ const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opa
   done: { bar: "#6B7280", bg: "rgba(107,114,128,0.12)", opacity: 0.55 },
   failed: { bar: "#FF4D4F", bg: "rgba(255,77,79,0.16)", opacity: 0.85 },
 };
+
+// 일정을 넣지 않는 시간 표시용, 누를 수 없음
+function BusyBlockView({ block }: { block: BusyBlock }) {
+  const colors = CATEGORY_COLORS.neutral;
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", top: block.start, left: TIMELINE_LEFT, right: 0, height: block.duration, backgroundColor: colors.bg }}
+      className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+    >
+      <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
+      <Stack gap="xs" className="flex-1 py-xxs">
+        <Text variant="base-small" weight="medium">{block.title}</Text>
+        {block.duration >= 40 && (
+          <Row gap="xs" className="items-center">
+            <Icon name="history" size={12} color="rgba(255,255,255,0.6)" />
+            <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{block.label}</Text>
+          </Row>
+        )}
+      </Stack>
+    </View>
+  );
+}
 
 function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   const colors = CATEGORY_COLORS[plan.category];
@@ -407,6 +466,16 @@ export default function Home() {
   }, []);
 
   useFocusEffect(loadNextExam);
+
+  // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
+  const userId = useUserStore((state) => state.userId);
+  const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
+  const loadUnavailableTimes = useCallback(() => {
+    if (userId === null) return;
+    getUnavailableTimes(userId).then(setUnavailableTimes).catch(() => setUnavailableTimes([]));
+  }, [userId]);
+  useFocusEffect(loadUnavailableTimes);
+  const busyBlocks = buildBusyBlocks(unavailableTimes, now);
   const examDDay = nextExamDate ? getDDay(nextExamDate, now) : null;
 
   useEffect(() => {
@@ -554,6 +623,10 @@ export default function Home() {
               <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
               <View className="flex-1 h-px bg-neutral-600 ml-s" />
             </Row>
+          ))}
+
+          {busyBlocks.map((block) => (
+            <BusyBlockView key={block.key} block={block} />
           ))}
 
           {plans.map((plan) => (
