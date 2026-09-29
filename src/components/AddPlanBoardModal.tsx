@@ -485,7 +485,12 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
             <ScrollView
               className="flex-1"
               showsVerticalScrollIndicator={false}
-              scrollEnabled={activePicker === null}
+              // 시간 휠도 스크롤이라 휠 조작 중에만 바깥 스크롤 잠금
+              scrollEnabled={activePicker !== "start-time" && activePicker !== "end-time"}
+              automaticallyAdjustKeyboardInsets
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 40 }}
               {...({ delaysContentTouches: false } as object)}
             >
               <Stack gap="xl" width="full">
