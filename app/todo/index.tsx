@@ -160,11 +160,6 @@ export default function TodoPage() {
         </Row>
       </ScrollView>
 
-      <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        <Pressable onPress={() => router.push("/todo/AddTodo")} className="bg-neutral-600 p-m rounded-full items-center justify-center">
-          <Icon name="plus" size={20} />
-        </Pressable>
-      </View>
     </View>
   );
 }
