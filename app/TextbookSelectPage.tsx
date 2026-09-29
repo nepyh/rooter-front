@@ -7,6 +7,8 @@ import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
 import { TEXTBOOK_COVERS } from "@/assets/covers/textbookCovers";
+import { getUserInfo } from "@/api/user";
+import { useUserStore } from "@/store";
 
 // ================================
 // Types
@@ -73,10 +75,26 @@ export default function TextbookSelectPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const userId = useUserStore((state) => state.userId);
+  const [grade, setGrade] = useState<number | null>(null);
 
   useEffect(() => {
     getSubjects().then(setSubjects).catch(() => setSubjects([]));
   }, []);
+
+  // 회원가입 때 입력한 학년, 못 불러오면 전체 표시
+  useEffect(() => {
+    if (userId === null) return;
+    getUserInfo(userId).then((info) => setGrade(info.grade)).catch(() => setGrade(null));
+  }, [userId]);
+
+  // 제목이 "N학년 ..."으로 시작해서 학년 기준으로 거름, 학년 표기 없는 교과서는 유지
+  const visibleTextbooks = grade === null
+    ? textbooks
+    : textbooks.filter((textbook) => {
+      const titleGrade = textbook.title.match(/^(\d)학년/)?.[1];
+      return titleGrade === undefined || Number(titleGrade) === grade;
+    });
 
   useEffect(() => {
     if (subjects.length === 0) return;
@@ -137,7 +155,7 @@ export default function TextbookSelectPage() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         <View className="flex-row flex-wrap" style={{ gap: 20 }}>
-          {textbooks.map((textbook) => (
+          {visibleTextbooks.map((textbook) => (
             <TextbookCard
               key={textbook.id}
               textbook={textbook}
