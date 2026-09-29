@@ -106,7 +106,8 @@ export default function TodoPage() {
   const tasks = week.days.find((day) => day.planDate === selectedKey)?.tasks ?? [];
 
   const handleToggle = (task: PlanTask) => {
-    const nextCompleted = !task.isCompleted;
+    if (task.isCompleted) return; // 완료는 한 번 정하면 고정
+    const nextCompleted = true;
     const applyLocal = (isCompleted: boolean) => {
       setWeek((prev) => ({
         ...prev,

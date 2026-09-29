@@ -418,8 +418,8 @@ export default function Home() {
   const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
-  const updateStatus = (id: string, status: PlanStatus) => {
-    setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
+  const setPlanStatus = (id: string, status: PlanStatus) => {
+    setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status } : plan)));
     setActiveId(null);
   };
 
@@ -447,17 +447,20 @@ export default function Home() {
 
   // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
   const handleComplete = (plan: Plan) => {
-    const willComplete = plan.status !== "done";
-    updateStatus(plan.id, "done");
+    if (plan.status !== "pending") return;
+    setPlanStatus(plan.id, "done");
 
-    completeTask(Number(plan.id), willComplete).catch(() => {
-      updateStatus(plan.id, "done"); // 실패 시 이전 상태로 되돌림
+    completeTask(Number(plan.id), true).catch(() => {
+      setPlanStatus(plan.id, "pending"); // 서버 처리 실패 시 대기 상태로 복구
       Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
     });
 
-    if (willComplete) {
-      router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
-    }
+    router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
+  };
+
+  const handleFail = (plan: Plan) => {
+    if (plan.status !== "pending") return;
+    setPlanStatus(plan.id, "failed");
   };
 
   const handleDelete = (plan: Plan) => {
@@ -564,7 +567,7 @@ export default function Home() {
               key={activePlan.id}
               plan={activePlan}
               onComplete={() => handleComplete(activePlan)}
-              onFail={() => updateStatus(activePlan.id, "failed")}
+              onFail={() => handleFail(activePlan)}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
               onDelete={() => handleDelete(activePlan)}
             />
