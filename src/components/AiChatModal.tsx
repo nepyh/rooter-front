@@ -72,6 +72,8 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  // 입력칸이 메시지 위에 떠 있어서, 마지막 메시지가 가리지 않게 입력칸 높이만큼 아래 여백
+  const [inputHeight, setInputHeight] = useState(52);
 
   useEffect(() => {
     if (visible) {
@@ -134,9 +136,10 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
-        <Pressable>
-          <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
+      {/* 시트를 Pressable로 감싸면 터치를 가로채 스크롤이 멈춰서, 닫기용 배경을 시트 뒤에 따로 배치 */}
+      <View className="flex-1 justify-end">
+        <Pressable className="absolute inset-0 bg-black/40" onPress={onClose} />
+        <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
             <KeyboardAvoidingView
               className="flex-1"
               behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -148,7 +151,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                   ref={scrollRef}
                   className="flex-1 w-full"
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end", paddingBottom: 20 }}
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end", paddingBottom: inputHeight + 20 }}
                   onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
                 >
                   {messages.map((message, i) => (
@@ -162,19 +165,23 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                   )}
                 </ScrollView>
 
+                {/* 글이 길어지면 위로 늘어나며 메시지 위에 겹쳐 그려짐, 최대 5줄 */}
                 <Row
-                  width="full"
                   align="between"
-                  className="items-center bg-neutral-700 pl-xl pr-xs py-xs rounded-full"
+                  className="absolute left-6 right-6 bottom-xxl z-10 items-end bg-neutral-700 pl-xl pr-xs py-xs rounded-[26px]"
+                  onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
                 >
                   <TextInput
                     value={input}
                     onChangeText={setInput}
                     placeholder="채팅..."
                     placeholderTextColor="#8B919E"
+                    multiline
+                    submitBehavior="submit"
                     onSubmitEditing={handleSend}
                     returnKeyType="send"
-                    className="flex-1 text-base font-medium text-white"
+                    className="flex-1 text-base font-medium text-white py-m pr-s"
+                    style={{ maxHeight: 124 }}
                   />
                   <Pressable
                     onPress={handleSend}
@@ -187,9 +194,8 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                 </Row>
               </Stack>
             </KeyboardAvoidingView>
-          </Animated.View>
-        </Pressable>
-      </Pressable>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
