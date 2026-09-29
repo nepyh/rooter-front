@@ -222,6 +222,31 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
+// 계획이 없을 때 타임라인 위에 뜨는 안내 말풍선, 마스코트 쪽 위 모서리만 각지게
+function EmptyPlanNotice({ onCreate, onClose }: { onCreate: () => void; onClose: () => void }) {
+  return (
+    <View className="absolute z-10" style={{ top: 16, left: -12, right: -12 }}>
+      <Row gap="m" width="full" className="items-start">
+        <Icon name="mascotFace" size={52} />
+        <Stack gap="xs" className="flex-1 bg-neutral-700 px-[18px] py-[14px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px]">
+          <Text variant="base-medium">생성된 플랜이 없어요. 플랜을 만들어 하루 계획을 생성해보세요!</Text>
+          <Pressable onPress={onCreate}>
+            <Text variant="base-medium" className="text-primary-500" style={{ textDecorationLine: "underline" }}>새 플랜 생성하기</Text>
+          </Pressable>
+        </Stack>
+      </Row>
+      <Pressable
+        onPress={onClose}
+        hitSlop={10}
+        className="absolute w-[20px] h-[20px] rounded-full bg-neutral-600 items-center justify-center"
+        style={{ top: -4, right: -4 }}
+      >
+        <Icon name="close" size={12} />
+      </Pressable>
+    </View>
+  );
+}
+
 function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: { plan: Plan; canDelete: boolean; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
@@ -421,6 +446,7 @@ export default function Home() {
   // 여러 플랜보드면 dailyPlanId가 여러 개라 첫 태스크 기준 사용
   const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
@@ -611,14 +637,9 @@ export default function Home() {
         )}
       </Row>
 
-      {plans.length === 0 && (
-        <Stack gap="m" width="full" className="items-center bg-neutral-700 p-xl rounded-md mb-l">
-          <Text variant="base-large" weight="medium">아직 오늘의 계획이 없어요</Text>
-          <Text variant="base-medium" color="secondary" className="text-center">
-            새 플랜을 만들면 여기에 오늘 할 일이 채워져요
-          </Text>
-          <Button variant="primary" onPress={() => router.push("/ExamDatePage")}>새 플랜 생성하기</Button>
-        </Stack>
+      <View className="flex-1">
+      {plans.length === 0 && !emptyNoticeClosed && (
+        <EmptyPlanNotice onCreate={() => router.push("/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
       )}
 
       <ScrollView
@@ -661,6 +682,7 @@ export default function Home() {
           )}
         </View>
       </ScrollView>
+      </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
