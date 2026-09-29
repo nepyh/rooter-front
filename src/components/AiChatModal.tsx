@@ -38,15 +38,21 @@ const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도�
 // Components
 // ================================
 
-function Bubble({ message }: { message: Message }) {
+// 같은 사람이 이어서 보내면 8, 말한 사람이 바뀌면 20
+const bubbleGap = (messages: Message[], index: number) => {
+  if (index === 0) return 0;
+  return messages[index - 1].role === messages[index].role ? 8 : 20;
+};
+
+function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: number }) {
   const isUser = message.role === "user";
   return (
-    <Row align={isUser ? "end" : "start"} width="full">
+    <Row align={isUser ? "end" : "start"} width="full" style={{ marginTop }}>
       <View
-        className={`px-xl py-l rounded-full ${isUser ? "bg-primary-500" : "bg-neutral-700"}`}
+        className={`px-l py-m rounded-[24px] ${isUser ? "bg-primary-500" : "bg-neutral-700"}`}
         style={{ maxWidth: "80%" }}
       >
-        <Text variant="base-large" weight="medium" className="text-white">{message.text}</Text>
+        <Text variant="base-medium" className="text-white">{message.text}</Text>
       </View>
     </Row>
   );
@@ -135,20 +141,25 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
               className="flex-1"
               behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
-              <Stack gap="xl" width="full" align="center" className="bg-background-primary pt-s pb-xxl px-xl rounded-t-[32px] flex-1">
+              <Stack gap="xl" width="full" align="center" className="bg-background-primary pt-s pb-xxl px-6 rounded-t-[32px] flex-1">
                 <View className="self-center bg-neutral-600 rounded-full" style={{ width: 104, height: 4 }} />
 
                 <ScrollView
                   ref={scrollRef}
                   className="flex-1 w-full"
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end", gap: 20, paddingBottom: 20 }}
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end", paddingBottom: 20 }}
                   onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
                 >
-                  {messages.map((message) => (
-                    <Bubble key={message.id} message={message} />
+                  {messages.map((message, i) => (
+                    <Bubble key={message.id} message={message} marginTop={bubbleGap(messages, i)} />
                   ))}
-                  {sending && <Bubble message={{ id: "typing", role: "assistant", text: "..." }} />}
+                  {sending && (
+                    <Bubble
+                      message={{ id: "typing", role: "assistant", text: "..." }}
+                      marginTop={messages.at(-1)?.role === "assistant" ? 8 : 20}
+                    />
+                  )}
                 </ScrollView>
 
                 <Row
@@ -163,7 +174,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                     placeholderTextColor="#8B919E"
                     onSubmitEditing={handleSend}
                     returnKeyType="send"
-                    className="flex-1 text-lg text-white"
+                    className="flex-1 text-base font-medium text-white"
                   />
                   <Pressable
                     onPress={handleSend}

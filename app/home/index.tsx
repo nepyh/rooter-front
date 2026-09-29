@@ -523,7 +523,7 @@ export default function Home() {
         <Text variant="header-large">{formatDateHeader(now)}</Text>
         {examDDay !== null && examDDay >= 0 && (
           <Row gap="s" className="items-center">
-            <Text variant="base-small" color="secondary">시험</Text>
+            <Text variant="base-small" weight="medium" color="secondary">시험</Text>
             <Text variant="header-medium">{examDDay === 0 ? "D-Day" : `D-${examDDay}`}</Text>
           </Row>
         )}

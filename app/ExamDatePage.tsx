@@ -43,19 +43,21 @@ function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect }: {
             // 오늘(주황 동그라미)과 선택한 날짜(주황 네모박스)는 서로 다른 표시라 동시에 나타날 수 있습니다
             const isToday = toDateString(cell.date) === todayString;
             const isSelected = selectedDate !== null && toDateString(cell.date) === toDateString(selectedDate);
+            const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
             return (
               <Pressable
                 key={j}
                 onPress={() => onSelect(cell.date)}
-                className={`flex-1 items-center rounded-sm ${isToday ? "p-m" : "px-m py-l"}`}
+                className="flex-1 items-center rounded-sm px-xs py-l"
                 style={isSelected ? { borderWidth: 2, borderColor: "#F6482D", backgroundColor: "rgba(246,72,45,0.3)" } : undefined}
               >
                 {isToday ? (
-                  <View className="bg-primary-500 rounded-full items-center justify-center p-xs">
-                    <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
+                  // 원 28, 숫자 줄높이 20이라 위아래 4씩 당겨 다른 날짜와 높이 맞춤
+                  <View className="w-[28px] h-[28px] -my-xs bg-primary-500 rounded-full items-center justify-center">
+                    <Text variant="base-medium" color="primary" numberOfLines={1}>{cell.date.getDate()}</Text>
                   </View>
                 ) : (
-                  <Text variant="base-medium" color={cell.inMonth ? "primary" : "disabled"}>{cell.date.getDate()}</Text>
+                  <Text variant="base-medium" color={cell.inMonth && !isWeekend ? "primary" : "disabled"}>{cell.date.getDate()}</Text>
                 )}
               </Pressable>
             );

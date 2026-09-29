@@ -139,7 +139,7 @@ function PlanDetailModal({ visible, date, item, onClose, onHidden, onEdit, onDel
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
         <Pressable>
           <Animated.View style={sheetStyle}>
-            <Stack gap="xxl" width="full" align="center" className="items-center bg-background-primary pt-s px-xxl pb-xxl rounded-t-[32px]">
+            <Stack width="full" align="center" className="items-center bg-background-primary pt-s px-[28px] pb-[28px] rounded-t-[32px]" style={{ gap: 24 }}>
               <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" style={{ alignSelf: "center" }} />
               <Stack gap="xxl" width="full" className="pb-xxl">
                 <Stack gap="xs" width="full">

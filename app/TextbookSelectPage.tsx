@@ -35,6 +35,8 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
   const cover = TEXTBOOK_COVERS[textbook.id];
   // catalog 응답에 출판사 이름이 없어 제목 괄호 안 출판사 사용
   const publisherName = textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
+  // 출판사는 아랫줄에 따로 보여서 제목에서 제외
+  const displayTitle = textbook.title.replace(/\s*\([^)]+\)\s*$/, "");
 
   return (
     <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
@@ -55,7 +57,7 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
         )}
       </View>
       <Stack gap="xxs" width="full">
-        <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title}</Text>
+        <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{displayTitle}</Text>
         <Text variant="base-small" color="secondary" numberOfLines={1}>{publisherName}</Text>
       </Stack>
     </Pressable>
