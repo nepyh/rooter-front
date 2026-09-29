@@ -34,7 +34,7 @@ interface Plan {
   title: string;
   category: Category;
   lines: PlanLine[];
-  start: number; // 06:00을 기준으로 한 시작 오프셋(분)
+  start: number; // 타임라인 시작(00:00) 기준 오프셋(분)
   duration: number; // 분
   status: PlanStatus;
 }
@@ -43,13 +43,13 @@ interface Plan {
 // Constants
 // ================================
 
-const WINDOW_START_MIN = 6 * 60;
+const WINDOW_START_MIN = 0;
 const DAY_MIN = 24 * 60;
 const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
 
-const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
+const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
 // 태스크 수정 실패 시 백엔드 code별 안내 문구
 const EDIT_ERROR_MESSAGES: Record<string, string> = {
@@ -107,22 +107,20 @@ const SLEEP_RANGES: [string, string][] = [["00:00", "06:30"], ["23:00", "24:00"]
 interface BusyBlock {
   key: string;
   title: string;
-  start: number; // 06:00 기준 오프셋(분)
+  start: number; // 타임라인 시작 기준 오프셋(분)
   duration: number;
   label: string;
 }
 
-// 06:00 시작 타임라인에서 자정을 넘는 구간은 두 조각으로 나눔
+// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔
 const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
-  const s = parseHHmm(startTime);
-  const e = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
-  const end = e <= s ? e + DAY_MIN : e;
   const label = `${startTime} - ${endTime}`;
-  const offset = (minute: number) => (minute - WINDOW_START_MIN + DAY_MIN * 2) % DAY_MIN;
-  const pieces: [number, number][] = s < WINDOW_START_MIN && end > WINDOW_START_MIN
-    ? [[WINDOW_START_MIN, end], [s + DAY_MIN, WINDOW_START_MIN + DAY_MIN]]
-    : [[s, end]];
-  return pieces.map(([from, to], i) => ({ key: `${key}-${i}`, title, start: offset(from), duration: to - from, label }));
+  const from = (parseHHmm(startTime) - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  const rawEnd = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
+  let to = (rawEnd - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  if (to <= from) to += DAY_MIN;
+  const pieces: [number, number][] = to > DAY_MIN ? [[from, DAY_MIN], [0, to - DAY_MIN]] : [[from, to]];
+  return pieces.map(([start, end], i) => ({ key: `${key}-${i}`, title, start, duration: end - start, label }));
 };
 
 const buildBusyBlocks = (unavailable: UnavailableTime[], today: Date): BusyBlock[] => {
