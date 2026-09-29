@@ -44,10 +44,13 @@ function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect }: {
             const isToday = toDateString(cell.date) === todayString;
             const isSelected = selectedDate !== null && toDateString(cell.date) === toDateString(selectedDate);
             const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
+            // 계획은 시험 전날까지라 오늘·지난 날짜는 시험일로 선택 불가
+            const isSelectable = toDateString(cell.date) > todayString;
             return (
               <Pressable
                 key={j}
                 onPress={() => onSelect(cell.date)}
+                disabled={!isSelectable}
                 className="flex-1 items-center rounded-sm px-xs py-l"
                 style={isSelected ? { borderWidth: 2, borderColor: "#F6482D", backgroundColor: "rgba(246,72,45,0.3)" } : undefined}
               >
@@ -57,7 +60,7 @@ function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect }: {
                     <Text variant="base-medium" color="primary" numberOfLines={1}>{cell.date.getDate()}</Text>
                   </View>
                 ) : (
-                  <Text variant="base-medium" color={cell.inMonth && !isWeekend ? "primary" : "disabled"}>{cell.date.getDate()}</Text>
+                  <Text variant="base-medium" color={cell.inMonth && !isWeekend && isSelectable ? "primary" : "disabled"}>{cell.date.getDate()}</Text>
                 )}
               </Pressable>
             );
