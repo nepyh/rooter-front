@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
@@ -175,6 +175,7 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
     <ScrollView
       ref={scrollRef}
       style={{ height: WHEEL_HEIGHT, width: 64 }}
+      nestedScrollEnabled
       showsVerticalScrollIndicator={false}
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
@@ -413,6 +414,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   };
 
   const togglePicker = (target: PickerTarget) => {
+    Keyboard.dismiss(); // 입력칸 포커스가 남아 있으면 iOS가 스크롤을 입력칸 쪽으로 되돌림
     setActivePicker((prev) => (prev === target ? null : target));
   };
 
@@ -468,9 +470,11 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
-        <Pressable>
-          <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
+      {/* 시트를 Pressable로 감싸면 터치를 가로채 안쪽 스크롤이 멈춰서, 닫기용 배경을 시트 뒤에 따로 배치 */}
+      <View className="flex-1 justify-end">
+        <Pressable className="absolute inset-0 bg-black/40" onPress={onClose} />
+        <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
+            <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px] flex-1">
               <Row width="full" align="between" className="items-center">
               <Pressable onPress={onClose} className="w-8 h-8 items-center justify-center">
@@ -485,9 +489,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
             <ScrollView
               className="flex-1"
               showsVerticalScrollIndicator={false}
-              // 시간 휠도 스크롤이라 휠 조작 중에만 바깥 스크롤 잠금
-              scrollEnabled={activePicker !== "start-time" && activePicker !== "end-time"}
-              automaticallyAdjustKeyboardInsets
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               contentContainerStyle={{ paddingBottom: 40 }}
@@ -592,9 +593,9 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Stack>
             </ScrollView>
           </Stack>
-          </Animated.View>
-        </Pressable>
-      </Pressable>
+            </KeyboardAvoidingView>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
