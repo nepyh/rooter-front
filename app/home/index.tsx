@@ -589,7 +589,10 @@ export default function Home() {
       Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
     });
 
-    router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
+    router.push({
+      pathname: "/home/QuizPage",
+      params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
+    });
   };
 
   const handleFail = (plan: Plan) => {

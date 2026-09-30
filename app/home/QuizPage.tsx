@@ -1,12 +1,13 @@
 import { useState } from "react";
+import axios from "axios";
 import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text, Button } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
-import { generateQuiz, submitQuiz } from "@/api/quiz";
-import type { Quiz, QuizResult } from "@/api/quiz";
+import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz";
+import type { TaskQuiz, TaskQuizAnswerResult, TaskQuizResult } from "@/api/quiz";
 import type { Category } from "@/constants/category";
 import palette from "@/constants/palette";
 
@@ -15,7 +16,7 @@ import palette from "@/constants/palette";
 // ================================
 
 type OptionState = "default" | "selected" | "correct" | "wrong";
-type Phase = "intro" | "answering" | "review" | "score";
+type Phase = "intro" | "answering" | "score";
 
 // ================================
 // Constants
@@ -27,6 +28,27 @@ const SUBJECT_LABELS: Partial<Record<Category, string>> = {
   "english": "영어",
   "science": "과학",
   "social": "사회",
+};
+
+// 퀴즈 조회·채점 실패 시 백엔드 code별 안내 문구
+const QUIZ_ERROR_MESSAGES: Record<string, string> = {
+  "TASK_QUIZ_NOT_FOUND": "퀴즈는 할 일이 끝나는 시각이 지나야 만들어져요.",
+  "TASK_QUIZ_ALREADY_SUBMITTED": "이미 채점이 끝난 퀴즈예요.",
+  "TASK_QUIZ_INCOMPLETE_ANSWERS": "아직 풀지 않은 문제가 있어요.",
+  "TASK_QUIZ_INVALID_ANSWER": "보기를 다시 선택해주세요.",
+};
+
+const getQuizErrorMessage = (error: unknown, fallback: string) => {
+  const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+  return QUIZ_ERROR_MESSAGES[code] ?? fallback;
+};
+
+// 점수 화면 아래 결과 안내, 디자인에 없어 한 줄로만 표시
+const getResultNotice = (result: TaskQuizResult) => {
+  if (result.passed) return "통과! 할 일이 완료 처리됐어요.";
+  if (result.taskInvalidated) return "세 번 모두 통과하지 못해 이번 할 일은 미완료로 확정됐어요.";
+  if (result.retryScheduled) return "10분 뒤 새 문제로 다시 도전할 수 있어요. 남은 일정은 15분씩 미뤄졌어요.";
+  return null;
 };
 
 // ================================
@@ -119,76 +141,102 @@ function ScoreCircle({ correct, total }: { correct: number; total: number }) {
  * 퀴즈 화면
  */
 export default function QuizPage() {
-  const { category } = useLocalSearchParams<{ category?: Category }>();
+  const { taskId, dailyPlanId, category } = useLocalSearchParams<{ taskId?: string; dailyPlanId?: string; category?: Category }>();
   const subjectLabel = category ? SUBJECT_LABELS[category] : undefined;
   const [phase, setPhase] = useState<Phase>("intro");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quiz, setQuiz] = useState<TaskQuiz | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // questionId -> selectedChoiceId
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<QuizResult | null>(null);
+  const [graded, setGraded] = useState<Record<number, TaskQuizAnswerResult>>({}); // 문제마다 즉시 채점 결과
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<TaskQuizResult | null>(null);
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
   const isLast = currentIndex === questions.length - 1;
   const selectedChoiceId = current ? answers[current.id] : undefined;
-  const currentResult = result?.results.find((r) => r.questionId === current?.id);
+  const currentGrade = current ? graded[current.id] : undefined;
 
+  const submit = async (id: number) => {
+    setChecking(true);
+    setError("");
+    try {
+      setResult(await submitTaskQuiz(id));
+      setPhase("score");
+    } catch (e) {
+      setError(getQuizErrorMessage(e, "채점 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // 이미 답한 문제는 건너뛰고 안 푼 문제부터 이어 풀기
   const handleStart = async () => {
+    const id = Number(taskId);
     setPhase("answering");
+    if (!id) {
+      setError("퀴즈를 풀 할 일을 찾지 못했어요.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      setQuiz(await generateQuiz());
-    } catch {
-      setError("퀴즈를 준비하지 못했습니다. 완료한 학습이 있는지 확인해주세요.");
+      const data = await getTaskQuiz(id);
+      setQuiz(data);
+      setAnswers(Object.fromEntries(data.questions.filter((q) => q.selectedChoiceId !== null).map((q) => [q.id, q.selectedChoiceId as number])));
+      const firstOpen = data.questions.findIndex((q) => q.selectedChoiceId === null);
+      if (firstOpen === -1) await submit(id);
+      else setCurrentIndex(firstOpen);
+    } catch (e) {
+      setError(getQuizErrorMessage(e, "퀴즈를 준비하지 못했습니다. 잠시 후 다시 시도해주세요."));
     } finally {
       setLoading(false);
     }
   };
 
   const handleSelect = (choiceId: number) => {
-    if (!current) return;
+    if (!current || currentGrade) return;
     setAnswers((prev) => ({ ...prev, [current.id]: choiceId }));
   };
 
-  // 채점 API가 전체 제출만 받아서, 전부 푼 뒤 제출하고 1번부터 해설
+  // [확인]: 이 문제만 제출해 바로 채점
   const handleConfirm = async () => {
     if (!current || selectedChoiceId === undefined || !quiz) return;
-    if (!isLast) {
-      setCurrentIndex((i) => i + 1);
-      return;
-    }
-    setSubmitting(true);
+    setChecking(true);
     setError("");
     try {
-      const submission = questions.map((q) => ({ questionId: q.id, selectedChoiceId: answers[q.id] }));
-      setResult(await submitQuiz(quiz.dailyPlanId, submission));
-      setCurrentIndex(0);
-      setPhase("review");
-    } catch {
-      setError("퀴즈 제출에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      const grade = await answerTaskQuizQuestion(quiz.planTaskId, current.id, selectedChoiceId);
+      setGraded((prev) => ({ ...prev, [current.id]: grade }));
+    } catch (e) {
+      const code = axios.isAxiosError(e) ? e.response?.data?.code : undefined;
+      if (code === "TASK_QUIZ_QUESTION_ALREADY_ANSWERED") handleNext(); // 이미 답한 문제는 다음으로
+      else setError(getQuizErrorMessage(e, "채점하지 못했습니다. 잠시 후 다시 시도해주세요."));
     } finally {
-      setSubmitting(false);
+      setChecking(false);
     }
   };
 
-  const handleReviewNext = () => {
-    if (isLast) setPhase("score");
+  // [다음]: 마지막 문제 뒤에 전체 제출해 점수 화면
+  const handleNext = () => {
+    if (!quiz) return;
+    if (isLast) submit(quiz.planTaskId);
     else setCurrentIndex((i) => i + 1);
   };
 
   const goFeedback = () => {
-    if (!quiz) return;
-    router.replace({ pathname: "/home/FeedbackPage", params: { dailyPlanId: String(quiz.dailyPlanId) } });
+    if (!dailyPlanId) {
+      router.back();
+      return;
+    }
+    router.replace({ pathname: "/home/FeedbackPage", params: { dailyPlanId } });
   };
 
   const getOptionState = (choiceId: number): OptionState => {
-    if (phase === "review" && currentResult) {
-      if (choiceId === currentResult.correctChoiceId) return "correct";
-      if (choiceId === currentResult.selectedChoiceId) return "wrong";
+    if (currentGrade) {
+      if (choiceId === currentGrade.correctChoiceId) return "correct";
+      if (choiceId === selectedChoiceId) return "wrong";
       return "default";
     }
     return selectedChoiceId === choiceId ? "selected" : "default";
@@ -227,6 +275,7 @@ export default function QuizPage() {
   }
 
   if (phase === "score" && result) {
+    const notice = getResultNotice(result);
     return (
       <View className="flex-1">
         <StatusBar style="light" />
@@ -234,16 +283,18 @@ export default function QuizPage() {
           <Text variant="title-medium" className="pt-xxl">
             {`${subjectLabel ? `${subjectLabel} ` : ""}학습 테스트를\n완료했어요!`}
           </Text>
-          <ScoreCircle correct={result.correctCount} total={result.totalQuestions} />
+          <Stack gap="xl" width="full" className="items-center">
+            <ScoreCircle correct={result.correctCount} total={result.totalCount} />
+            {notice && <Text variant="base-medium" color="secondary" className="text-center">{notice}</Text>}
+          </Stack>
           <Button variant="primary" onPress={goFeedback}>다음</Button>
         </Stack>
       </View>
     );
   }
 
-  const explanation = currentResult
-    ? currentResult.explanation ?? (currentResult.correctChoiceText ? `정답은 ${currentResult.correctChoiceText}입니다.` : null)
-    : null;
+  // 틀리면 서버가 준 틀린 이유, 맞으면 정답 안내
+  const bubbleText = currentGrade ? (currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요.") : null;
 
   return (
     <View className="flex-1">
@@ -279,7 +330,7 @@ export default function QuizPage() {
                       key={choice.id}
                       label={choice.choiceText}
                       state={getOptionState(choice.id)}
-                      onPress={phase === "answering" ? () => handleSelect(choice.id) : undefined}
+                      onPress={currentGrade ? undefined : () => handleSelect(choice.id)}
                     />
                   ))}
                 </Stack>
@@ -289,15 +340,15 @@ export default function QuizPage() {
         </Stack>
 
         <Stack gap="xl" width="full" className="pt-l">
-          {phase === "review" && explanation && <ExplanationBubble text={explanation} />}
+          {bubbleText && <ExplanationBubble text={bubbleText} />}
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
-          {loading ? null : phase === "review" ? (
-            <Button variant="primary" onPress={handleReviewNext}>다음</Button>
-          ) : !current ? (
+          {loading ? null : !current ? (
             <Button variant="primary" onPress={() => router.back()}>확인</Button>
+          ) : currentGrade ? (
+            <Button variant={checking ? "disabled" : "primary"} onPress={handleNext}>{checking ? "채점 중..." : "다음"}</Button>
           ) : (
-            <Button variant={selectedChoiceId === undefined || submitting ? "disabled" : "primary"} onPress={handleConfirm}>
-              {submitting ? "채점 중..." : "확인"}
+            <Button variant={selectedChoiceId === undefined || checking ? "disabled" : "primary"} onPress={handleConfirm}>
+              {checking ? "채점 중..." : "확인"}
             </Button>
           )}
         </Stack>
