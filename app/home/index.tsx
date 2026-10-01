@@ -11,7 +11,7 @@ import { CATEGORY_COLORS, SUBJECT_CATEGORIES } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects, updatePlanTask } from "@/api/planBoard";
+import { deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useUIStore, useUserStore } from "@/store";
 import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
@@ -613,7 +613,11 @@ export default function Home() {
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
-    if (plan.status === "done") return; // 완료한 계획은 메뉴 없음
+    // 완료한 계획은 메뉴 없이 퀴즈(결과·이어 풀기)로 바로 이동
+    if (plan.status === "done") {
+      openQuiz(plan);
+      return;
+    }
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
@@ -635,19 +639,18 @@ export default function Home() {
   };
 
   // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
-  const handleComplete = (plan: Plan) => {
-    if (plan.status !== "pending") return;
-    setPlanStatus(plan.id, "done");
-
-    completeTask(Number(plan.id), true).catch(() => {
-      setPlanStatus(plan.id, "pending"); // 서버 처리 실패 시 대기 상태로 복구
-      Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    });
-
+  // 완료는 퀴즈 통과 시 서버가 처리, 여기선 퀴즈만 열어 퀴즈가 없거나 중간에 나가면 기본 상태 유지
+  const openQuiz = (plan: Plan) => {
+    setActiveId(null);
     router.push({
       pathname: "/home/QuizPage",
       params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
     });
+  };
+
+  const handleComplete = (plan: Plan) => {
+    if (plan.status !== "pending") return;
+    openQuiz(plan);
   };
 
   const handleFail = (plan: Plan) => {
