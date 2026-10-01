@@ -6,7 +6,6 @@ import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
-import { TEXTBOOK_COVERS } from "@/assets/covers/textbookCovers";
 import { getUserInfo } from "@/api/user";
 import { useUserStore } from "@/store";
 
@@ -34,7 +33,6 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
 }
 
 function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
-  const cover = TEXTBOOK_COVERS[textbook.id];
   // catalog 응답에 출판사 이름이 없어 제목 괄호 안 출판사 사용
   const publisherName = textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
   // 출판사는 아랫줄에 따로 보여서 제목에서 제외
@@ -46,8 +44,8 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
         className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
         style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: "#F6482D" }}
       >
-        {cover ? (
-          <Image source={cover} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+        {textbook.coverImageUrl ? (
+          <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
           <Icon name="book" size={32} color="#8A919E" />
         )}
