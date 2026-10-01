@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Alert, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
-import { CATEGORY_COLORS } from "@/constants/category";
+import { CATEGORY_COLORS, SUBJECT_CATEGORIES } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { getPlanBoards } from "@/api/planBoard";
-import type { PlanBoard } from "@/api/planBoard";
-import { useTodoStore, useUIStore } from "@/store";
-import type { TodoGroup } from "@/store";
+import { deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects, updatePlanTask } from "@/api/planBoard";
+import type { PlanTask } from "@/api/planBoard";
+import { useUIStore, useUserStore } from "@/store";
+import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
+import type { UnavailableTime } from "@/api/user";
+import { toLocalDateString } from "@/utils/date";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
@@ -30,72 +35,31 @@ interface Plan {
   title: string;
   category: Category;
   lines: PlanLine[];
-  start: number; // 06:00을 기준으로 한 시작 오프셋(분)
+  start: number; // 타임라인 시작(00:00) 기준 오프셋(분)
   duration: number; // 분
   status: PlanStatus;
+  dailyPlanId?: number;
 }
 
 // ================================
 // Constants
 // ================================
 
-const WINDOW_START_MIN = 6 * 60;
+const WINDOW_START_MIN = 0;
 const DAY_MIN = 24 * 60;
 const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
 
-const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
+const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
-// 플랜보드엔 과목별 고정 카테고리가 없어서, 과목 ID로 기존 5색 팔레트를 순환 배정합니다.
-const CATEGORY_CYCLE = Object.keys(CATEGORY_COLORS) as Category[];
-const categoryForSubject = (subjectId: number): Category => CATEGORY_CYCLE[subjectId % CATEGORY_CYCLE.length];
-
-// TODO: 실제 플랜보드 데이터로 교체 예정. 지금은 플랜보드 API가 빈 값을 주거나 실패했을 때 보여줄
-// 목업 하루 일정입니다. 과목(수학/영어/사회)은 할 일 목록 목업(useTodoStore)과 동일한 카테고리를 써서
-// 플랜을 눌렀을 때 나오는 체크리스트가 할 일 화면과 같은 데이터를 보여주도록 맞췄습니다.
-const MOCK_PLANS: Plan[] = [
-  {
-    id: "mock-school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending",
-    lines: [{ icon: "history", text: "08:30 - 16:30 | 8시간" }],
-  },
-  {
-    id: "mock-math", title: "수학", category: "math", start: 690, duration: 120, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.30 ~ p.48" },
-      { icon: "history", text: "17:30 - 19:30 | 2시간" },
-    ],
-  },
-  {
-    id: "mock-meal", title: "식사", category: "neutral", start: 810, duration: 60, status: "pending",
-    lines: [{ icon: "history", text: "19:30 - 20:30 | 1시간" }],
-  },
-  {
-    id: "mock-english", title: "영어", category: "english", start: 870, duration: 60, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.111 ~ p.122" },
-      { icon: "history", text: "20:30 - 21:30 | 1시간" },
-    ],
-  },
-  {
-    id: "mock-science", title: "과학", category: "science", start: 960, duration: 120, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.22 ~ p.37" },
-      { icon: "history", text: "22:00 - 24:00 | 2시간" },
-    ],
-  },
-  {
-    id: "mock-social", title: "사회", category: "social", start: 1080, duration: 60, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.8 ~ p.10" },
-      { icon: "history", text: "24:00 - 01:00 | 1시간" },
-    ],
-  },
-  {
-    id: "mock-sleep", title: "수면", category: "neutral", start: 1140, duration: 400, status: "pending",
-    lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }],
-  },
-];
+// 태스크 수정 실패 시 백엔드 code별 안내 문구
+const EDIT_ERROR_MESSAGES: Record<string, string> = {
+  "INVALID_TASK_NAME": "일정 이름을 다시 확인해주세요.",
+  "INVALID_TIME_RANGE": "종료 시간은 시작 시간보다 늦어야 해요. 자정을 넘기는 일정은 저장할 수 없어요.",
+  "INVALID_TIME_FORMAT": "시간 형식이 올바르지 않아요.",
+  "INVALID_ESTIMATED_MINUTES": "소요 시간을 다시 확인해주세요.",
+};
 
 // ================================
 // Helpers
@@ -126,21 +90,65 @@ const parseClock = (value: string) => {
   return h * 60 + m;
 };
 
-const mapPlanBoardToPlan = (board: PlanBoard): Plan => {
-  const startDate = new Date(board.startAt);
-  const endDate = new Date(board.endAt);
-  const duration = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60_000));
+const parseHHmm = (value: string) => {
+  const [h, m] = value.split(":").map(Number);
+  return h * 60 + m;
+};
+
+// 과목 연결 API 미구현으로 전부 neutral 처리
+// 오늘부터 시험일까지 남은 일수, 시험 당일은 0
+const getDDay = (examDate: string, now: Date) => {
+  const [y, m, d] = examDate.split("-").map(Number);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
+};
+
+// 백엔드 PlanTaskScheduler 기본 수면 시간(00:00~06:30, 23:00~24:00)과 같은 값
+const SLEEP_RANGES: [string, string][] = [["00:00", "06:30"], ["23:00", "24:00"]];
+
+interface BusyBlock {
+  key: string;
+  title: string;
+  start: number; // 타임라인 시작 기준 오프셋(분)
+  duration: number;
+  label: string;
+}
+
+// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔
+const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
+  const label = `${startTime} - ${endTime}`;
+  const from = (parseHHmm(startTime) - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  const rawEnd = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
+  let to = (rawEnd - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  if (to <= from) to += DAY_MIN;
+  const pieces: [number, number][] = to > DAY_MIN ? [[from, DAY_MIN], [0, to - DAY_MIN]] : [[from, to]];
+  return pieces.map(([start, end], i) => ({ key: `${key}-${i}`, title, start, duration: end - start, label }));
+};
+
+const buildBusyBlocks = (unavailable: UnavailableTime[], today: Date): BusyBlock[] => {
+  const todayName = DAY_OF_WEEK_NAMES[(today.getDay() + 6) % 7];
+  return [
+    ...SLEEP_RANGES.flatMap(([start, end], i) => toBusyBlocks(`sleep-${i}`, "수면", start, end)),
+    ...unavailable
+      .filter((time) => time.dayOfWeek === todayName)
+      .flatMap((time) => toBusyBlocks(`busy-${time.id}`, "불가능 시간", time.startTime, time.endTime)),
+  ];
+};
+
+const mapPlanTaskToPlan = (task: PlanTask): Plan => {
+  const startMin = parseHHmm(task.startTime);
+  const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
 
   return {
-    id: String(board.id),
-    title: board.title,
-    category: categoryForSubject(board.subjectId),
-    start: minutesSinceWindowStart(startDate),
-    duration,
-    status: board.status,
+    id: String(task.id),
+    title: task.taskName,
+    category: "neutral",
+    start,
+    duration: task.estimatedMinutes,
+    status: task.isCompleted ? "done" : "pending",
+    dailyPlanId: task.dailyPlanId,
     lines: [
-      { icon: "book", text: `${board.textbookName} | ${board.chapterName}` },
-      { icon: "history", text: `${formatClock(startDate)} - ${formatClock(endDate)} | ${formatDuration(duration)}` },
+      { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
     ],
   };
 };
@@ -154,6 +162,29 @@ const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opa
   done: { bar: "#6B7280", bg: "rgba(107,114,128,0.12)", opacity: 0.55 },
   failed: { bar: "#FF4D4F", bg: "rgba(255,77,79,0.16)", opacity: 0.85 },
 };
+
+// 일정을 넣지 않는 시간 표시용, 누를 수 없음
+function BusyBlockView({ block }: { block: BusyBlock }) {
+  const colors = CATEGORY_COLORS.neutral;
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", top: block.start, left: TIMELINE_LEFT, right: 0, height: block.duration, backgroundColor: colors.bg }}
+      className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+    >
+      <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
+      <Stack gap="xs" className="flex-1 py-xxs">
+        <Text variant="base-small" weight="medium">{block.title}</Text>
+        {block.duration >= 40 && (
+          <Row gap="xs" className="items-center">
+            <Icon name="history" size={12} color="rgba(255,255,255,0.6)" />
+            <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{block.label}</Text>
+          </Row>
+        )}
+      </Stack>
+    </View>
+  );
+}
 
 function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   const colors = CATEGORY_COLORS[plan.category];
@@ -192,37 +223,32 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
-function TodoSummary({ group, barColor }: { group: TodoGroup; barColor: string }) {
+// 계획이 없을 때 타임라인 위에 뜨는 안내 말풍선, 마스코트 쪽 위 모서리만 각지게
+function EmptyPlanNotice({ onCreate, onClose }: { onCreate: () => void; onClose: () => void }) {
   return (
-    <Row gap="m" className="p-m items-stretch">
-      <View className="w-1 rounded-full" style={{ backgroundColor: barColor }} />
-      <Stack gap="s">
-        <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
-        <Stack gap="m">
-          {group.items.map((item) => (
-            <Row key={item.id} gap="s" className="items-center">
-              <View
-                className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
-                style={item.done ? { backgroundColor: barColor } : { borderWidth: 1, borderColor: "#8A919E" }}
-              >
-                {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
-              </View>
-              <Text
-                variant="base-medium"
-                color={item.done ? "disabled" : "primary"}
-                style={item.done ? { textDecorationLine: "line-through" } : undefined}
-              >
-                {item.text}
-              </Text>
-            </Row>
-          ))}
+    <View className="absolute z-10" style={{ top: 16, left: -12, right: -12 }}>
+      <Row gap="m" width="full" className="items-start">
+        <Icon name="mascotFace" size={52} />
+        <Stack gap="xs" className="flex-1 bg-neutral-700 px-[18px] py-[14px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px]">
+          <Text variant="base-medium">생성된 플랜이 없어요. 플랜을 만들어 하루 계획을 생성해보세요!</Text>
+          <Pressable onPress={onCreate}>
+            <Text variant="base-medium" className="text-primary-500" style={{ textDecorationLine: "underline" }}>새 플랜 생성하기</Text>
+          </Pressable>
         </Stack>
-      </Stack>
-    </Row>
+      </Row>
+      <Pressable
+        onPress={onClose}
+        hitSlop={10}
+        className="absolute w-[20px] h-[20px] rounded-full bg-neutral-600 items-center justify-center"
+        style={{ top: -4, right: -4 }}
+      >
+        <Icon name="close" size={12} />
+      </Pressable>
+    </View>
   );
 }
 
-function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: { plan: Plan; todoGroup: TodoGroup | null; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
+function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: { plan: Plan; canDelete: boolean; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
   const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
@@ -231,14 +257,12 @@ function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: {
     <View style={{ position: "absolute", top, left: TIMELINE_LEFT }} className="items-center">
       {showBelow && <View className="w-3 h-3 -mb-1.5 bg-neutral-700 border-l border-t border-neutral-600 rotate-45" />}
       <Stack gap="s" className="bg-neutral-700 border border-neutral-600 rounded-md p-xs" onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}>
-        {todoGroup && todoGroup.items.length > 0 && (
-          <TodoSummary group={todoGroup} barColor={CATEGORY_COLORS[plan.category].bar} />
-        )}
         <Row gap="none" className="items-center">
           <ActionButton icon="check" label="완료" onPress={onComplete} />
           <ActionButton icon="close" label="실패" onPress={onFail} />
           <ActionButton icon="pencil" label="수정" onPress={onEdit} />
-          <ActionButton icon="trash" label="삭제" onPress={onDelete} />
+          {/* AI가 만든 계획은 삭제 불가, 직접 추가한 계획만 */}
+          {canDelete && <ActionButton icon="trash" label="삭제" onPress={onDelete} />}
         </Row>
       </Stack>
       {!showBelow && <View className="w-3 h-3 -mt-1.5 bg-neutral-700 border-r border-b border-neutral-600 rotate-45" />}
@@ -316,6 +340,59 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
   );
 }
 
+const ADD_MENU_OFFSCREEN_Y = 400;
+
+function AddMenuButton({ label, onPress }: { label: string; onPress?: () => void }) {
+  return (
+    <Pressable onPress={onPress} className="bg-neutral-700 h-16 rounded-md items-center justify-center w-full">
+      <Text variant="base-medium" weight="medium">{label}</Text>
+    </Pressable>
+  );
+}
+
+// onFullyClosed: 닫힘 애니메이션 도중 다른 Modal을 띄우면 두 Modal이 동시에 떠서 터치가 씹히는 문제가 있어,
+// 완전히 닫힌 뒤에 후속 동작을 실행하도록 호출 시점을 분리했습니다.
+function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule, onCreatePlan }: { visible: boolean; onClose: () => void; onFullyClosed: () => void; onCreateSchedule: () => void; onCreatePlan: () => void }) {
+  const translateY = useSharedValue(ADD_MENU_OFFSCREEN_Y);
+  const [isRendered, setIsRendered] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+      translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
+    } else {
+      translateY.value = withTiming(ADD_MENU_OFFSCREEN_Y, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
+        if (finished) {
+          runOnJS(setIsRendered)(false);
+          runOnJS(onFullyClosed)();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, translateY]);
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
+  return (
+    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
+      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
+        <Pressable>
+          <Animated.View style={sheetStyle}>
+            <View className="bg-background-primary rounded-t-[32px] items-center pt-s px-6 pb-xxl" style={{ gap: 24 }}>
+              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
+              <Stack gap="s" width="full">
+                <AddMenuButton label="일정 생성하기" onPress={onCreateSchedule} />
+                <AddMenuButton label="과목 생성하기" />
+                <AddMenuButton label="새 플랜 생성하기" onPress={onCreatePlan} />
+              </Stack>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onCancel: () => void; onConfirm: () => void }) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onCancel}>
@@ -354,24 +431,35 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
 
 /**
  * 홈 화면
- * @description 오늘의 일정을 시간순으로 보여주고, 현재 시각/날짜를 실시간으로 반영합니다.
  */
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const now = useNow(30_000);
-  // 실제 API 응답을 기다리는 동안 화면이 비어 보이지 않도록, 목업 일정을 먼저 보여주고 실제 데이터가 오면 교체합니다.
-  const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
+  // 좌우로 밀어 날짜 이동, 0이 오늘
+  const [dayOffset, setDayOffset] = useState(0);
+  // 가로 페이지(어제|오늘|내일) 너비와 옆 페이지 눈금 위치
+  const pagerRef = useRef<ScrollView>(null);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [neighborOffset, setNeighborOffset] = useState(0);
+  const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
+  const selectedKey = toLocalDateString(selectedDate);
+  const isToday = dayOffset === 0;
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
+  // 여러 플랜보드면 dailyPlanId가 여러 개라 첫 태스크 기준 사용
+  const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
-  const todoGroups = useTodoStore((state) => state.groups);
+  const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
   useEffect(() => {
@@ -384,18 +472,126 @@ export default function Home() {
     return () => setFullScreenModalOpen(false);
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
-  // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
-  // TODO: 실제 플랜보드 데이터가 쌓이기 전까지는 API가 빈 값/에러를 주면 목업 하루 일정을 보여줍니다.
-  useFocusEffect(
-    useCallback(() => {
-      getPlanBoards()
-        .then((boards) => {
-          const mapped = boards.map(mapPlanBoardToPlan);
-          setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
-        })
-        .catch(() => setPlans(MOCK_PLANS));
-    }, [])
+  // 일정 생성 후 복귀 시 최신 목록 반영 위해 포커스마다 재조회
+  const loadDailyTasks = useCallback(() => {
+    getDailyTasks(selectedKey)
+      .then((daily) => {
+        setChatDailyPlanId(daily.tasks[0]?.dailyPlanId ?? null);
+        setPlans(daily.tasks.map(mapPlanTaskToPlan));
+      })
+      .catch(() => {
+        setChatDailyPlanId(null);
+        setPlans([]);
+      });
+  }, [selectedKey]);
+
+  useFocusEffect(loadDailyTasks);
+
+  const moveDay = (delta: number) => {
+    setActiveId(null);
+    setDayOffset((prev) => prev + delta);
+  };
+
+  // [오늘로]도 스와이프처럼 오늘 쪽 옆 페이지로 넘긴 뒤 날짜 변경
+  const pendingJumpRef = useRef<number | null>(null);
+  const finishJump = () => {
+    const delta = pendingJumpRef.current;
+    if (delta === null) return;
+    pendingJumpRef.current = null;
+    moveDay(delta);
+    pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
+  };
+  const goToday = () => {
+    if (!pageWidth) {
+      moveDay(-dayOffset);
+      return;
+    }
+    pendingJumpRef.current = -dayOffset;
+    setNeighborOffset(scrollYRef.current);
+    pagerRef.current?.scrollTo({ x: dayOffset > 0 ? 0 : pageWidth * 2, animated: true });
+    // 안드로이드는 코드로 넘길 때 onMomentumScrollEnd가 안 와서 시간으로 마무리
+    setTimeout(finishJump, 400);
+  };
+
+  // iOS는 세로 ScrollView가 터치를 먼저 가져가 JS 제스처가 끊겨서, 가로 넘김도 네이티브 페이지 스크롤로 처리
+  const handlePagerEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!pageWidth) return;
+    if (pendingJumpRef.current !== null) {
+      finishJump();
+      return;
+    }
+    const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+    if (page !== 1) moveDay(page - 1);
+    pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
+  };
+
+  const renderNeighborPage = () => (
+    <View style={{ width: pageWidth, overflow: "hidden" }}>
+      <View style={{ height: TIMELINE_HEIGHT, transform: [{ translateY: -neighborOffset }] }}>
+        {HOURS.map((hour, i) => (
+          <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
+            <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
+            <View className="flex-1 h-px bg-neutral-600 ml-s" />
+          </Row>
+        ))}
+      </View>
+    </View>
   );
+
+  // 플랜보드 중 오늘 이후 가장 가까운 시험일
+  const [nextExamDate, setNextExamDate] = useState<string | null>(null);
+  const loadNextExam = useCallback(() => {
+    const today = toLocalDateString(new Date());
+    getPlanBoards()
+      .then((boards) => {
+        const upcoming = boards
+          .map((board) => board.examDate)
+          .filter((date): date is string => !!date && date >= today)
+          .sort();
+        setNextExamDate(upcoming[0] ?? null);
+      })
+      .catch(() => setNextExamDate(null));
+  }, []);
+
+  useFocusEffect(loadNextExam);
+
+  // 할일 응답에 보드·과목이 없어 보드별 그날 dailyPlanId로 연결
+  // 직접 추가 = 시험일 없는 기본 보드, 과목 색 = 과목이 하나뿐인 보드의 과목
+  const [manualDailyPlanIds, setManualDailyPlanIds] = useState<Set<number>>(new Set());
+  const [categoryByDailyPlanId, setCategoryByDailyPlanId] = useState<Map<number, Category>>(new Map());
+  const loadBoardInfo = useCallback(() => {
+    getPlanBoards()
+      .then((boards) => Promise.all(boards.map(async (board) => {
+        const [daily, subjects] = await Promise.all([
+          getBoardDaily(board.id, selectedKey),
+          board.examDate === null ? Promise.resolve([]) : getPlanBoardSubjects(board.id).catch(() => []),
+        ]);
+        const subjectNames = new Set(subjects.map((subject) => subject.subjectName));
+        const category = subjectNames.size === 1 ? SUBJECT_CATEGORIES[[...subjectNames][0]] ?? "neutral" : "neutral";
+        return { dailyPlanId: daily.dailyPlanId, manual: board.examDate === null, category };
+      })))
+      .then((infos) => {
+        const linked = infos.filter((info): info is typeof info & { dailyPlanId: number } => typeof info.dailyPlanId === "number");
+        setManualDailyPlanIds(new Set(linked.filter((info) => info.manual).map((info) => info.dailyPlanId)));
+        setCategoryByDailyPlanId(new Map(linked.map((info) => [info.dailyPlanId, info.category])));
+      })
+      .catch(() => {
+        setManualDailyPlanIds(new Set());
+        setCategoryByDailyPlanId(new Map());
+      });
+  }, [selectedKey]);
+  useFocusEffect(loadBoardInfo);
+
+  // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
+  const userId = useUserStore((state) => state.userId);
+  const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
+  const loadUnavailableTimes = useCallback(() => {
+    if (userId === null) return;
+    getUnavailableTimes(userId).then(setUnavailableTimes).catch(() => setUnavailableTimes([]));
+  }, [userId]);
+  useFocusEffect(loadUnavailableTimes);
+  const busyBlocks = buildBusyBlocks(unavailableTimes, selectedDate);
+  const examDDay = nextExamDate ? getDDay(nextExamDate, now) : null;
 
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
@@ -403,17 +599,25 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
+  const coloredPlans = plans.map((plan) => ({
+    ...plan,
+    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
+  }));
+  const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
-  const activeTodoGroup = activePlan ? todoGroups.find((group) => group.category === activePlan.category) ?? null : null;
 
-  const updateStatus = (id: string, status: PlanStatus) => {
-    setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
+  const setPlanStatus = (id: string, status: PlanStatus) => {
+    setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status } : plan)));
     setActiveId(null);
   };
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
+    // 완료한 계획은 메뉴 없이 퀴즈(결과·이어 풀기)로 바로 이동
+    if (plan.status === "done") {
+      openQuiz(plan);
+      return;
+    }
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
@@ -435,12 +639,23 @@ export default function Home() {
   };
 
   // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
+  // 완료는 퀴즈 통과 시 서버가 처리, 여기선 퀴즈만 열어 퀴즈가 없거나 중간에 나가면 기본 상태 유지
+  const openQuiz = (plan: Plan) => {
+    setActiveId(null);
+    router.push({
+      pathname: "/home/QuizPage",
+      params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
+    });
+  };
+
   const handleComplete = (plan: Plan) => {
-    const willComplete = plan.status !== "done";
-    updateStatus(plan.id, "done");
-    if (willComplete) {
-      router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
-    }
+    if (plan.status !== "pending") return;
+    openQuiz(plan);
+  };
+
+  const handleFail = (plan: Plan) => {
+    if (plan.status !== "pending") return;
+    setPlanStatus(plan.id, "failed");
   };
 
   const handleDelete = (plan: Plan) => {
@@ -450,27 +665,58 @@ export default function Home() {
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    setPlans((prev) => prev.filter((plan) => plan.id !== deleteTarget.id));
-    setDeleteToast(`'${deleteTarget.title}' 일정이 삭제되었습니다.`);
+    const target = deleteTarget;
+    setPlans((prev) => prev.filter((plan) => plan.id !== target.id));
     setDeleteTarget(null);
+
+    deletePlanTask(Number(target.id))
+      .then(() => setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`))
+      .catch(() => {
+        loadDailyTasks(); // 실패 시 서버 목록으로 복구
+        Alert.alert("삭제 실패", "일정 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
   };
 
-  const handlePlanCreated = (board: PlanBoard) => {
-    setPlans((prev) => [...prev.filter((plan) => !plan.id.startsWith("mock-")), mapPlanBoardToPlan(board)]);
+  // 계획 없는 날은 AI 채팅 안내 대신 같은 플랜 생성 말풍선 하나만 표시
+  const handleOpenAiChat = () => {
+    if (plans.length === 0) {
+      setEmptyNoticeClosed(false);
+      return;
+    }
+    setShowAiChat(true);
+  };
+
+  // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
+  const handlePlanCreated = () => {
     setShowAddPlan(false);
+    loadDailyTasks();
+    loadBoardInfo(); // 기본 보드가 새로 생겼을 수 있음
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
+    const id = editingId;
+    const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
+    const endMin = (startMin + duration) % DAY_MIN;
+    const startTime = `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)}`;
+    const endTime = `${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
+
     setPlans((prev) => prev.map((plan) => {
-      if (plan.id !== editingId) return plan;
-      const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
-      const endMin = (startMin + duration) % DAY_MIN;
+      if (plan.id !== id) return plan;
       const lines = plan.lines.map((line) => line.icon === "history"
-        ? { ...line, text: `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)} - ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)} | ${formatDuration(duration)}` }
+        ? { ...line, text: `${startTime} - ${endTime} | ${formatDuration(duration)}` }
         : line);
       return { ...plan, title, start, duration, lines };
     }));
     setEditingId(null);
+
+    if (!id) return;
+
+    updatePlanTask(Number(id), { taskName: title, startTime, endTime, estimatedMinutes: duration })
+      .catch((error) => {
+        loadDailyTasks(); // 실패 시 서버 목록으로 복구
+        const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+        Alert.alert("수정 실패", EDIT_ERROR_MESSAGES[code] ?? "일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
   };
 
   return (
@@ -479,12 +725,38 @@ export default function Home() {
       {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
 
       <Row width="full" align="between" className="items-center pt-m pb-l">
-        <Text variant="header-large">{formatDateHeader(now)}</Text>
         <Row gap="s" className="items-center">
-          <Text variant="base-small" color="secondary">기말고사</Text>
-          <Text variant="header-medium">D-20</Text>
+          <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
+          {!isToday && (
+            <Pressable onPress={goToday} hitSlop={8}>
+              <Text variant="base-small" weight="medium" style={{ color: palette.primary["500"] }}>오늘로</Text>
+            </Pressable>
+          )}
         </Row>
+        {examDDay !== null && examDDay >= 0 && (
+          <Row gap="s" className="items-center">
+            <Text variant="base-small" weight="medium" color="secondary">시험</Text>
+            <Text variant="header-medium">{examDDay === 0 ? "D-Day" : `D-${examDDay}`}</Text>
+          </Row>
+        )}
       </Row>
+
+      <View className="flex-1" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
+      {plans.length === 0 && !emptyNoticeClosed && (
+        <EmptyPlanNotice onCreate={() => router.push("/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
+      )}
+      {pageWidth > 0 && (
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        contentOffset={{ x: pageWidth, y: 0 }}
+        onScrollBeginDrag={() => setNeighborOffset(scrollYRef.current)}
+        onMomentumScrollEnd={handlePagerEnd}
+      >
+      {renderNeighborPage()}
+      <View style={{ width: pageWidth }}>
 
       <ScrollView
         ref={scrollRef}
@@ -495,7 +767,7 @@ export default function Home() {
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       >
-        <View style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
+        <View key={selectedKey} style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
           {HOURS.map((hour, i) => (
             <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
               <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
@@ -503,32 +775,41 @@ export default function Home() {
             </Row>
           ))}
 
-          {plans.map((plan) => (
+          {busyBlocks.map((block) => (
+            <BusyBlockView key={block.key} block={block} />
+          ))}
+
+          {coloredPlans.map((plan) => (
             <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
           ))}
 
-          <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />
+          {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />}
 
           {activePlan && (
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
-              todoGroup={activeTodoGroup}
+              canDelete={activePlan.dailyPlanId !== undefined && manualDailyPlanIds.has(activePlan.dailyPlanId)}
               onComplete={() => handleComplete(activePlan)}
-              onFail={() => updateStatus(activePlan.id, "failed")}
+              onFail={() => handleFail(activePlan)}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
               onDelete={() => handleDelete(activePlan)}
             />
           )}
         </View>
       </ScrollView>
+      </View>
+      {renderNeighborPage()}
+      </ScrollView>
+      )}
+      </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
-          <Pressable onPress={() => setShowAddPlan(true)} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
-          <Pressable onPress={() => setShowAiChat(true)} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={handleOpenAiChat} className="p-m rounded-full items-center justify-center">
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>
@@ -548,14 +829,36 @@ export default function Home() {
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
 
+      <AddMenu
+        visible={showAddMenu}
+        onClose={() => setShowAddMenu(false)}
+        onFullyClosed={() => {
+          afterAddMenuClosedRef.current?.();
+          afterAddMenuClosedRef.current = null;
+        }}
+        onCreateSchedule={() => {
+          afterAddMenuClosedRef.current = () => setShowAddPlan(true);
+          setShowAddMenu(false);
+        }}
+        onCreatePlan={() => {
+          afterAddMenuClosedRef.current = () => router.push("/ExamDatePage");
+          setShowAddMenu(false);
+        }}
+      />
+
       <AddPlanBoardModal
         visible={showAddPlan}
-        baseDate={now}
+        baseDate={isToday ? now : selectedDate}
         onClose={() => setShowAddPlan(false)}
         onCreated={handlePlanCreated}
       />
 
-      <AiChatModal visible={showAiChat} onClose={() => setShowAiChat(false)} />
+      <AiChatModal
+        visible={showAiChat}
+        dailyPlanId={chatDailyPlanId}
+        onClose={() => setShowAiChat(false)}
+        onPlanChanged={loadDailyTasks}
+      />
     </View>
   );
 }

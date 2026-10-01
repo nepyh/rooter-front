@@ -16,10 +16,10 @@ export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string }> = {
   neutral: { bar: "#6c6c6c", bg: "rgba(108,108,108,0.15)" },
 };
 
-export const CATEGORY_LABELS: Record<Category, string> = {
-  math: "수학",
-  english: "영어",
-  science: "과학",
-  social: "사회",
-  neutral: "기타",
+// 백엔드 과목 이름 → 색, 국어는 디자인에 색이 없어 neutral
+export const SUBJECT_CATEGORIES: Record<string, Category> = {
+  "수학": "math",
+  "영어": "english",
+  "과학": "science",
+  "사회": "social",
 };
