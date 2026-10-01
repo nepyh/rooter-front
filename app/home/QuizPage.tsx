@@ -1,161 +1,200 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text, Button } from "@/components";
 import { Icon } from "@/assets";
-import { CATEGORY_LABELS } from "@/constants/category";
+import type { IconName } from "@/assets";
+import { generateQuiz, submitQuiz } from "@/api/quiz";
+import type { Quiz, QuizResult } from "@/api/quiz";
 import type { Category } from "@/constants/category";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
 // ================================
 
-interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  answerIndex: number;
-}
-
-type OptionState = "default" | "selected" | "correct" | "incorrect";
+type OptionState = "default" | "selected" | "correct" | "wrong";
+type Phase = "intro" | "answering" | "review" | "score";
 
 // ================================
-// Mock Data
+// Constants
 // ================================
-// 실제 문제 API가 없어 과목별 목업 문제를 화면에 직접 둡니다 (다른 화면의 MOCK_* 패턴과 동일).
 
-const MOCK_QUIZZES: Record<Category, QuizQuestion[]> = {
-  english: [
-    { id: "en-1", question: "delicate의 뜻은?", options: ["섬세한", "방해하다", "추측", "모르겠어요"], answerIndex: 0 },
-    { id: "en-2", question: "abundant의 뜻은?", options: ["부족한", "풍부한", "지루한", "모르겠어요"], answerIndex: 1 },
-    { id: "en-3", question: "postpone의 뜻은?", options: ["연기하다", "제안하다", "완성하다", "모르겠어요"], answerIndex: 0 },
-    { id: "en-4", question: "reluctant의 뜻은?", options: ["열정적인", "꺼리는", "너그러운", "모르겠어요"], answerIndex: 1 },
-    { id: "en-5", question: "inevitable의 뜻은?", options: ["피할 수 없는", "예상 밖의", "일시적인", "모르겠어요"], answerIndex: 0 },
-  ],
-  math: [
-    { id: "math-1", question: "이차방정식 x² - 5x + 6 = 0의 해는?", options: ["x = 2, 3", "x = 1, 6", "x = -2, -3", "모르겠어요"], answerIndex: 0 },
-    { id: "math-2", question: "반지름이 r인 원의 넓이 공식은?", options: ["2πr", "πr²", "πr", "모르겠어요"], answerIndex: 1 },
-    { id: "math-3", question: "피타고라스 정리에서 빗변 c의 관계식은?", options: ["a + b = c", "a² + b² = c²", "a² - b² = c²", "모르겠어요"], answerIndex: 1 },
-    { id: "math-4", question: "다음 중 소수인 것은?", options: ["9", "15", "7", "모르겠어요"], answerIndex: 2 },
-    { id: "math-5", question: "함수 y = 2x + 1의 y절편은?", options: ["0", "1", "2", "모르겠어요"], answerIndex: 1 },
-  ],
-  science: [
-    { id: "sci-1", question: "물의 화학식은?", options: ["CO2", "H2O", "O2", "모르겠어요"], answerIndex: 1 },
-    { id: "sci-2", question: "세포에서 유전 정보를 담고 있는 곳은?", options: ["핵", "세포막", "미토콘드리아", "모르겠어요"], answerIndex: 0 },
-    { id: "sci-3", question: "뉴턴의 제1법칙이 설명하는 것은?", options: ["관성", "작용과 반작용", "가속도", "모르겠어요"], answerIndex: 0 },
-    { id: "sci-4", question: "광합성이 일어나는 세포 소기관은?", options: ["엽록체", "리보솜", "소포체", "모르겠어요"], answerIndex: 0 },
-    { id: "sci-5", question: "원자핵을 구성하는 입자는?", options: ["전자와 중성자", "양성자와 중성자", "전자와 양성자", "모르겠어요"], answerIndex: 1 },
-  ],
-  social: [
-    { id: "soc-1", question: "대한민국 국회의원의 임기는?", options: ["2년", "4년", "6년", "모르겠어요"], answerIndex: 1 },
-    { id: "soc-2", question: "헌법상 국민의 3대 의무 중 하나는?", options: ["납세의 의무", "선거의 의무", "여행의 의무", "모르겠어요"], answerIndex: 0 },
-    { id: "soc-3", question: "조선을 건국한 왕은?", options: ["세종대왕", "태조 이성계", "광해군", "모르겠어요"], answerIndex: 1 },
-    { id: "soc-4", question: "대한민국 최초의 헌법이 제정된 해는?", options: ["1945년", "1948년", "1950년", "모르겠어요"], answerIndex: 1 },
-    { id: "soc-5", question: "국가 권력을 나누어 견제하는 원리는?", options: ["삼권분립", "지방자치", "국민투표", "모르겠어요"], answerIndex: 0 },
-  ],
-  neutral: [
-    { id: "neu-1", question: "학습한 내용을 오래 기억하려면 언제 복습하는 것이 좋을까?", options: ["24시간 이내", "일주일 후", "한 달 후", "모르겠어요"], answerIndex: 0 },
-    { id: "neu-2", question: "집중력 향상에 도움이 되는 학습법은?", options: ["뽀모도로 기법", "밤새워 몰아치기", "여러 과목 동시에 하기", "모르겠어요"], answerIndex: 0 },
-    { id: "neu-3", question: "좋은 학습 목표의 조건은?", options: ["구체적이고 측정 가능해야 함", "최대한 크게 잡아야 함", "기한이 없어야 함", "모르겠어요"], answerIndex: 0 },
-  ],
+// 퀴즈 응답에 과목 정보가 없어 Home에서 넘겨준 카테고리로만 과목 태그 표시
+const SUBJECT_LABELS: Partial<Record<Category, string>> = {
+  "math": "수학",
+  "english": "영어",
+  "science": "과학",
+  "social": "사회",
+};
+
+// ================================
+// Styles
+// ================================
+
+const optionStyles: Record<OptionState, string> = {
+  "default": "border-neutral-600",
+  "selected": "border-primary-500 bg-primary-500/30",
+  "correct": "border-utility-success-primary bg-utility-success-primary/30",
+  "wrong": "border-utility-error-primary bg-utility-error-primary/30",
+};
+
+const optionIcons: Partial<Record<OptionState, { name: IconName; color: string }>> = {
+  "correct": { name: "check", color: palette.utility["success-primary"] },
+  "wrong": { name: "close", color: palette.utility["error-primary"] },
 };
 
 // ================================
 // Components
 // ================================
 
-const OPTION_STATE_STYLE: Record<OptionState, { borderColor: string; backgroundColor: string }> = {
-  default: { borderColor: "#525866", backgroundColor: "transparent" },
-  selected: { borderColor: "#F6482D", backgroundColor: "rgba(246,72,45,0.3)" },
-  correct: { borderColor: "#22C55E", backgroundColor: "rgba(34,197,94,0.3)" },
-  incorrect: { borderColor: "#FF4D4F", backgroundColor: "rgba(255,77,79,0.3)" },
-};
-
-function OptionRow({ label, state, onPress }: { label: string; state: OptionState; onPress: () => void }) {
-  const iconScale = useSharedValue(0.5);
-  const iconOpacity = useSharedValue(0);
-
-  useEffect(() => {
-    if (state === "correct" || state === "incorrect") {
-      iconOpacity.value = withTiming(1, { duration: 200 });
-      iconScale.value = withSequence(withTiming(1.25, { duration: 140 }), withTiming(1, { duration: 140 }));
-    }
-  }, [state, iconOpacity, iconScale]);
-
-  const iconStyle = useAnimatedStyle(() => ({
-    opacity: iconOpacity.value,
-    transform: [{ scale: iconScale.value }],
-  }));
-
+function OptionRow({ label, state, onPress }: { label: string; state: OptionState; onPress?: () => void }) {
+  const icon = optionIcons[state];
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full"
-      style={OPTION_STATE_STYLE[state]}
+      disabled={!onPress}
+      className={`flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full ${optionStyles[state]}`}
     >
-      {state === "correct" && (
-        <Animated.View style={iconStyle}>
-          <Icon name="check" size={20} color="#22C55E" />
-        </Animated.View>
-      )}
-      {state === "incorrect" && (
-        <Animated.View style={iconStyle}>
-          <Icon name="close" size={20} color="#FF4D4F" />
-        </Animated.View>
-      )}
-      <Text variant="base-large">{label}</Text>
+      {icon && <Icon name={icon.name} size={20} color={icon.color} />}
+      <Text variant="base-large" className="text-center">{label}</Text>
     </Pressable>
+  );
+}
+
+function ProgressBar({ total, current }: { total: number; current: number }) {
+  return (
+    <Row gap="xs" className="flex-1 h-[6px] items-center">
+      {Array.from({ length: total }, (_, i) => (
+        <View key={i} className={`flex-1 h-full rounded-full ${i <= current ? "bg-primary-500" : "bg-neutral-600"}`} />
+      ))}
+    </Row>
+  );
+}
+
+function QuestionCard({ index, text }: { index: number; text: string }) {
+  return (
+    <View className="bg-neutral-700 rounded-md p-xl w-full" style={{ minHeight: 200, gap: 40 }}>
+      <View className="self-start bg-neutral-600 px-m py-xs rounded-xs">
+        <Text variant="header-small">{`Q${index + 1}`}</Text>
+      </View>
+      <Text variant="title-medium" className="text-center">{text}</Text>
+    </View>
+  );
+}
+
+// 해설 말풍선, 마스코트 쪽 모서리만 각지게
+function ExplanationBubble({ text }: { text: string }) {
+  return (
+    <Row gap="m" width="full" className="items-end">
+      <View className="flex-1 bg-neutral-700 px-xl py-l rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px]">
+        <Text variant="base-large">{text}</Text>
+      </View>
+      <Icon name="mascotFace" size={52} />
+    </Row>
+  );
+}
+
+function ScoreCircle({ correct, total }: { correct: number; total: number }) {
+  const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+  return (
+    <View
+      className="w-[280px] h-[280px] rounded-full border-[10px] border-primary-500 items-center justify-center self-center"
+      style={{
+        gap: 24,
+        experimental_backgroundImage: `linear-gradient(180deg, ${palette.quiz["score-top"]} 0%, ${palette.neutral["700"]} 100%)`,
+      }}
+    >
+      <Text variant="header-large">나의 점수</Text>
+      <Stack gap="xs" className="items-center">
+        <Text weight="semibold" style={{ fontSize: 40, lineHeight: 50, letterSpacing: -0.4 }}>{`${score}점`}</Text>
+        <Text variant="header-large">{`${correct}/${total}`}</Text>
+      </Stack>
+    </View>
   );
 }
 
 /**
  * 퀴즈 화면
- * @description 과목별 할 일을 모두 완료하면 진입할 수 있는 목업 퀴즈입니다.
  */
 export default function QuizPage() {
-  const params = useLocalSearchParams<{ category: string }>();
-  const category = (params.category as Category) ?? "neutral";
-  const questions = MOCK_QUIZZES[category] ?? [];
-
-  const [started, setStarted] = useState(false);
+  const { category } = useLocalSearchParams<{ category?: Category }>();
+  const subjectLabel = category ? SUBJECT_LABELS[category] : undefined;
+  const [phase, setPhase] = useState<Phase>("intro");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [finished, setFinished] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, number>>({}); // questionId -> selectedChoiceId
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<QuizResult | null>(null);
 
+  const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
   const isLast = currentIndex === questions.length - 1;
+  const selectedChoiceId = current ? answers[current.id] : undefined;
+  const currentResult = result?.results.find((r) => r.questionId === current?.id);
 
-  const getOptionState = (index: number): OptionState => {
-    if (!confirmed) return selectedIndex === index ? "selected" : "default";
-    if (index === current.answerIndex) return "correct";
-    if (index === selectedIndex) return "incorrect";
-    return "default";
+  const handleStart = async () => {
+    setPhase("answering");
+    setLoading(true);
+    setError("");
+    try {
+      setQuiz(await generateQuiz());
+    } catch {
+      setError("퀴즈를 준비하지 못했습니다. 완료한 학습이 있는지 확인해주세요.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePrimary = () => {
-    if (!confirmed) {
-      if (selectedIndex === null) return;
-      setConfirmed(true);
-      if (selectedIndex === current.answerIndex) setCorrectCount((c) => c + 1);
-      return;
-    }
-    if (isLast) {
-      setFinished(true);
-      return;
-    }
-    setCurrentIndex((i) => i + 1);
-    setSelectedIndex(null);
-    setConfirmed(false);
+  const handleSelect = (choiceId: number) => {
+    if (!current) return;
+    setAnswers((prev) => ({ ...prev, [current.id]: choiceId }));
   };
 
-  const primaryLabel = !confirmed ? "확인" : isLast ? "결과 보기" : "다음";
-  const primaryVariant = !confirmed && selectedIndex === null ? "disabled" : "primary";
+  // 채점 API가 전체 제출만 받아서, 전부 푼 뒤 제출하고 1번부터 해설
+  const handleConfirm = async () => {
+    if (!current || selectedChoiceId === undefined || !quiz) return;
+    if (!isLast) {
+      setCurrentIndex((i) => i + 1);
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const submission = questions.map((q) => ({ questionId: q.id, selectedChoiceId: answers[q.id] }));
+      setResult(await submitQuiz(quiz.dailyPlanId, submission));
+      setCurrentIndex(0);
+      setPhase("review");
+    } catch {
+      setError("퀴즈 제출에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  if (!started) {
+  const handleReviewNext = () => {
+    if (isLast) setPhase("score");
+    else setCurrentIndex((i) => i + 1);
+  };
+
+  const goFeedback = () => {
+    if (!quiz) return;
+    router.replace({ pathname: "/home/FeedbackPage", params: { dailyPlanId: String(quiz.dailyPlanId) } });
+  };
+
+  const getOptionState = (choiceId: number): OptionState => {
+    if (phase === "review" && currentResult) {
+      if (choiceId === currentResult.correctChoiceId) return "correct";
+      if (choiceId === currentResult.selectedChoiceId) return "wrong";
+      return "default";
+    }
+    return selectedChoiceId === choiceId ? "selected" : "default";
+  };
+
+  if (phase === "intro") {
     return (
       <View className="flex-1">
         <StatusBar style="light" />
@@ -168,9 +207,11 @@ export default function QuizPage() {
               <Icon name="mascotFace" size={100} />
               <Stack gap="m" width="full">
                 <Row gap="m" className="items-center">
-                  <View className="px-s py-xs rounded-xs" style={{ backgroundColor: "rgba(246,72,45,0.2)" }}>
-                    <Text variant="base-medium" weight="medium" style={{ color: "#F6482D" }}>{CATEGORY_LABELS[category]}</Text>
-                  </View>
+                  {subjectLabel && (
+                    <View className="bg-primary-500/20 px-s py-xs rounded-xs">
+                      <Text variant="base-medium" weight="medium" className="text-primary-500">{subjectLabel}</Text>
+                    </View>
+                  )}
                   <Text variant="title-medium">학습 테스트</Text>
                 </Row>
                 <Text variant="base-large">
@@ -179,11 +220,30 @@ export default function QuizPage() {
               </Stack>
             </Stack>
           </Stack>
-          <Button variant="primary" onPress={() => setStarted(true)}> 시작 </Button>
+          <Button variant="primary" onPress={handleStart}>시작</Button>
         </Stack>
       </View>
     );
   }
+
+  if (phase === "score" && result) {
+    return (
+      <View className="flex-1">
+        <StatusBar style="light" />
+        <Stack align="between" width="full" className="flex-1">
+          <Text variant="title-medium" className="pt-xxl">
+            {`${subjectLabel ? `${subjectLabel} ` : ""}학습 테스트를\n완료했어요!`}
+          </Text>
+          <ScoreCircle correct={result.correctCount} total={result.totalQuestions} />
+          <Button variant="primary" onPress={goFeedback}>다음</Button>
+        </Stack>
+      </View>
+    );
+  }
+
+  const explanation = currentResult
+    ? currentResult.explanation ?? (currentResult.correctChoiceText ? `정답은 ${currentResult.correctChoiceText}입니다.` : null)
+    : null;
 
   return (
     <View className="flex-1">
@@ -194,47 +254,32 @@ export default function QuizPage() {
             <Pressable onPress={() => router.back()} className="w-[28px] h-[28px] items-center justify-center">
               <Icon name="close" size={24} />
             </Pressable>
-            <Row gap="xs" className="flex-1 h-[6px] items-center">
-              {questions.map((q, i) => (
-                <View
-                  key={q.id}
-                  className="flex-1 h-full rounded-full"
-                  style={{ backgroundColor: i <= currentIndex ? "#F6482D" : "#525866" }}
-                />
-              ))}
-            </Row>
+            {questions.length > 0 && <ProgressBar total={questions.length} current={currentIndex} />}
           </Row>
 
-          {questions.length === 0 ? (
+          {loading ? (
+            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
+              <Text color="secondary">퀴즈를 준비하고 있어요...</Text>
+            </Stack>
+          ) : error && !current ? (
+            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
+              <Text color="secondary">{error}</Text>
+            </Stack>
+          ) : !current ? (
             <Stack gap="m" width="full" className="flex-1 items-center justify-center">
               <Text color="secondary">아직 준비된 퀴즈가 없어요.</Text>
-            </Stack>
-          ) : finished ? (
-            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
-              <Text variant="title-medium">{correctCount} / {questions.length}</Text>
-              <Text color="secondary">퀴즈를 완료했어요!</Text>
             </Stack>
           ) : (
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
               <Stack gap="xxl" width="full">
-                <View className="bg-neutral-700 rounded-md p-xl w-full" style={{ minHeight: 200 }}>
-                  <View className="self-start bg-neutral-600 px-m py-xs rounded-xs">
-                    <Text variant="header-small">Q{currentIndex + 1}</Text>
-                  </View>
-                  <View className="flex-1 w-full items-center justify-center">
-                    <Text weight="semibold" className="text-center" style={{ fontSize: 28, lineHeight: 34, letterSpacing: -0.28 }}>
-                      {current.question}
-                    </Text>
-                  </View>
-                </View>
-
+                <QuestionCard index={currentIndex} text={current.questionText} />
                 <Stack gap="m" width="full">
-                  {current.options.map((option, index) => (
+                  {current.choices.map((choice) => (
                     <OptionRow
-                      key={`${current.id}-${index}`}
-                      label={option}
-                      state={getOptionState(index)}
-                      onPress={() => !confirmed && setSelectedIndex(index)}
+                      key={choice.id}
+                      label={choice.choiceText}
+                      state={getOptionState(choice.id)}
+                      onPress={phase === "answering" ? () => handleSelect(choice.id) : undefined}
                     />
                   ))}
                 </Stack>
@@ -243,13 +288,19 @@ export default function QuizPage() {
           )}
         </Stack>
 
-        {questions.length === 0 ? (
-          <Button variant="primary" onPress={() => router.back()}>확인</Button>
-        ) : finished ? (
-          <Button variant="primary" onPress={() => router.back()}>완료</Button>
-        ) : (
-          <Button variant={primaryVariant} onPress={handlePrimary}>{primaryLabel}</Button>
-        )}
+        <Stack gap="xl" width="full" className="pt-l">
+          {phase === "review" && explanation && <ExplanationBubble text={explanation} />}
+          {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
+          {loading ? null : phase === "review" ? (
+            <Button variant="primary" onPress={handleReviewNext}>다음</Button>
+          ) : !current ? (
+            <Button variant="primary" onPress={() => router.back()}>확인</Button>
+          ) : (
+            <Button variant={selectedChoiceId === undefined || submitting ? "disabled" : "primary"} onPress={handleConfirm}>
+              {submitting ? "채점 중..." : "확인"}
+            </Button>
+          )}
+        </Stack>
       </Stack>
     </View>
   );

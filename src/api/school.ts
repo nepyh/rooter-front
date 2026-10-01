@@ -1,8 +1,6 @@
-import axios from 'axios';
+import api from './axios';
 
-const NEIS_SCHOOL_INFO_URL = 'https://open.neis.go.kr/hub/schoolInfo';
-
-// NEIS LCTN_SC_NM(지역명) -> 표시용 축약명
+// 백엔드가 내려주는 지역명(LCTN_SC_NM 원본, 예: "경기도") -> 표시용 축약명
 const REGION_SHORT_NAMES: Record<string, string> = {
   서울특별시: '서울',
   부산광역시: '부산',
@@ -23,43 +21,35 @@ const REGION_SHORT_NAMES: Record<string, string> = {
   제주특별자치도: '제주',
 };
 
-interface NeisSchoolRow {
-  SD_SCHUL_CODE: string;
-  SCHUL_NM: string;
-  LCTN_SC_NM: string;
+export interface School {
+  // 교육청코드+학교코드 합성 10자리 — 학생 프로필 생성 시 그대로 씀
+  schoolId: string;
+  name: string;
+  officeName: string;
+  // 지역 축약명 (예: 경기, 부산)
+  region: string;
+  foundation?: string | null;
 }
 
-export interface School {
-  /** 학교 고유 코드 (NEIS SD_SCHUL_CODE) */
-  code: string;
+interface SchoolSearchResponse {
+  schoolId: string;
   name: string;
-  /** 지역 축약명 (예: 경기, 부산) */
+  officeName: string;
   region: string;
+  foundation?: string | null;
 }
 
 /**
- * 중학교 이름 검색 API 함수 (NEIS 학교기본정보)
+ * 중학교 이름 검색 API 함수
  * @param keyword 검색할 학교명 키워드
- * @returns 학교 정보 배열 (같은 이름의 학교가 지역별로 중복될 수 있어 코드로 구분)
+ * @returns 학교 정보 배열 (같은 이름의 학교가 지역별로 중복될 수 있어 schoolId로 구분)
  */
 export const searchMiddleSchools = async (keyword: string): Promise<School[]> => {
   if (!keyword) return [];
 
-  const response = await axios.get(NEIS_SCHOOL_INFO_URL, {
-    params: {
-      KEY: process.env.EXPO_PUBLIC_NEIS_API_KEY,
-      Type: 'json',
-      pIndex: 1,
-      pSize: 4,
-      SCHUL_KND_SC_NM: '중학교',
-      SCHUL_NM: keyword,
-    },
-  });
-
-  const rows: NeisSchoolRow[] = response.data?.schoolInfo?.[1]?.row ?? [];
-  return rows.map((row) => ({
-    code: row.SD_SCHUL_CODE,
-    name: row.SCHUL_NM,
-    region: REGION_SHORT_NAMES[row.LCTN_SC_NM] ?? row.LCTN_SC_NM,
+  const response = await api.get<SchoolSearchResponse[]>('/school/search', { params: { name: keyword } });
+  return response.data.map((school) => ({
+    ...school,
+    region: REGION_SHORT_NAMES[school.region] ?? school.region,
   }));
 };

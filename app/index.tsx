@@ -5,13 +5,23 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, Button, Text, Toast } from '@/components';
 import { Icon } from '@/assets';
 
+// ================================
+// Constants
+// ================================
+
+const TOAST_MESSAGES: Record<string, string> = {
+  "success": "회원가입이 완료되었습니다.",
+  "password-changed": "비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해주세요.",
+  "session-expired": "로그인이 만료되었습니다. 다시 로그인해주세요.",
+};
+
 export default function App() {
   const router = useRouter();
-  const { toast } = useLocalSearchParams();
+  const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
-    if (toast === "success") {
+    if (toast && TOAST_MESSAGES[toast]) {
       setShowToast(true);
     }
   }, [toast]);
@@ -26,7 +36,7 @@ export default function App() {
         </Text>
       </Stack>
       <Stack gap="xxl" className="items-center">
-        {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
+        {showToast && toast && <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />}
         <Button variant="primary" icon="mail" onPress={() => router.push("/auth/Login")}> 이메일로 로그인하기 </Button>
         <Pressable onPress={() => router.push("/auth/Signup")}><Text weight="medium" color="disabled"> 회원가입 </Text></Pressable>
       </Stack>
