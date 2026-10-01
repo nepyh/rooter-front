@@ -492,9 +492,34 @@ export default function Home() {
     setDayOffset((prev) => prev + delta);
   };
 
+  // [오늘로]도 스와이프처럼 오늘 쪽 옆 페이지로 넘긴 뒤 날짜 변경
+  const pendingJumpRef = useRef<number | null>(null);
+  const finishJump = () => {
+    const delta = pendingJumpRef.current;
+    if (delta === null) return;
+    pendingJumpRef.current = null;
+    moveDay(delta);
+    pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
+  };
+  const goToday = () => {
+    if (!pageWidth) {
+      moveDay(-dayOffset);
+      return;
+    }
+    pendingJumpRef.current = -dayOffset;
+    setNeighborOffset(scrollYRef.current);
+    pagerRef.current?.scrollTo({ x: dayOffset > 0 ? 0 : pageWidth * 2, animated: true });
+    // 안드로이드는 코드로 넘길 때 onMomentumScrollEnd가 안 와서 시간으로 마무리
+    setTimeout(finishJump, 400);
+  };
+
   // iOS는 세로 ScrollView가 터치를 먼저 가져가 JS 제스처가 끊겨서, 가로 넘김도 네이티브 페이지 스크롤로 처리
   const handlePagerEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!pageWidth) return;
+    if (pendingJumpRef.current !== null) {
+      finishJump();
+      return;
+    }
     const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
     if (page !== 1) moveDay(page - 1);
     pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
@@ -691,7 +716,7 @@ export default function Home() {
         <Row gap="s" className="items-center">
           <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
           {!isToday && (
-            <Pressable onPress={() => moveDay(-dayOffset)} hitSlop={8}>
+            <Pressable onPress={goToday} hitSlop={8}>
               <Text variant="base-small" weight="medium" style={{ color: palette.primary["500"] }}>오늘로</Text>
             </Pressable>
           )}
