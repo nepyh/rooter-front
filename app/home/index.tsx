@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Modal, PanResponder, Pressable, ScrollView, View } from "react-native";
-import Animated, { Easing, SlideInLeft, SlideInRight, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Alert, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
@@ -17,6 +17,7 @@ import { useUIStore, useUserStore } from "@/store";
 import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
 import type { UnavailableTime } from "@/api/user";
 import { toLocalDateString } from "@/utils/date";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
@@ -437,7 +438,10 @@ export default function Home() {
   const now = useNow(30_000);
   // 좌우로 밀어 날짜 이동, 0이 오늘
   const [dayOffset, setDayOffset] = useState(0);
-  const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+  // 가로 페이지(어제|오늘|내일) 너비와 옆 페이지 눈금 위치
+  const pagerRef = useRef<ScrollView>(null);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [neighborOffset, setNeighborOffset] = useState(0);
   const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
   const selectedKey = toLocalDateString(selectedDate);
   const isToday = dayOffset === 0;
@@ -485,24 +489,29 @@ export default function Home() {
 
   const moveDay = (delta: number) => {
     setActiveId(null);
-    setSlideDirection(delta > 0 ? "next" : "prev");
     setDayOffset((prev) => prev + delta);
   };
 
-  // 가로로 확실히 민 경우만 날짜 이동, 세로 스크롤은 그대로
-  const swipeResponder = useRef(
-    PanResponder.create({
-      // 안쪽 세로 ScrollView보다 먼저 가로 움직임만 가로챔
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderRelease: (_, g) => {
-        if (g.dx < -60) moveDayRef.current(1);
-        else if (g.dx > 60) moveDayRef.current(-1);
-      },
-    }),
-  ).current;
-  const moveDayRef = useRef(moveDay);
-  moveDayRef.current = moveDay;
+  // iOS는 세로 ScrollView가 터치를 먼저 가져가 JS 제스처가 끊겨서, 가로 넘김도 네이티브 페이지 스크롤로 처리
+  const handlePagerEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!pageWidth) return;
+    const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+    if (page !== 1) moveDay(page - 1);
+    pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
+  };
+
+  const renderNeighborPage = () => (
+    <View style={{ width: pageWidth, overflow: "hidden" }}>
+      <View style={{ height: TIMELINE_HEIGHT, transform: [{ translateY: -neighborOffset }] }}>
+        {HOURS.map((hour, i) => (
+          <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
+            <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
+            <View className="flex-1 h-px bg-neutral-600 ml-s" />
+          </Row>
+        ))}
+      </View>
+    </View>
+  );
 
   // 플랜보드 중 오늘 이후 가장 가까운 시험일
   const [nextExamDate, setNextExamDate] = useState<string | null>(null);
@@ -662,7 +671,7 @@ export default function Home() {
           <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
           {!isToday && (
             <Pressable onPress={() => moveDay(-dayOffset)} hitSlop={8}>
-              <Text variant="base-small" weight="medium" className="text-primary-500">오늘로</Text>
+              <Text variant="base-small" weight="medium" style={{ color: palette.primary["500"] }}>오늘로</Text>
             </Pressable>
           )}
         </Row>
@@ -674,10 +683,22 @@ export default function Home() {
         )}
       </Row>
 
-      <View className="flex-1" {...swipeResponder.panHandlers}>
+      <View className="flex-1" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
       {plans.length === 0 && !emptyNoticeClosed && (
         <EmptyPlanNotice onCreate={() => router.push("/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
       )}
+      {pageWidth > 0 && (
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        contentOffset={{ x: pageWidth, y: 0 }}
+        onScrollBeginDrag={() => setNeighborOffset(scrollYRef.current)}
+        onMomentumScrollEnd={handlePagerEnd}
+      >
+      {renderNeighborPage()}
+      <View style={{ width: pageWidth }}>
 
       <ScrollView
         ref={scrollRef}
@@ -688,11 +709,7 @@ export default function Home() {
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       >
-        <Animated.View
-          key={selectedKey}
-          entering={dayOffset === 0 && slideDirection === "next" ? undefined : (slideDirection === "next" ? SlideInRight : SlideInLeft).duration(260)}
-          style={{ height: TIMELINE_HEIGHT, position: "relative" }}
-        >
+        <View key={selectedKey} style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
           {HOURS.map((hour, i) => (
             <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
               <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
@@ -721,8 +738,12 @@ export default function Home() {
               onDelete={() => handleDelete(activePlan)}
             />
           )}
-        </Animated.View>
+        </View>
       </ScrollView>
+      </View>
+      {renderNeighborPage()}
+      </ScrollView>
+      )}
       </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
