@@ -674,6 +674,15 @@ export default function Home() {
       });
   };
 
+  // 계획 없는 날은 AI 채팅 안내 대신 같은 플랜 생성 말풍선 하나만 표시
+  const handleOpenAiChat = () => {
+    if (plans.length === 0) {
+      setEmptyNoticeClosed(false);
+      return;
+    }
+    setShowAiChat(true);
+  };
+
   // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
   const handlePlanCreated = () => {
     setShowAddPlan(false);
@@ -797,7 +806,7 @@ export default function Home() {
           <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
-          <Pressable onPress={() => setShowAiChat(true)} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={handleOpenAiChat} className="p-m rounded-full items-center justify-center">
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>
