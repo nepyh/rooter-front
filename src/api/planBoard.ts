@@ -58,6 +58,18 @@ export interface UpdatePlanTaskInput {
   estimatedMinutes?: number;
 }
 
+export interface PlanBoardSubject {
+  id: number;
+  planBoardId: number;
+  subjectId: number;
+  subjectName: string;
+  textbookId: number;
+  textbookTitle: string;
+  startChapterId: number | null;
+  endChapterId: number | null;
+  customRangeText: string | null;
+}
+
 export interface WeeklyPlan {
   weekStart: string; // yyyy-MM-dd
   weekEnd: string; // yyyy-MM-dd
@@ -100,12 +112,23 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
 };
 
 /**
- * 플랜보드별 오늘 계획 조회 API 함수
+ * 플랜보드별 하루 계획 조회 API 함수
  * @param boardId 플랜보드 ID
- * @returns 그 보드의 오늘 dailyPlanId와 태스크
+ * @param date 조회할 날짜 (yyyy-MM-dd), 생략 시 오늘 (Swagger엔 없지만 실서버가 받음)
+ * @returns 그 보드의 그날 dailyPlanId와 태스크
  */
-export const getBoardDaily = async (boardId: number): Promise<DailyPlan> => {
-  const response = await api.get(`/plan-boards/${boardId}/daily`);
+export const getBoardDaily = async (boardId: number, date?: string): Promise<DailyPlan> => {
+  const response = await api.get(`/plan-boards/${boardId}/daily`, { params: date ? { date } : undefined });
+  return response.data;
+};
+
+/**
+ * 플랜보드 과목 범위 조회 API 함수
+ * @param boardId 플랜보드 ID
+ * @returns 보드에 등록된 과목·교과서·단원 범위 배열
+ */
+export const getPlanBoardSubjects = async (boardId: number): Promise<PlanBoardSubject[]> => {
+  const response = await api.get(`/plan-boards/${boardId}/subjects`);
   return response.data;
 };
 

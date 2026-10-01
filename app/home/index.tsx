@@ -7,11 +7,11 @@ import axios from "axios";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
-import { CATEGORY_COLORS } from "@/constants/category";
+import { CATEGORY_COLORS, SUBJECT_CATEGORIES } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
+import { completeTask, deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useUIStore, useUserStore } from "@/store";
 import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
@@ -530,15 +530,32 @@ export default function Home() {
 
   useFocusEffect(loadNextExam);
 
-  // 직접 추가한 계획 = 시험일 없는 기본 보드의 오늘 dailyPlanId
+  // 할일 응답에 보드·과목이 없어 보드별 그날 dailyPlanId로 연결
+  // 직접 추가 = 시험일 없는 기본 보드, 과목 색 = 과목이 하나뿐인 보드의 과목
   const [manualDailyPlanIds, setManualDailyPlanIds] = useState<Set<number>>(new Set());
-  const loadManualDailyPlanIds = useCallback(() => {
+  const [categoryByDailyPlanId, setCategoryByDailyPlanId] = useState<Map<number, Category>>(new Map());
+  const loadBoardInfo = useCallback(() => {
     getPlanBoards()
-      .then((boards) => Promise.all(boards.filter((board) => board.examDate === null).map((board) => getBoardDaily(board.id))))
-      .then((dailies) => setManualDailyPlanIds(new Set(dailies.map((daily) => daily.dailyPlanId).filter((id): id is number => typeof id === "number"))))
-      .catch(() => setManualDailyPlanIds(new Set()));
-  }, []);
-  useFocusEffect(loadManualDailyPlanIds);
+      .then((boards) => Promise.all(boards.map(async (board) => {
+        const [daily, subjects] = await Promise.all([
+          getBoardDaily(board.id, selectedKey),
+          board.examDate === null ? Promise.resolve([]) : getPlanBoardSubjects(board.id).catch(() => []),
+        ]);
+        const subjectNames = new Set(subjects.map((subject) => subject.subjectName));
+        const category = subjectNames.size === 1 ? SUBJECT_CATEGORIES[[...subjectNames][0]] ?? "neutral" : "neutral";
+        return { dailyPlanId: daily.dailyPlanId, manual: board.examDate === null, category };
+      })))
+      .then((infos) => {
+        const linked = infos.filter((info): info is typeof info & { dailyPlanId: number } => typeof info.dailyPlanId === "number");
+        setManualDailyPlanIds(new Set(linked.filter((info) => info.manual).map((info) => info.dailyPlanId)));
+        setCategoryByDailyPlanId(new Map(linked.map((info) => [info.dailyPlanId, info.category])));
+      })
+      .catch(() => {
+        setManualDailyPlanIds(new Set());
+        setCategoryByDailyPlanId(new Map());
+      });
+  }, [selectedKey]);
+  useFocusEffect(loadBoardInfo);
 
   // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
   const userId = useUserStore((state) => state.userId);
@@ -557,7 +574,11 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
+  const coloredPlans = plans.map((plan) => ({
+    ...plan,
+    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
+  }));
+  const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
@@ -632,7 +653,7 @@ export default function Home() {
   const handlePlanCreated = () => {
     setShowAddPlan(false);
     loadDailyTasks();
-    loadManualDailyPlanIds(); // 기본 보드가 새로 생겼을 수 있음
+    loadBoardInfo(); // 기본 보드가 새로 생겼을 수 있음
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
@@ -721,7 +742,7 @@ export default function Home() {
             <BusyBlockView key={block.key} block={block} />
           ))}
 
-          {plans.map((plan) => (
+          {coloredPlans.map((plan) => (
             <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
           ))}
 
