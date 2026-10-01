@@ -25,6 +25,8 @@ export interface UserInfo {
   username: string;
   email: string;
   schoolId: string | null;
+  // 백엔드 미제공 필드, 추가되면 바로 표시
+  schoolName?: string | null;
   grade: number | null;
   classNumber: number | null;
   createdAt: string;
