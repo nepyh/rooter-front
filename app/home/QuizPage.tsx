@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import axios from "axios";
 import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -150,6 +150,8 @@ export default function QuizPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // questionId -> selectedChoiceId
   const [graded, setGraded] = useState<Record<number, TaskQuizAnswerResult>>({}); // 문제마다 즉시 채점 결과
+  const gradedRef = useRef(graded);
+  gradedRef.current = graded;
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<TaskQuizResult | null>(null);
 
@@ -164,9 +166,10 @@ export default function QuizPage() {
     setError("");
     try {
       setResult(await submitTaskQuiz(id));
-      // 자세한 풀이는 제출 응답에만 있어서 점수 전에 1번부터 풀이 보기
+      // 풀 때 문항마다 풀이를 이미 봤으면 바로 점수, 아니면 1번부터 풀이 보기
+      const sawAllExplanations = questions.length > 0 && questions.every((q) => !!gradedRef.current[q.id]?.explanation);
       setCurrentIndex(0);
-      setPhase("review");
+      setPhase(sawAllExplanations ? "score" : "review");
     } catch (e) {
       setError(getQuizErrorMessage(e, "채점 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."));
     } finally {
@@ -312,7 +315,9 @@ export default function QuizPage() {
   // 풀이 보기에서는 자세한 풀이, 풀 때는 틀린 이유
   const bubbleText = reviewResult
     ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
-    : currentGrade ? (currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요.") : null;
+    : currentGrade
+      ? currentGrade.explanation || (currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요.")
+      : null;
 
   return (
     <View className="flex-1">

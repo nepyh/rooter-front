@@ -111,6 +111,7 @@ export interface TaskQuizAnswerResult {
   isCorrect: boolean;
   correctChoiceId: number;
   reason: string | null; // 틀렸을 때 고른 보기가 틀린 이유, 맞으면 null
+  explanation?: string | null; // 백엔드 B-16 반영 시 문항마다 자세한 풀이
 }
 
 export interface TaskQuizResult {
