@@ -16,7 +16,7 @@ import palette from "@/constants/palette";
 // ================================
 
 type OptionState = "default" | "selected" | "correct" | "wrong";
-type Phase = "intro" | "answering" | "score";
+type Phase = "intro" | "answering" | "review" | "score";
 
 // ================================
 // Constants
@@ -164,7 +164,9 @@ export default function QuizPage() {
     setError("");
     try {
       setResult(await submitTaskQuiz(id));
-      setPhase("score");
+      // 자세한 풀이는 제출 응답에만 있어서 점수 전에 1번부터 풀이 보기
+      setCurrentIndex(0);
+      setPhase("review");
     } catch (e) {
       setError(getQuizErrorMessage(e, "채점 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."));
     } finally {
@@ -218,12 +220,20 @@ export default function QuizPage() {
     }
   };
 
-  // [다음]: 마지막 문제 뒤에 전체 제출해 점수 화면
+  // [다음]: 마지막 문제 뒤에 전체 제출해 풀이 보기
   const handleNext = () => {
     if (!quiz) return;
     if (isLast) submit(quiz.planTaskId);
     else setCurrentIndex((i) => i + 1);
   };
+
+  // 풀이 보기 [다음]: 마지막이면 점수 화면
+  const handleReviewNext = () => {
+    if (isLast) setPhase("score");
+    else setCurrentIndex((i) => i + 1);
+  };
+
+  const reviewResult = phase === "review" && current ? result?.results.find((r) => r.questionId === current.id) : undefined;
 
   const goFeedback = () => {
     if (!dailyPlanId) {
@@ -234,6 +244,11 @@ export default function QuizPage() {
   };
 
   const getOptionState = (choiceId: number): OptionState => {
+    if (reviewResult) {
+      if (choiceId === reviewResult.correctChoiceId) return "correct";
+      if (choiceId === reviewResult.selectedChoiceId) return "wrong";
+      return "default";
+    }
     if (currentGrade) {
       if (choiceId === currentGrade.correctChoiceId) return "correct";
       if (choiceId === selectedChoiceId) return "wrong";
@@ -294,7 +309,10 @@ export default function QuizPage() {
   }
 
   // 틀리면 서버가 준 틀린 이유, 맞으면 정답 안내
-  const bubbleText = currentGrade ? (currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요.") : null;
+  // 풀이 보기에서는 자세한 풀이, 풀 때는 틀린 이유
+  const bubbleText = reviewResult
+    ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
+    : currentGrade ? (currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요.") : null;
 
   return (
     <View className="flex-1">
@@ -330,7 +348,7 @@ export default function QuizPage() {
                       key={choice.id}
                       label={choice.choiceText}
                       state={getOptionState(choice.id)}
-                      onPress={currentGrade ? undefined : () => handleSelect(choice.id)}
+                      onPress={currentGrade || reviewResult ? undefined : () => handleSelect(choice.id)}
                     />
                   ))}
                 </Stack>
@@ -344,6 +362,8 @@ export default function QuizPage() {
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
           {loading ? null : !current ? (
             <Button variant="primary" onPress={() => router.back()}>확인</Button>
+          ) : phase === "review" ? (
+            <Button variant="primary" onPress={handleReviewNext}>{isLast ? "점수 보기" : "다음"}</Button>
           ) : currentGrade ? (
             <Button variant={checking ? "disabled" : "primary"} onPress={handleNext}>{checking ? "채점 중..." : "다음"}</Button>
           ) : (
