@@ -41,8 +41,8 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
 }
 
 function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
-  // catalog 응답에 출판사 이름이 없어 제목 괄호 안 출판사 사용
-  const publisherName = textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
+  // 서버 출판사 이름, 없으면 제목 괄호 안 출판사
+  const publisherName = textbook.publisherName ?? textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
   // 출판사는 아랫줄에 따로 보여서 제목에서 제외
   const displayTitle = textbook.title.replace(/\s*\([^)]+\)\s*$/, "");
 

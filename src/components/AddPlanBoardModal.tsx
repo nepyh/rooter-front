@@ -436,7 +436,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         </View>
                         <Stack gap="xxs">
                           <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
-                          <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.subjectName}</Text>
+                          <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.publisherName ?? textbook.subjectName}</Text>
                         </Stack>
                       </Pressable>
                     ))}
