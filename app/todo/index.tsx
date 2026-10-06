@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -8,7 +8,7 @@ import { Icon } from "@/assets";
 import { WEEKDAYS } from "@/constants/date";
 import { isSameDay } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, getWeeklyTasks } from "@/api/planBoard";
+import { getWeeklyTasks } from "@/api/planBoard";
 import type { PlanTask, WeeklyPlan } from "@/api/planBoard";
 
 // ================================
@@ -105,24 +105,9 @@ export default function TodoPage() {
 
   const tasks = week.days.find((day) => day.planDate === selectedKey)?.tasks ?? [];
 
+  // 완료는 퀴즈 통과 시 서버가 처리, 체크는 퀴즈만 열어 Home 완료 버튼과 같게
   const handleToggle = (task: PlanTask) => {
-    if (task.isCompleted) return; // 완료는 한 번 정하면 고정
-    const nextCompleted = true;
-    const applyLocal = (isCompleted: boolean) => {
-      setWeek((prev) => ({
-        ...prev,
-        days: prev.days.map((day) => day.planDate !== selectedKey ? day : {
-          ...day,
-          tasks: day.tasks.map((t) => t.id === task.id ? { ...t, isCompleted } : t),
-        }),
-      }));
-    };
-
-    applyLocal(nextCompleted);
-    completeTask(task.id, nextCompleted).catch(() => {
-      applyLocal(task.isCompleted); // 실패 시 이전 상태로 되돌림
-      Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    });
+    router.push({ pathname: "/home/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
   return (
