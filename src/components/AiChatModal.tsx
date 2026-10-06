@@ -126,7 +126,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     try {
       const result = await sendChatMessage(dailyPlanId, text);
       addAssistantMessage(result.reply);
-      if (result.planChanged) onPlanChanged?.();
+      if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
     } catch {
       addAssistantMessage(ERROR_MESSAGE);
     } finally {
