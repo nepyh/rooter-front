@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -142,7 +142,8 @@ function ScoreCircle({ correct, total }: { correct: number; total: number }) {
  */
 export default function QuizPage() {
   const { taskId, dailyPlanId, category } = useLocalSearchParams<{ taskId?: string; dailyPlanId?: string; category?: Category }>();
-  const subjectLabel = category ? SUBJECT_LABELS[category] : undefined;
+  const [serverSubject, setServerSubject] = useState<string | null>(null);
+  const subjectLabel = serverSubject ?? (category ? SUBJECT_LABELS[category] : undefined);
   const [phase, setPhase] = useState<Phase>("intro");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -177,6 +178,16 @@ export default function QuizPage() {
     }
   };
 
+  // 시작 화면을 보는 동안 퀴즈를 미리 불러와 과목 표시, 서버가 즉석 생성하면 기다리는 시간도 줄어듦
+  const prefetchRef = useRef<Promise<TaskQuiz> | null>(null);
+  useEffect(() => {
+    const id = Number(taskId);
+    if (!id) return;
+    const request = getTaskQuiz(id);
+    prefetchRef.current = request;
+    request.then((data) => setServerSubject(data.subject?.subjectName ?? null)).catch(() => {});
+  }, [taskId]);
+
   // 이미 답한 문제는 건너뛰고 안 푼 문제부터 이어 풀기
   const handleStart = async () => {
     const id = Number(taskId);
@@ -188,7 +199,11 @@ export default function QuizPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await getTaskQuiz(id);
+      // 미리 불러온 게 실패했으면 다시 요청, 다음 [다시 시도]는 항상 새로 요청
+      const prefetched = prefetchRef.current;
+      prefetchRef.current = null;
+      const data = await (prefetched ? prefetched.catch(() => getTaskQuiz(id)) : getTaskQuiz(id));
+      setServerSubject(data.subject?.subjectName ?? null);
       setQuiz(data);
       setAnswers(Object.fromEntries(data.questions.filter((q) => q.selectedChoiceId !== null).map((q) => [q.id, q.selectedChoiceId as number])));
       const firstOpen = data.questions.findIndex((q) => q.selectedChoiceId === null);
@@ -275,7 +290,7 @@ export default function QuizPage() {
                 <Row gap="m" className="items-center">
                   {subjectLabel && (
                     <View className="bg-primary-500/20 px-s py-xs rounded-xs">
-                      <Text variant="base-medium" weight="medium" className="text-primary-500">{subjectLabel}</Text>
+                      <Text variant="base-medium" weight="medium" style={{ color: palette.primary["500"] }}>{subjectLabel}</Text>
                     </View>
                   )}
                   <Text variant="title-medium">학습 테스트</Text>
