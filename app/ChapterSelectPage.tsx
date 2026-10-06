@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
@@ -18,12 +19,43 @@ import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 const BOTTOM_FADE_THRESHOLD = 24;
 
 // 화면에 그리는 순서(대단원→중단원→소단원, chapterOrder 오름차순)대로 소단원만 뽑아냅니다.
-// AI 계획 생성 API가 교과서당 시작~끝 소단원 하나의 범위만 받기 때문에, 선택된 소단원 중 이 순서상
-// 처음/마지막 것을 그 교과서의 startChapterId/endChapterId로 씁니다.
 const flattenLeaves = (nodes: ChapterTree[]): ChapterTree[] =>
   [...nodes]
     .sort((a, b) => a.chapterOrder - b.chapterOrder)
     .flatMap((node) => (node.children.length === 0 ? [node] : flattenLeaves(node.children)));
+
+// AI 계획 생성 API가 교과서당 시작~끝 하나의 범위만 받아서, 선택도 교과서별 소단원 순번 범위로 관리
+interface LeafRange {
+  start: number;
+  end: number;
+}
+
+// 계획 생성 실패 시 백엔드 code별 안내 문구
+const GENERATE_ERROR_MESSAGES: Record<string, string> = {
+  "INVALID_DATE_RANGE": "시험일은 내일 이후로 선택해주세요.",
+  "MISSING_DATE_INFO": "시험 날짜를 다시 선택해주세요.",
+  "INVALID_DATE_FORMAT": "시험 날짜를 다시 선택해주세요.",
+  "SUBJECTS_REQUIRED": "목차를 하나 이상 선택해주세요.",
+  "INVALID_SUBJECT_RANGE": "선택한 목차 범위를 다시 확인해주세요.",
+  "INVALID_TITLE": "계획 이름이 올바르지 않아요.",
+  "GENERATION_FAILED": "AI가 계획을 만들지 못했어요. 잠시 후 다시 시도해주세요.",
+};
+
+const getGenerateErrorMessage = (error: unknown) => {
+  if (!axios.isAxiosError(error)) return "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.";
+  if (error.code === "ECONNABORTED") return "계획을 만드는 데 시간이 너무 오래 걸렸어요. 잠시 후 다시 시도해주세요.";
+  if (!error.response) return "인터넷 연결을 확인해주세요.";
+  return GENERATE_ERROR_MESSAGES[error.response.data?.code] ?? "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.";
+};
+
+// 범위 안 소단원을 누르면 거기서 자르고, 밖을 누르면 그 소단원까지 늘림
+const toggleInRange = (range: LeafRange | undefined, index: number): LeafRange | undefined => {
+  if (!range) return { start: index, end: index };
+  if (index < range.start) return { ...range, start: index };
+  if (index > range.end) return { ...range, end: index };
+  const next = index === range.start ? { ...range, start: index + 1 } : { ...range, end: index - 1 };
+  return next.start > next.end ? undefined : next;
+};
 
 // ================================
 // Components
@@ -103,10 +135,32 @@ export default function ChapterSelectPage() {
   const { examDate, textbookIds } = useLocalSearchParams<{ examDate: string; textbookIds: string }>();
   const [textbooks, setTextbooks] = useState<TextbookDetail[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [ranges, setRanges] = useState<Record<number, LeafRange>>({});
   const [submitting, setSubmitting] = useState(false);
   const overlayOpacity = useSharedValue(1);
-  const roots = textbooks.flatMap((tb) => tb.chapters);
+
+  const leavesByTextbook = useMemo(
+    () => Object.fromEntries(textbooks.map((tb) => [tb.id, flattenLeaves(tb.chapters)])) as Record<number, ChapterTree[]>,
+    [textbooks],
+  );
+
+  // 소단원 id → 소속 교과서와 순번
+  const leafLocation = useMemo(() => {
+    const map = new Map<number, { textbookId: number; index: number }>();
+    Object.entries(leavesByTextbook).forEach(([textbookId, leaves]) => {
+      leaves.forEach((leaf, index) => map.set(leaf.id, { textbookId: Number(textbookId), index }));
+    });
+    return map;
+  }, [leavesByTextbook]);
+
+  // 화면 체크 표시 = 실제로 보낼 범위
+  const selectedIds = useMemo(() => {
+    const ids = new Set<number>();
+    Object.entries(ranges).forEach(([textbookId, range]) => {
+      leavesByTextbook[Number(textbookId)]?.slice(range.start, range.end + 1).forEach((leaf) => ids.add(leaf.id));
+    });
+    return ids;
+  }, [ranges, leavesByTextbook]);
 
   useEffect(() => {
     const ids = (textbookIds ?? "").split(",").filter(Boolean).map(Number);
@@ -115,25 +169,21 @@ export default function ChapterSelectPage() {
   }, [textbookIds]);
 
   const toggleLeaf = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+    const location = leafLocation.get(id);
+    if (!location) return;
+    setRanges((prev) => {
+      const nextRange = toggleInRange(prev[location.textbookId], location.index);
+      const next = { ...prev };
+      if (nextRange) next[location.textbookId] = nextRange; else delete next[location.textbookId];
       return next;
     });
   };
 
   const handleSubmit = async () => {
-    const subjects: PlanGenerationSubjectInput[] = textbooks
-      .map((tb) => {
-        const selectedLeaves = flattenLeaves(tb.chapters).filter((leaf) => selectedIds.has(leaf.id));
-        if (selectedLeaves.length === 0) return null;
-        return {
-          textbookId: tb.id,
-          startChapterId: selectedLeaves[0].id,
-          endChapterId: selectedLeaves[selectedLeaves.length - 1].id,
-        };
-      })
-      .filter((subject): subject is PlanGenerationSubjectInput => subject !== null);
+    const subjects: PlanGenerationSubjectInput[] = Object.entries(ranges).map(([textbookId, range]) => {
+      const leaves = leavesByTextbook[Number(textbookId)];
+      return { textbookId: Number(textbookId), startChapterId: leaves[range.start].id, endChapterId: leaves[range.end].id };
+    });
 
     if (subjects.length === 0) return;
 
@@ -145,8 +195,8 @@ export default function ChapterSelectPage() {
         examDate: examDate || undefined,
       });
       router.replace("/home");
-    } catch {
-      Alert.alert("계획 생성 실패", "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } catch (error) {
+      Alert.alert("계획 생성 실패", getGenerateErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -185,30 +235,40 @@ export default function ChapterSelectPage() {
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScroll={handleScroll}
-            contentContainerStyle={{ paddingBottom: 32, gap: 12 }}
+            contentContainerStyle={{ paddingBottom: 32, gap: 24 }}
           >
-            {roots.map((node) => (
-              <TopLevelAccordion
-                key={node.id}
-                node={node}
-                expanded={expandedId === node.id}
-                onToggle={() => setExpandedId((prev) => (prev === node.id ? null : node.id))}
-                selectedIds={selectedIds}
-                onToggleLeaf={toggleLeaf}
-              />
+            {textbooks.map((textbook) => (
+              <Stack key={textbook.id} gap="m" width="full">
+                {/* 교과서 여러 권이면 구역 제목, 디자인에 없어 "교과서 선택" 글자 스타일 재사용 */}
+                {textbooks.length > 1 && (
+                  <Text variant="header-medium" weight="semibold" color="secondary" className="pt-s">{textbook.title}</Text>
+                )}
+                {[...textbook.chapters]
+                  .sort((a, b) => a.chapterOrder - b.chapterOrder)
+                  .map((node) => (
+                    <TopLevelAccordion
+                      key={node.id}
+                      node={node}
+                      expanded={expandedId === node.id}
+                      onToggle={() => setExpandedId((prev) => (prev === node.id ? null : node.id))}
+                      selectedIds={selectedIds}
+                      onToggleLeaf={toggleLeaf}
+                    />
+                  ))}
+              </Stack>
             ))}
           </ScrollView>
           <Animated.View
             pointerEvents="none"
-            style={[{ position: "absolute", left: 0, right: 0, bottom: 0, height: 56, backgroundColor: "#33363F" }, overlayStyle]}
+            className="bg-background-primary"
+            style={[{ position: "absolute", left: 0, right: 0, bottom: 0, height: 56 }, overlayStyle]}
           />
         </View>
 
         <Pressable
           onPress={handleSubmit}
           disabled={selectedIds.size === 0 || submitting}
-          className="h-16 rounded-md items-center justify-center w-full mt-l mb-xl"
-          style={{ backgroundColor: selectedIds.size > 0 && !submitting ? "#F6482D" : "#3F4552" }}
+          className={`h-16 rounded-md items-center justify-center w-full mt-l mb-xl ${selectedIds.size > 0 && !submitting ? "bg-primary-500" : "bg-neutral-700"}`}
         >
           <Text variant="base-medium" weight="medium" className="text-white">
             {submitting ? "계획 생성 중..." : "AI 학습 계획 생성"}

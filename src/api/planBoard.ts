@@ -37,6 +37,7 @@ export interface PlanTask {
 }
 
 export interface DailyPlan {
+  dailyPlanId?: number | null;
   planDate: string; // yyyy-MM-dd
   tasks: PlanTask[];
 }
@@ -89,12 +90,23 @@ export const createPlanBoard = async (input: CreatePlanBoardInput): Promise<Crea
 export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
   const today = toLocalDateString(new Date());
   const boards = await getPlanBoards();
-  const current = boards.find((board) => board.startDate <= today && today <= board.endDate);
+  // AI 계획 보드(시험일 있음)와 섞이지 않게 시험일 없는 기본 보드만 사용
+  const current = boards.find((board) => board.examDate === null && board.startDate <= today && today <= board.endDate);
   if (current) return current;
 
   const oneYearLater = toLocalDateString(new Date(Date.now() + 365 * 24 * 60 * 60_000));
   const created = await createPlanBoard({ title: '기본 플랜보드', startDate: today, endDate: oneYearLater });
   return { id: created.id, title: '기본 플랜보드', startDate: today, endDate: oneYearLater, examDate: null, createdAt: new Date().toISOString() };
+};
+
+/**
+ * 플랜보드별 오늘 계획 조회 API 함수
+ * @param boardId 플랜보드 ID
+ * @returns 그 보드의 오늘 dailyPlanId와 태스크
+ */
+export const getBoardDaily = async (boardId: number): Promise<DailyPlan> => {
+  const response = await api.get(`/plan-boards/${boardId}/daily`);
+  return response.data;
 };
 
 /**

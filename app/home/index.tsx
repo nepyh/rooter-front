@@ -11,9 +11,12 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/planBoard";
+import { completeTask, deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
-import { useUIStore } from "@/store";
+import { useUIStore, useUserStore } from "@/store";
+import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
+import type { UnavailableTime } from "@/api/user";
+import { toLocalDateString } from "@/utils/date";
 
 // ================================
 // Types
@@ -31,22 +34,23 @@ interface Plan {
   title: string;
   category: Category;
   lines: PlanLine[];
-  start: number; // 06:00을 기준으로 한 시작 오프셋(분)
+  start: number; // 타임라인 시작(00:00) 기준 오프셋(분)
   duration: number; // 분
   status: PlanStatus;
+  dailyPlanId?: number;
 }
 
 // ================================
 // Constants
 // ================================
 
-const WINDOW_START_MIN = 6 * 60;
+const WINDOW_START_MIN = 0;
 const DAY_MIN = 24 * 60;
 const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
 
-const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
+const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
 // 태스크 수정 실패 시 백엔드 code별 안내 문구
 const EDIT_ERROR_MESSAGES: Record<string, string> = {
@@ -91,6 +95,45 @@ const parseHHmm = (value: string) => {
 };
 
 // 과목 연결 API 미구현으로 전부 neutral 처리
+// 오늘부터 시험일까지 남은 일수, 시험 당일은 0
+const getDDay = (examDate: string, now: Date) => {
+  const [y, m, d] = examDate.split("-").map(Number);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
+};
+
+// 백엔드 PlanTaskScheduler 기본 수면 시간(00:00~06:30, 23:00~24:00)과 같은 값
+const SLEEP_RANGES: [string, string][] = [["00:00", "06:30"], ["23:00", "24:00"]];
+
+interface BusyBlock {
+  key: string;
+  title: string;
+  start: number; // 타임라인 시작 기준 오프셋(분)
+  duration: number;
+  label: string;
+}
+
+// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔
+const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
+  const label = `${startTime} - ${endTime}`;
+  const from = (parseHHmm(startTime) - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  const rawEnd = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
+  let to = (rawEnd - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  if (to <= from) to += DAY_MIN;
+  const pieces: [number, number][] = to > DAY_MIN ? [[from, DAY_MIN], [0, to - DAY_MIN]] : [[from, to]];
+  return pieces.map(([start, end], i) => ({ key: `${key}-${i}`, title, start, duration: end - start, label }));
+};
+
+const buildBusyBlocks = (unavailable: UnavailableTime[], today: Date): BusyBlock[] => {
+  const todayName = DAY_OF_WEEK_NAMES[(today.getDay() + 6) % 7];
+  return [
+    ...SLEEP_RANGES.flatMap(([start, end], i) => toBusyBlocks(`sleep-${i}`, "수면", start, end)),
+    ...unavailable
+      .filter((time) => time.dayOfWeek === todayName)
+      .flatMap((time) => toBusyBlocks(`busy-${time.id}`, "불가능 시간", time.startTime, time.endTime)),
+  ];
+};
+
 const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -102,6 +145,7 @@ const mapPlanTaskToPlan = (task: PlanTask): Plan => {
     start,
     duration: task.estimatedMinutes,
     status: task.isCompleted ? "done" : "pending",
+    dailyPlanId: task.dailyPlanId,
     lines: [
       { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
     ],
@@ -117,6 +161,29 @@ const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opa
   done: { bar: "#6B7280", bg: "rgba(107,114,128,0.12)", opacity: 0.55 },
   failed: { bar: "#FF4D4F", bg: "rgba(255,77,79,0.16)", opacity: 0.85 },
 };
+
+// 일정을 넣지 않는 시간 표시용, 누를 수 없음
+function BusyBlockView({ block }: { block: BusyBlock }) {
+  const colors = CATEGORY_COLORS.neutral;
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", top: block.start, left: TIMELINE_LEFT, right: 0, height: block.duration, backgroundColor: colors.bg }}
+      className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+    >
+      <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
+      <Stack gap="xs" className="flex-1 py-xxs">
+        <Text variant="base-small" weight="medium">{block.title}</Text>
+        {block.duration >= 40 && (
+          <Row gap="xs" className="items-center">
+            <Icon name="history" size={12} color="rgba(255,255,255,0.6)" />
+            <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{block.label}</Text>
+          </Row>
+        )}
+      </Stack>
+    </View>
+  );
+}
 
 function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   const colors = CATEGORY_COLORS[plan.category];
@@ -155,7 +222,7 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
-function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
+function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: { plan: Plan; canDelete: boolean; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
   const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
@@ -168,7 +235,8 @@ function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan
           <ActionButton icon="check" label="완료" onPress={onComplete} />
           <ActionButton icon="close" label="실패" onPress={onFail} />
           <ActionButton icon="pencil" label="수정" onPress={onEdit} />
-          <ActionButton icon="trash" label="삭제" onPress={onDelete} />
+          {/* AI가 만든 계획은 삭제 불가, 직접 추가한 계획만 */}
+          {canDelete && <ActionButton icon="trash" label="삭제" onPress={onDelete} />}
         </Row>
       </Stack>
       {!showBelow && <View className="w-3 h-3 -mt-1.5 bg-neutral-700 border-r border-b border-neutral-600 rotate-45" />}
@@ -383,6 +451,44 @@ export default function Home() {
 
   useFocusEffect(loadDailyTasks);
 
+  // 플랜보드 중 오늘 이후 가장 가까운 시험일
+  const [nextExamDate, setNextExamDate] = useState<string | null>(null);
+  const loadNextExam = useCallback(() => {
+    const today = toLocalDateString(new Date());
+    getPlanBoards()
+      .then((boards) => {
+        const upcoming = boards
+          .map((board) => board.examDate)
+          .filter((date): date is string => !!date && date >= today)
+          .sort();
+        setNextExamDate(upcoming[0] ?? null);
+      })
+      .catch(() => setNextExamDate(null));
+  }, []);
+
+  useFocusEffect(loadNextExam);
+
+  // 직접 추가한 계획 = 시험일 없는 기본 보드의 오늘 dailyPlanId
+  const [manualDailyPlanIds, setManualDailyPlanIds] = useState<Set<number>>(new Set());
+  const loadManualDailyPlanIds = useCallback(() => {
+    getPlanBoards()
+      .then((boards) => Promise.all(boards.filter((board) => board.examDate === null).map((board) => getBoardDaily(board.id))))
+      .then((dailies) => setManualDailyPlanIds(new Set(dailies.map((daily) => daily.dailyPlanId).filter((id): id is number => typeof id === "number"))))
+      .catch(() => setManualDailyPlanIds(new Set()));
+  }, []);
+  useFocusEffect(loadManualDailyPlanIds);
+
+  // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
+  const userId = useUserStore((state) => state.userId);
+  const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
+  const loadUnavailableTimes = useCallback(() => {
+    if (userId === null) return;
+    getUnavailableTimes(userId).then(setUnavailableTimes).catch(() => setUnavailableTimes([]));
+  }, [userId]);
+  useFocusEffect(loadUnavailableTimes);
+  const busyBlocks = buildBusyBlocks(unavailableTimes, now);
+  const examDDay = nextExamDate ? getDDay(nextExamDate, now) : null;
+
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: offset, animated: false }));
@@ -392,13 +498,14 @@ export default function Home() {
   const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
-  const updateStatus = (id: string, status: PlanStatus) => {
-    setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
+  const setPlanStatus = (id: string, status: PlanStatus) => {
+    setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status } : plan)));
     setActiveId(null);
   };
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
+    if (plan.status === "done") return; // 완료한 계획은 메뉴 없음
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
@@ -421,17 +528,20 @@ export default function Home() {
 
   // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
   const handleComplete = (plan: Plan) => {
-    const willComplete = plan.status !== "done";
-    updateStatus(plan.id, "done");
+    if (plan.status !== "pending") return;
+    setPlanStatus(plan.id, "done");
 
-    completeTask(Number(plan.id), willComplete).catch(() => {
-      updateStatus(plan.id, "done"); // 실패 시 이전 상태로 되돌림
+    completeTask(Number(plan.id), true).catch(() => {
+      setPlanStatus(plan.id, "pending"); // 서버 처리 실패 시 대기 상태로 복구
       Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
     });
 
-    if (willComplete) {
-      router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
-    }
+    router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
+  };
+
+  const handleFail = (plan: Plan) => {
+    if (plan.status !== "pending") return;
+    setPlanStatus(plan.id, "failed");
   };
 
   const handleDelete = (plan: Plan) => {
@@ -457,6 +567,7 @@ export default function Home() {
   const handlePlanCreated = () => {
     setShowAddPlan(false);
     loadDailyTasks();
+    loadManualDailyPlanIds(); // 기본 보드가 새로 생겼을 수 있음
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
@@ -492,10 +603,12 @@ export default function Home() {
 
       <Row width="full" align="between" className="items-center pt-m pb-l">
         <Text variant="header-large">{formatDateHeader(now)}</Text>
-        <Row gap="s" className="items-center">
-          <Text variant="base-small" color="secondary">기말고사</Text>
-          <Text variant="header-medium">D-20</Text>
-        </Row>
+        {examDDay !== null && examDDay >= 0 && (
+          <Row gap="s" className="items-center">
+            <Text variant="base-small" weight="medium" color="secondary">시험</Text>
+            <Text variant="header-medium">{examDDay === 0 ? "D-Day" : `D-${examDDay}`}</Text>
+          </Row>
+        )}
       </Row>
 
       {plans.length === 0 && (
@@ -525,6 +638,10 @@ export default function Home() {
             </Row>
           ))}
 
+          {busyBlocks.map((block) => (
+            <BusyBlockView key={block.key} block={block} />
+          ))}
+
           {plans.map((plan) => (
             <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
           ))}
@@ -535,8 +652,9 @@ export default function Home() {
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
+              canDelete={activePlan.dailyPlanId !== undefined && manualDailyPlanIds.has(activePlan.dailyPlanId)}
               onComplete={() => handleComplete(activePlan)}
-              onFail={() => updateStatus(activePlan.id, "failed")}
+              onFail={() => handleFail(activePlan)}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
               onDelete={() => handleDelete(activePlan)}
             />

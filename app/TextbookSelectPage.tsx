@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
+import { TEXTBOOK_COVERS } from "@/assets/covers/textbookCovers";
+import { getUserInfo } from "@/api/user";
+import { useUserStore } from "@/store";
 
 // ================================
 // Types
@@ -31,13 +34,23 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
 }
 
 function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
+  const cover = TEXTBOOK_COVERS[textbook.id];
+  // catalog 응답에 출판사 이름이 없어 제목 괄호 안 출판사 사용
+  const publisherName = textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
+  // 출판사는 아랫줄에 따로 보여서 제목에서 제외
+  const displayTitle = textbook.title.replace(/\s*\([^)]+\)\s*$/, "");
+
   return (
     <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
       <View
-        className="rounded-xxs bg-neutral-700 items-center justify-center"
+        className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
         style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: "#F6482D" }}
       >
-        <Icon name="book" size={32} color="#8A919E" />
+        {cover ? (
+          <Image source={cover} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+        ) : (
+          <Icon name="book" size={32} color="#8A919E" />
+        )}
         {selected && <View className="absolute inset-0 rounded-xxs" style={{ backgroundColor: "rgba(246,72,45,0.3)" }} />}
         {selected && (
           <View className="absolute top-xs right-xs w-5 h-5 rounded-full bg-primary-500 items-center justify-center">
@@ -46,8 +59,8 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
         )}
       </View>
       <Stack gap="xxs" width="full">
-        <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title}</Text>
-        <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.subjectName}</Text>
+        <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{displayTitle}</Text>
+        <Text variant="base-small" color="secondary" numberOfLines={1}>{publisherName}</Text>
       </Stack>
     </Pressable>
   );
@@ -62,10 +75,26 @@ export default function TextbookSelectPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const userId = useUserStore((state) => state.userId);
+  const [grade, setGrade] = useState<number | null>(null);
 
   useEffect(() => {
     getSubjects().then(setSubjects).catch(() => setSubjects([]));
   }, []);
+
+  // 회원가입 때 입력한 학년, 못 불러오면 전체 표시
+  useEffect(() => {
+    if (userId === null) return;
+    getUserInfo(userId).then((info) => setGrade(info.grade)).catch(() => setGrade(null));
+  }, [userId]);
+
+  // 제목이 "N학년 ..."으로 시작해서 학년 기준으로 거름, 학년 표기 없는 교과서는 유지
+  const visibleTextbooks = grade === null
+    ? textbooks
+    : textbooks.filter((textbook) => {
+      const titleGrade = textbook.title.match(/^(\d)학년/)?.[1];
+      return titleGrade === undefined || Number(titleGrade) === grade;
+    });
 
   useEffect(() => {
     if (subjects.length === 0) return;
@@ -126,7 +155,7 @@ export default function TextbookSelectPage() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         <View className="flex-row flex-wrap" style={{ gap: 20 }}>
-          {textbooks.map((textbook) => (
+          {visibleTextbooks.map((textbook) => (
             <TextbookCard
               key={textbook.id}
               textbook={textbook}

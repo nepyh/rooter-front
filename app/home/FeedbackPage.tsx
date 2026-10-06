@@ -44,7 +44,7 @@ const chipStyles: Record<ChipState, string> = {
 
 function Chip({ label, state, onPress }: { label: string; state: ChipState; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className={`flex-1 items-center justify-center py-l rounded-md border-2 ${chipStyles[state]}`}>
+    <Pressable onPress={onPress} className={`flex-1 items-center justify-center py-xl rounded-md border-2 ${chipStyles[state]}`}>
       <Text variant="base-large">{label}</Text>
     </Pressable>
   );
@@ -100,12 +100,15 @@ export default function FeedbackPage() {
 
   const adjustmentTasks = result?.insertedAdjustmentTasks ?? [];
 
+  // 링크로 바로 열린 경우 돌아갈 화면이 없어 Home으로 이동
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/home"));
+
   return (
     <View className="flex-1">
       <StatusBar style="light" />
       <Stack align="between" width="full" className="flex-1">
         <Stack gap="xxl" width="full" className="flex-1">
-          <Pressable onPress={() => router.back()} className="w-[28px] h-[28px] items-center justify-center">
+          <Pressable onPress={close} className="w-[28px] h-[28px] items-center justify-center">
             <Icon name="close" size={24} />
           </Pressable>
 
@@ -167,12 +170,15 @@ export default function FeedbackPage() {
                   </Row>
                 </Stack>
 
-                <Input
-                  label="공부한 시간 (분)"
-                  value={timeSpent}
-                  onChangeText={(text) => setTimeSpent(text.replace(/[^0-9]/g, ""))}
-                  keyboardType="number-pad"
-                />
+                <Stack gap="s" width="full">
+                  <Text variant="base-medium" weight="medium">공부한 시간</Text>
+                  <Input
+                    value={timeSpent}
+                    onChangeText={(text) => setTimeSpent(text.replace(/[^0-9]/g, ""))}
+                    placeholder="분 단위로 입력"
+                    keyboardType="number-pad"
+                  />
+                </Stack>
 
                 {error ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
               </Stack>
@@ -181,7 +187,7 @@ export default function FeedbackPage() {
         </Stack>
 
         {loading ? null : result || !planId ? (
-          <Button variant="primary" onPress={() => router.back()}>완료</Button>
+          <Button variant="primary" onPress={close}>완료</Button>
         ) : (
           <Button variant={difficulty && !submitting ? "primary" : "disabled"} onPress={handleSubmit}>
             {submitting ? "제출 중..." : "제출"}

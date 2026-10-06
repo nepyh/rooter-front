@@ -106,7 +106,8 @@ export default function TodoPage() {
   const tasks = week.days.find((day) => day.planDate === selectedKey)?.tasks ?? [];
 
   const handleToggle = (task: PlanTask) => {
-    const nextCompleted = !task.isCompleted;
+    if (task.isCompleted) return; // 완료는 한 번 정하면 고정
+    const nextCompleted = true;
     const applyLocal = (isCompleted: boolean) => {
       setWeek((prev) => ({
         ...prev,
@@ -159,11 +160,6 @@ export default function TodoPage() {
         </Row>
       </ScrollView>
 
-      <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        <Pressable onPress={() => router.push("/todo/AddTodo")} className="bg-neutral-600 p-m rounded-full items-center justify-center">
-          <Icon name="plus" size={20} />
-        </Pressable>
-      </View>
     </View>
   );
 }
