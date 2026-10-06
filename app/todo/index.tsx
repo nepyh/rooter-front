@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
@@ -138,7 +138,8 @@ export default function TodoPage() {
   };
 
   return (
-    <View className="flex-1">
+    // Home 블록에서 넘어올 때만 옆으로 밀려 들어오는 전환, 탭 이동은 그대로
+    <Animated.View entering={date ? SlideInRight.duration(300) : undefined} style={{ flex: 1 }}>
       <StatusBar style="light" />
 
       <Row width="full" className="items-center pb-l">
@@ -172,6 +173,6 @@ export default function TodoPage() {
         </Row>
       </ScrollView>
 
-    </View>
+    </Animated.View>
   );
 }
