@@ -32,13 +32,14 @@ const SUBJECT_LABELS: Partial<Record<Category, string>> = {
 
 // 퀴즈 조회·채점 실패 시 백엔드 code별 안내 문구
 const QUIZ_ERROR_MESSAGES: Record<string, string> = {
-  "TASK_QUIZ_NOT_FOUND": "퀴즈는 할 일이 끝나는 시각이 지나야 만들어져요.",
+  "TASK_QUIZ_NOT_FOUND": "퀴즈가 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.",
   "TASK_QUIZ_ALREADY_SUBMITTED": "이미 채점이 끝난 퀴즈예요.",
   "TASK_QUIZ_INCOMPLETE_ANSWERS": "아직 풀지 않은 문제가 있어요.",
   "TASK_QUIZ_INVALID_ANSWER": "보기를 다시 선택해주세요.",
 };
 
 const getQuizErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError(error) && error.code === "ECONNABORTED") return "퀴즈를 만드는 데 시간이 오래 걸리고 있어요. 다시 시도해주세요.";
   const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
   return QUIZ_ERROR_MESSAGES[code] ?? fallback;
 };
@@ -333,7 +334,8 @@ export default function QuizPage() {
 
           {loading ? (
             <Stack gap="m" width="full" className="flex-1 items-center justify-center">
-              <Text color="secondary">퀴즈를 준비하고 있어요...</Text>
+              {/* 퀴즈가 없으면 서버가 이때 AI로 만들어 몇 초 걸림 */}
+              <Text color="secondary" className="text-center">{"퀴즈를 만들고 있어요\n잠시만 기다려주세요"}</Text>
             </Stack>
           ) : error && !current ? (
             <Stack gap="m" width="full" className="flex-1 items-center justify-center">
@@ -365,7 +367,9 @@ export default function QuizPage() {
         <Stack gap="xl" width="full" className="pt-l">
           {bubbleText && <ExplanationBubble text={bubbleText} />}
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
-          {loading ? null : !current ? (
+          {loading ? null : !current && error && phase === "answering" ? (
+            <Button variant="primary" onPress={handleStart}>다시 시도</Button>
+          ) : !current ? (
             <Button variant="primary" onPress={() => router.back()}>확인</Button>
           ) : phase === "review" ? (
             <Button variant="primary" onPress={handleReviewNext}>{isLast ? "점수 보기" : "다음"}</Button>

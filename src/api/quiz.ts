@@ -126,12 +126,12 @@ export interface TaskQuizResult {
 }
 
 /**
- * 할일 완료 확인 퀴즈 조회 API 함수
+ * 할일 완료 확인 퀴즈 조회 API 함수 (퀴즈가 없으면 서버가 그 자리에서 AI로 생성)
  * @param taskId 할일 ID
  * @returns 가장 최근 시도의 퀴즈
  */
 export const getTaskQuiz = async (taskId: number): Promise<TaskQuiz> => {
-  const response = await api.get(`/plan-tasks/${taskId}/quiz`);
+  const response = await api.get(`/plan-tasks/${taskId}/quiz`, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
 
