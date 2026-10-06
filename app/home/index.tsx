@@ -13,9 +13,9 @@ import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
 import { deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
-import { useUIStore, useUserStore } from "@/store";
-import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
-import type { UnavailableTime } from "@/api/user";
+import { useUIStore } from "@/store";
+import { getBusyTimes } from "@/api/busyTime";
+import type { DailyBusyTime } from "@/api/busyTime";
 import { toLocalDateString } from "@/utils/date";
 import palette from "@/constants/palette";
 
@@ -103,9 +103,6 @@ const getDDay = (examDate: string, now: Date) => {
   return Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
 };
 
-// 백엔드 PlanTaskScheduler 기본 수면 시간(00:00~06:30, 23:00~24:00)과 같은 값
-const SLEEP_RANGES: [string, string][] = [["00:00", "06:30"], ["23:00", "24:00"]];
-
 interface BusyBlock {
   key: string;
   title: string;
@@ -115,8 +112,7 @@ interface BusyBlock {
 }
 
 // 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔
-const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
-  const label = `${startTime} - ${endTime}`;
+const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string, label = `${startTime} - ${endTime}`): BusyBlock[] => {
   const from = (parseHHmm(startTime) - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
   const rawEnd = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
   let to = (rawEnd - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -125,14 +121,26 @@ const toBusyBlocks = (key: string, title: string, startTime: string, endTime: st
   return pieces.map(([start, end], i) => ({ key: `${key}-${i}`, title, start, duration: end - start, label }));
 };
 
-const buildBusyBlocks = (unavailable: UnavailableTime[], today: Date): BusyBlock[] => {
-  const todayName = DAY_OF_WEEK_NAMES[(today.getDay() + 6) % 7];
-  return [
-    ...SLEEP_RANGES.flatMap(([start, end], i) => toBusyBlocks(`sleep-${i}`, "수면", start, end)),
-    ...unavailable
-      .filter((time) => time.dayOfWeek === todayName)
-      .flatMap((time) => toBusyBlocks(`busy-${time.id}`, "불가능 시간", time.startTime, time.endTime)),
-  ];
+const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
+  "SLEEP": "수면",
+  "SCHOOL": "학교",
+  "UNAVAILABLE": "불가능 시간",
+};
+
+// 서버 바쁜 시간 중 할일(TASK)은 계획 블록으로 따로 그려서 제외
+// 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림
+const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
+  if (!day) return [];
+  const morningSleepEnd = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00")?.endTime;
+  return day.busyTimes.flatMap((item, i) => {
+    if (item.type === "TASK") return [];
+    if (item.type === "SCHOOL") {
+      const start = morningSleepEnd && morningSleepEnd > item.startTime ? morningSleepEnd : item.startTime;
+      // 시작이 하교 전 아무 때나라 시각 줄 없이 제목 한 줄로만 표시
+      return toBusyBlocks(`school-${i}`, `${BUSY_TITLES.SCHOOL} · 하교 ${item.endTime}`, start, item.endTime, "");
+    }
+    return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, BUSY_TITLES[item.type], item.startTime, item.endTime);
+  });
 };
 
 const mapPlanTaskToPlan = (task: PlanTask): Plan => {
@@ -175,7 +183,7 @@ function BusyBlockView({ block }: { block: BusyBlock }) {
       <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
       <Stack gap="xs" className="flex-1 py-xxs">
         <Text variant="base-small" weight="medium">{block.title}</Text>
-        {block.duration >= 40 && (
+        {block.duration >= 40 && !!block.label && (
           <Row gap="xs" className="items-center">
             <Icon name="history" size={12} color="rgba(255,255,255,0.6)" />
             <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{block.label}</Text>
@@ -196,9 +204,11 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: bg, opacity }}
+      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: palette.background.primary, opacity }}
       className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
     >
+      {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
+      <View className="absolute inset-0" style={{ backgroundColor: bg }} />
       <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
       <Stack gap="xs" className="flex-1 py-xxs">
         <Row gap="xs" className="items-center">
@@ -582,15 +592,15 @@ export default function Home() {
   }, [selectedKey]);
   useFocusEffect(loadBoardInfo);
 
-  // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
-  const userId = useUserStore((state) => state.userId);
-  const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
-  const loadUnavailableTimes = useCallback(() => {
-    if (userId === null) return;
-    getUnavailableTimes(userId).then(setUnavailableTimes).catch(() => setUnavailableTimes([]));
-  }, [userId]);
-  useFocusEffect(loadUnavailableTimes);
-  const busyBlocks = buildBusyBlocks(unavailableTimes, selectedDate);
+  // 수면·학교·불가능 시간, AI 계획 생성과 같은 서버 기준
+  const [busyDay, setBusyDay] = useState<DailyBusyTime | null>(null);
+  const loadBusyTimes = useCallback(() => {
+    getBusyTimes(selectedKey, selectedKey)
+      .then((busy) => setBusyDay(busy.days[0] ?? null))
+      .catch(() => setBusyDay(null));
+  }, [selectedKey]);
+  useFocusEffect(loadBusyTimes);
+  const busyBlocks = buildBusyBlocks(busyDay);
   const examDDay = nextExamDate ? getDDay(nextExamDate, now) : null;
 
   useEffect(() => {
