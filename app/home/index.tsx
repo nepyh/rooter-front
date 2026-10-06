@@ -186,39 +186,71 @@ function BusyBlockView({ block }: { block: BusyBlock }) {
   );
 }
 
-function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
+// 블록 안 글자 영역 위아래 여백 (p-xs 4 + py-xxs 2) × 2
+const PLAN_TEXT_PADDING = 12;
+// 블록 왼쪽 여백 4 + 색 막대 4 + 간격 8, 오른쪽 여백 4
+const PLAN_TEXT_LEFT = 16;
+const PLAN_TEXT_RIGHT = 4;
+
+type PlanTextFit = "full" | "title" | "none";
+
+function PlanBlockText({ plan, showLines, onTitleLayout, onLayout }: {
+  plan: Plan;
+  showLines: boolean;
+  onTitleLayout?: (height: number) => void;
+  onLayout?: (height: number) => void;
+}) {
+  return (
+    <Stack gap="xs" onLayout={(e) => onLayout?.(e.nativeEvent.layout.height)}>
+      <Row gap="xs" className="items-center" onLayout={(e) => onTitleLayout?.(e.nativeEvent.layout.height)}>
+        {plan.status === "done" && <Icon name="check" size={12} color="#FFFFFF" />}
+        {plan.status === "failed" && <Icon name="close" size={12} color="#FF4D4F" />}
+        <Text
+          variant="base-small"
+          weight="medium"
+          style={plan.status === "failed" ? { textDecorationLine: "line-through", color: "#FF4D4F" } : undefined}
+        >
+          {plan.title}
+        </Text>
+      </Row>
+      {showLines && plan.lines.map((line, i) => (
+        <Row key={i} gap="xs" className="items-center">
+          <Icon name={line.icon} size={12} color="rgba(255,255,255,0.6)" />
+          <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{line.text}</Text>
+        </Row>
+      ))}
+    </Stack>
+  );
+}
+
+function PlanBlock({ plan, onPress, onPressHidden }: { plan: Plan; onPress: () => void; onPressHidden: () => void }) {
   const colors = CATEGORY_COLORS[plan.category];
   const override = STATUS_OVERRIDE[plan.status];
   const bar = override?.bar ?? colors.bar;
   const bg = override?.bg ?? colors.bg;
   const opacity = override?.opacity ?? 1;
 
+  // 글자 원래 높이를 따로 재서 블록보다 크면 잘리므로 시간 줄 → 제목 순으로 숨김
+  const [titleHeight, setTitleHeight] = useState(0);
+  const [fullHeight, setFullHeight] = useState(0);
+  const available = plan.duration - PLAN_TEXT_PADDING;
+  const measured = fullHeight > 0;
+  const fit: PlanTextFit = fullHeight <= available ? "full" : titleHeight <= available ? "title" : "none";
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={measured && fit === "none" ? onPressHidden : onPress}
       style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: bg, opacity }}
       className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
     >
       <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
-      <Stack gap="xs" className="flex-1 py-xxs">
-        <Row gap="xs" className="items-center">
-          {plan.status === "done" && <Icon name="check" size={12} color="#FFFFFF" />}
-          {plan.status === "failed" && <Icon name="close" size={12} color="#FF4D4F" />}
-          <Text
-            variant="base-small"
-            weight="medium"
-            style={plan.status === "failed" ? { textDecorationLine: "line-through", color: "#FF4D4F" } : undefined}
-          >
-            {plan.title}
-          </Text>
-        </Row>
-        {plan.lines.map((line, i) => (
-          <Row key={i} gap="xs" className="items-center">
-            <Icon name={line.icon} size={12} color="rgba(255,255,255,0.6)" />
-            <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{line.text}</Text>
-          </Row>
-        ))}
-      </Stack>
+      <View className="flex-1 py-xxs" style={{ opacity: measured ? 1 : 0 }}>
+        {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
+      </View>
+      {/* 높이 제한 없이 그려 원래 높이 측정, 화면엔 안 보임 */}
+      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
+        <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
+      </View>
     </Pressable>
   );
 }
@@ -780,7 +812,12 @@ export default function Home() {
           ))}
 
           {coloredPlans.map((plan) => (
-            <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
+            <PlanBlock
+              key={plan.id}
+              plan={plan}
+              onPress={() => handleSelectPlan(plan)}
+              onPressHidden={() => router.push({ pathname: "/todo", params: { date: selectedKey } })}
+            />
           ))}
 
           {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />}
