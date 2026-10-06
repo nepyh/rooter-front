@@ -13,8 +13,10 @@ interface User {
 
 interface UserState {
   user: User | null;
+  token: string | null;
+  userId: number | null;
   isLogin: boolean;
-  setUser: (user: User) => void;
+  setUser: (user: User, token: string, userId: number) => void;
   updateProfile: (patch: Partial<Pick<User, "bio" | "profileImageUri">>) => void;
   logout: () => void;
 }
@@ -25,10 +27,12 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set) => ({
   user: null,
+  token: null,
+  userId: null,
   isLogin: false,
 
-  setUser: (user) => set({ user, isLogin: true }),
+  setUser: (user, token, userId) => set({ user, token, userId, isLogin: true }),
   // TODO: 실제 프로필 저장 API 연동 전까지는 로컬 상태에만 반영합니다.
   updateProfile: (patch) => set((state) => (state.user ? { user: { ...state.user, ...patch } } : state)),
-  logout: () => set({ user: null, isLogin: false }),
+  logout: () => set({ user: null, token: null, userId: null, isLogin: false }),
 }));

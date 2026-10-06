@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
@@ -9,10 +11,9 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { getPlanBoards } from "@/api/planBoard";
-import type { PlanBoard } from "@/api/planBoard";
-import { useTodoStore, useUIStore } from "@/store";
-import type { TodoGroup } from "@/store";
+import { completeTask, deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/planBoard";
+import type { PlanTask } from "@/api/planBoard";
+import { useUIStore } from "@/store";
 
 // ================================
 // Types
@@ -47,55 +48,13 @@ const POPOVER_HEIGHT = 92;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (6 + i) % 24);
 
-// 플랜보드엔 과목별 고정 카테고리가 없어서, 과목 ID로 기존 5색 팔레트를 순환 배정합니다.
-const CATEGORY_CYCLE = Object.keys(CATEGORY_COLORS) as Category[];
-const categoryForSubject = (subjectId: number): Category => CATEGORY_CYCLE[subjectId % CATEGORY_CYCLE.length];
-
-// TODO: 실제 플랜보드 데이터로 교체 예정. 지금은 플랜보드 API가 빈 값을 주거나 실패했을 때 보여줄
-// 목업 하루 일정입니다. 과목(수학/영어/사회)은 할 일 목록 목업(useTodoStore)과 동일한 카테고리를 써서
-// 플랜을 눌렀을 때 나오는 체크리스트가 할 일 화면과 같은 데이터를 보여주도록 맞췄습니다.
-const MOCK_PLANS: Plan[] = [
-  {
-    id: "mock-school", title: "학교", category: "neutral", start: 150, duration: 480, status: "pending",
-    lines: [{ icon: "history", text: "08:30 - 16:30 | 8시간" }],
-  },
-  {
-    id: "mock-math", title: "수학", category: "math", start: 690, duration: 120, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.30 ~ p.48" },
-      { icon: "history", text: "17:30 - 19:30 | 2시간" },
-    ],
-  },
-  {
-    id: "mock-meal", title: "식사", category: "neutral", start: 810, duration: 60, status: "pending",
-    lines: [{ icon: "history", text: "19:30 - 20:30 | 1시간" }],
-  },
-  {
-    id: "mock-english", title: "영어", category: "english", start: 870, duration: 60, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.111 ~ p.122" },
-      { icon: "history", text: "20:30 - 21:30 | 1시간" },
-    ],
-  },
-  {
-    id: "mock-science", title: "과학", category: "science", start: 960, duration: 120, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.22 ~ p.37" },
-      { icon: "history", text: "22:00 - 24:00 | 2시간" },
-    ],
-  },
-  {
-    id: "mock-social", title: "사회", category: "social", start: 1080, duration: 60, status: "pending",
-    lines: [
-      { icon: "book", text: "교과서 | p.8 ~ p.10" },
-      { icon: "history", text: "24:00 - 01:00 | 1시간" },
-    ],
-  },
-  {
-    id: "mock-sleep", title: "수면", category: "neutral", start: 1140, duration: 400, status: "pending",
-    lines: [{ icon: "history", text: "01:00 - 07:40 | 6시간 40분" }],
-  },
-];
+// 태스크 수정 실패 시 백엔드 code별 안내 문구
+const EDIT_ERROR_MESSAGES: Record<string, string> = {
+  "INVALID_TASK_NAME": "일정 이름을 다시 확인해주세요.",
+  "INVALID_TIME_RANGE": "종료 시간은 시작 시간보다 늦어야 해요. 자정을 넘기는 일정은 저장할 수 없어요.",
+  "INVALID_TIME_FORMAT": "시간 형식이 올바르지 않아요.",
+  "INVALID_ESTIMATED_MINUTES": "소요 시간을 다시 확인해주세요.",
+};
 
 // ================================
 // Helpers
@@ -126,21 +85,25 @@ const parseClock = (value: string) => {
   return h * 60 + m;
 };
 
-const mapPlanBoardToPlan = (board: PlanBoard): Plan => {
-  const startDate = new Date(board.startAt);
-  const endDate = new Date(board.endAt);
-  const duration = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60_000));
+const parseHHmm = (value: string) => {
+  const [h, m] = value.split(":").map(Number);
+  return h * 60 + m;
+};
+
+// 과목 연결 API 미구현으로 전부 neutral 처리
+const mapPlanTaskToPlan = (task: PlanTask): Plan => {
+  const startMin = parseHHmm(task.startTime);
+  const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
 
   return {
-    id: String(board.id),
-    title: board.title,
-    category: categoryForSubject(board.subjectId),
-    start: minutesSinceWindowStart(startDate),
-    duration,
-    status: board.status,
+    id: String(task.id),
+    title: task.taskName,
+    category: "neutral",
+    start,
+    duration: task.estimatedMinutes,
+    status: task.isCompleted ? "done" : "pending",
     lines: [
-      { icon: "book", text: `${board.textbookName} | ${board.chapterName}` },
-      { icon: "history", text: `${formatClock(startDate)} - ${formatClock(endDate)} | ${formatDuration(duration)}` },
+      { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
     ],
   };
 };
@@ -192,37 +155,7 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
-function TodoSummary({ group, barColor }: { group: TodoGroup; barColor: string }) {
-  return (
-    <Row gap="m" className="p-m items-stretch">
-      <View className="w-1 rounded-full" style={{ backgroundColor: barColor }} />
-      <Stack gap="s">
-        <Text variant="base-medium" weight="medium" className="text-white">{group.title}</Text>
-        <Stack gap="m">
-          {group.items.map((item) => (
-            <Row key={item.id} gap="s" className="items-center">
-              <View
-                className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
-                style={item.done ? { backgroundColor: barColor } : { borderWidth: 1, borderColor: "#8A919E" }}
-              >
-                {item.done && <Icon name="check" size={8} color="#FFFFFF" />}
-              </View>
-              <Text
-                variant="base-medium"
-                color={item.done ? "disabled" : "primary"}
-                style={item.done ? { textDecorationLine: "line-through" } : undefined}
-              >
-                {item.text}
-              </Text>
-            </Row>
-          ))}
-        </Stack>
-      </Stack>
-    </Row>
-  );
-}
-
-function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: { plan: Plan; todoGroup: TodoGroup | null; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
+function ActionMenu({ plan, onComplete, onFail, onEdit, onDelete }: { plan: Plan; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
   const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
@@ -231,9 +164,6 @@ function ActionMenu({ plan, todoGroup, onComplete, onFail, onEdit, onDelete }: {
     <View style={{ position: "absolute", top, left: TIMELINE_LEFT }} className="items-center">
       {showBelow && <View className="w-3 h-3 -mb-1.5 bg-neutral-700 border-l border-t border-neutral-600 rotate-45" />}
       <Stack gap="s" className="bg-neutral-700 border border-neutral-600 rounded-md p-xs" onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}>
-        {todoGroup && todoGroup.items.length > 0 && (
-          <TodoSummary group={todoGroup} barColor={CATEGORY_COLORS[plan.category].bar} />
-        )}
         <Row gap="none" className="items-center">
           <ActionButton icon="check" label="완료" onPress={onComplete} />
           <ActionButton icon="close" label="실패" onPress={onFail} />
@@ -316,6 +246,59 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
   );
 }
 
+const ADD_MENU_OFFSCREEN_Y = 400;
+
+function AddMenuButton({ label, onPress }: { label: string; onPress?: () => void }) {
+  return (
+    <Pressable onPress={onPress} className="bg-neutral-700 h-16 rounded-md items-center justify-center w-full">
+      <Text variant="base-medium" weight="medium">{label}</Text>
+    </Pressable>
+  );
+}
+
+// onFullyClosed: 닫힘 애니메이션 도중 다른 Modal을 띄우면 두 Modal이 동시에 떠서 터치가 씹히는 문제가 있어,
+// 완전히 닫힌 뒤에 후속 동작을 실행하도록 호출 시점을 분리했습니다.
+function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule, onCreatePlan }: { visible: boolean; onClose: () => void; onFullyClosed: () => void; onCreateSchedule: () => void; onCreatePlan: () => void }) {
+  const translateY = useSharedValue(ADD_MENU_OFFSCREEN_Y);
+  const [isRendered, setIsRendered] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+      translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
+    } else {
+      translateY.value = withTiming(ADD_MENU_OFFSCREEN_Y, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
+        if (finished) {
+          runOnJS(setIsRendered)(false);
+          runOnJS(onFullyClosed)();
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, translateY]);
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
+  return (
+    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
+      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
+        <Pressable>
+          <Animated.View style={sheetStyle}>
+            <View className="bg-background-primary rounded-t-[32px] items-center pt-s px-6 pb-xxl" style={{ gap: 24 }}>
+              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
+              <Stack gap="s" width="full">
+                <AddMenuButton label="일정 생성하기" onPress={onCreateSchedule} />
+                <AddMenuButton label="과목 생성하기" />
+                <AddMenuButton label="새 플랜 생성하기" onPress={onCreatePlan} />
+              </Stack>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onCancel: () => void; onConfirm: () => void }) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onCancel}>
@@ -354,24 +337,25 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
 
 /**
  * 홈 화면
- * @description 오늘의 일정을 시간순으로 보여주고, 현재 시각/날짜를 실시간으로 반영합니다.
  */
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const now = useNow(30_000);
-  // 실제 API 응답을 기다리는 동안 화면이 비어 보이지 않도록, 목업 일정을 먼저 보여주고 실제 데이터가 오면 교체합니다.
-  const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
+  // 여러 플랜보드면 dailyPlanId가 여러 개라 첫 태스크 기준 사용
+  const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
-  const todoGroups = useTodoStore((state) => state.groups);
+  const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
   useEffect(() => {
@@ -384,18 +368,20 @@ export default function Home() {
     return () => setFullScreenModalOpen(false);
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
-  // 플랜보드 생성 화면에서 돌아왔을 때도 최신 목록을 반영하도록 포커스마다 다시 불러옵니다.
-  // TODO: 실제 플랜보드 데이터가 쌓이기 전까지는 API가 빈 값/에러를 주면 목업 하루 일정을 보여줍니다.
-  useFocusEffect(
-    useCallback(() => {
-      getPlanBoards()
-        .then((boards) => {
-          const mapped = boards.map(mapPlanBoardToPlan);
-          setPlans(mapped.length > 0 ? mapped : MOCK_PLANS);
-        })
-        .catch(() => setPlans(MOCK_PLANS));
-    }, [])
-  );
+  // 일정 생성 후 복귀 시 최신 목록 반영 위해 포커스마다 재조회
+  const loadDailyTasks = useCallback(() => {
+    getDailyTasks()
+      .then((daily) => {
+        setChatDailyPlanId(daily.tasks[0]?.dailyPlanId ?? null);
+        setPlans(daily.tasks.map(mapPlanTaskToPlan));
+      })
+      .catch(() => {
+        setChatDailyPlanId(null);
+        setPlans([]);
+      });
+  }, []);
+
+  useFocusEffect(loadDailyTasks);
 
   useEffect(() => {
     const offset = Math.max(0, minutesSinceWindowStart(now) - 260);
@@ -405,7 +391,6 @@ export default function Home() {
 
   const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
-  const activeTodoGroup = activePlan ? todoGroups.find((group) => group.category === activePlan.category) ?? null : null;
 
   const updateStatus = (id: string, status: PlanStatus) => {
     setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status: plan.status === status ? "pending" : status } : plan)));
@@ -438,6 +423,12 @@ export default function Home() {
   const handleComplete = (plan: Plan) => {
     const willComplete = plan.status !== "done";
     updateStatus(plan.id, "done");
+
+    completeTask(Number(plan.id), willComplete).catch(() => {
+      updateStatus(plan.id, "done"); // 실패 시 이전 상태로 되돌림
+      Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    });
+
     if (willComplete) {
       router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
     }
@@ -450,27 +441,48 @@ export default function Home() {
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    setPlans((prev) => prev.filter((plan) => plan.id !== deleteTarget.id));
-    setDeleteToast(`'${deleteTarget.title}' 일정이 삭제되었습니다.`);
+    const target = deleteTarget;
+    setPlans((prev) => prev.filter((plan) => plan.id !== target.id));
     setDeleteTarget(null);
+
+    deletePlanTask(Number(target.id))
+      .then(() => setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`))
+      .catch(() => {
+        loadDailyTasks(); // 실패 시 서버 목록으로 복구
+        Alert.alert("삭제 실패", "일정 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
   };
 
-  const handlePlanCreated = (board: PlanBoard) => {
-    setPlans((prev) => [...prev.filter((plan) => !plan.id.startsWith("mock-")), mapPlanBoardToPlan(board)]);
+  // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
+  const handlePlanCreated = () => {
     setShowAddPlan(false);
+    loadDailyTasks();
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
+    const id = editingId;
+    const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
+    const endMin = (startMin + duration) % DAY_MIN;
+    const startTime = `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)}`;
+    const endTime = `${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
+
     setPlans((prev) => prev.map((plan) => {
-      if (plan.id !== editingId) return plan;
-      const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
-      const endMin = (startMin + duration) % DAY_MIN;
+      if (plan.id !== id) return plan;
       const lines = plan.lines.map((line) => line.icon === "history"
-        ? { ...line, text: `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)} - ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)} | ${formatDuration(duration)}` }
+        ? { ...line, text: `${startTime} - ${endTime} | ${formatDuration(duration)}` }
         : line);
       return { ...plan, title, start, duration, lines };
     }));
     setEditingId(null);
+
+    if (!id) return;
+
+    updatePlanTask(Number(id), { taskName: title, startTime, endTime, estimatedMinutes: duration })
+      .catch((error) => {
+        loadDailyTasks(); // 실패 시 서버 목록으로 복구
+        const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+        Alert.alert("수정 실패", EDIT_ERROR_MESSAGES[code] ?? "일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      });
   };
 
   return (
@@ -485,6 +497,16 @@ export default function Home() {
           <Text variant="header-medium">D-20</Text>
         </Row>
       </Row>
+
+      {plans.length === 0 && (
+        <Stack gap="m" width="full" className="items-center bg-neutral-700 p-xl rounded-md mb-l">
+          <Text variant="base-large" weight="medium">아직 오늘의 계획이 없어요</Text>
+          <Text variant="base-medium" color="secondary" className="text-center">
+            새 플랜을 만들면 여기에 오늘 할 일이 채워져요
+          </Text>
+          <Button variant="primary" onPress={() => router.push("/ExamDatePage")}>새 플랜 생성하기</Button>
+        </Stack>
+      )}
 
       <ScrollView
         ref={scrollRef}
@@ -513,7 +535,6 @@ export default function Home() {
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
-              todoGroup={activeTodoGroup}
               onComplete={() => handleComplete(activePlan)}
               onFail={() => updateStatus(activePlan.id, "failed")}
               onEdit={() => { setEditingId(activePlan.id); setActiveId(null); }}
@@ -525,7 +546,7 @@ export default function Home() {
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
-          <Pressable onPress={() => setShowAddPlan(true)} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
           <Pressable onPress={() => setShowAiChat(true)} className="p-m rounded-full items-center justify-center">
@@ -548,6 +569,23 @@ export default function Home() {
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
 
+      <AddMenu
+        visible={showAddMenu}
+        onClose={() => setShowAddMenu(false)}
+        onFullyClosed={() => {
+          afterAddMenuClosedRef.current?.();
+          afterAddMenuClosedRef.current = null;
+        }}
+        onCreateSchedule={() => {
+          afterAddMenuClosedRef.current = () => setShowAddPlan(true);
+          setShowAddMenu(false);
+        }}
+        onCreatePlan={() => {
+          afterAddMenuClosedRef.current = () => router.push("/ExamDatePage");
+          setShowAddMenu(false);
+        }}
+      />
+
       <AddPlanBoardModal
         visible={showAddPlan}
         baseDate={now}
@@ -555,7 +593,12 @@ export default function Home() {
         onCreated={handlePlanCreated}
       />
 
-      <AiChatModal visible={showAiChat} onClose={() => setShowAiChat(false)} />
+      <AiChatModal
+        visible={showAiChat}
+        dailyPlanId={chatDailyPlanId}
+        onClose={() => setShowAiChat(false)}
+        onPlanChanged={loadDailyTasks}
+      />
     </View>
   );
 }

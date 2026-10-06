@@ -12,7 +12,15 @@
       "infoPlist": {
         "NSBonjourServices": [
           "_expo._tcp"
-        ]
+        ],
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "54.180.112.158": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": false
+            }
+          }
+        }
       }
     },
     "android": {
@@ -23,7 +31,8 @@
         "monochromeImage": "./src/assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.rooter"
+      "package": "com.anonymous.rooter",
+      "usesCleartextTraffic": true
     },
     "scheme": "rooter",
     "web": {
