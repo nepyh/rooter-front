@@ -202,6 +202,9 @@ export default function ChapterSelectPage() {
     }
   };
 
+  // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 교과서 선택으로
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/TextbookSelectPage", params: { examDate } }));
+
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height);
@@ -217,7 +220,7 @@ export default function ChapterSelectPage() {
 
         <Row width="full" align="between" className="items-center pb-l">
           <Row gap="s" className="items-center">
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={goBack}>
               <Icon name="chevronLeft" size={28} />
             </Pressable>
             <Text variant="header-medium" weight="semibold" color="secondary">교과서 선택</Text>

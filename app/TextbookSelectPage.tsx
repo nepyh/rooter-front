@@ -123,12 +123,15 @@ export default function TextbookSelectPage() {
     });
   };
 
+  // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 시험 날짜 선택으로
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/ExamDatePage"));
+
   return (
     <View className="flex-1">
       <StatusBar style="light" />
 
       <Row width="full" align="between" className="items-center pb-l">
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
         <Text variant="base-large" color="disabled">{`${selectedIds.size}개 선택됨`}</Text>
