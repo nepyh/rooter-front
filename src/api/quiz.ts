@@ -100,10 +100,18 @@ export interface TaskQuizQuestion {
   selectedChoiceId: number | null; // 이미 답한 문제면 채워짐, 이어 풀기용
 }
 
+export interface TaskQuizSubject {
+  subjectId: number;
+  subjectName: string;
+}
+
 export interface TaskQuiz {
   planTaskId: number;
   attemptNumber: number;
   questions: TaskQuizQuestion[];
+  // 할일 이름·플랜보드 과목으로 서버가 추정한 과목, 모르면 null
+  subject: TaskQuizSubject | null;
+  subjects: TaskQuizSubject[];
 }
 
 export interface TaskQuizAnswerResult {
