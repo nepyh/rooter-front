@@ -23,13 +23,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 토큰 만료·무효(code=UNAUTHORIZED) 시 로그아웃 후 첫 화면 이동
-// BAD_CREDENTIALS, WRONG_CURRENT_PASSWORD 같은 다른 401은 각 화면에서 처리
+// 동시에 여러 요청이 401을 받아도 첫 화면 이동은 한 번만
+const REDIRECT_COOLDOWN_MS = 3_000;
+let lastSessionRedirectAt = 0;
+
+// 토큰 만료·무효·없음(code=UNAUTHORIZED) 시 로그아웃 후 첫 화면 이동
+// 새로고침으로 토큰이 사라진 경우도 포함, BAD_CREDENTIALS 같은 다른 401은 각 화면에서 처리
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const isUnauthorized = error.response?.status === 401 && error.response?.data?.code === 'UNAUTHORIZED';
-    if (isUnauthorized && useUserStore.getState().isLogin) {
+    const now = Date.now();
+    if (isUnauthorized && now - lastSessionRedirectAt > REDIRECT_COOLDOWN_MS) {
+      lastSessionRedirectAt = now;
       useUserStore.getState().logout();
       router.replace({ pathname: '/', params: { toast: 'session-expired' } });
     }

@@ -92,12 +92,15 @@ export default function ExamDatePage() {
     router.push({ pathname: "/TextbookSelectPage", params: { examDate: toDateString(selectedDate) } });
   };
 
+  // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 Home으로
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home"));
+
   return (
     <View className="flex-1">
       <StatusBar style="light" />
 
       <Row gap="s" className="items-center pb-l">
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
       </Row>
