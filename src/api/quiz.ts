@@ -38,11 +38,22 @@ export interface InsertedReviewTask {
   taskName: string;
 }
 
+export interface QuizQuestionResult {
+  questionId: number;
+  questionText: string;
+  selectedChoiceId: number;
+  correctChoiceId: number | null;
+  correctChoiceText: string | null;
+  isCorrect: boolean;
+  explanation: string | null; // 풀이 기능 전 퀴즈는 null
+}
+
 export interface QuizResult {
   totalQuestions: number;
   correctCount: number;
   weakAreas: WeakArea[];
   insertedReviewTasks: InsertedReviewTask[];
+  results: QuizQuestionResult[];
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Alert, Modal, PanResponder, Pressable, ScrollView, View } from "react-native";
+import Animated, { Easing, SlideInLeft, SlideInRight, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
@@ -222,6 +222,31 @@ function PlanBlock({ plan, onPress }: { plan: Plan; onPress: () => void }) {
   );
 }
 
+// 계획이 없을 때 타임라인 위에 뜨는 안내 말풍선, 마스코트 쪽 위 모서리만 각지게
+function EmptyPlanNotice({ onCreate, onClose }: { onCreate: () => void; onClose: () => void }) {
+  return (
+    <View className="absolute z-10" style={{ top: 16, left: -12, right: -12 }}>
+      <Row gap="m" width="full" className="items-start">
+        <Icon name="mascotFace" size={52} />
+        <Stack gap="xs" className="flex-1 bg-neutral-700 px-[18px] py-[14px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px]">
+          <Text variant="base-medium">생성된 플랜이 없어요. 플랜을 만들어 하루 계획을 생성해보세요!</Text>
+          <Pressable onPress={onCreate}>
+            <Text variant="base-medium" className="text-primary-500" style={{ textDecorationLine: "underline" }}>새 플랜 생성하기</Text>
+          </Pressable>
+        </Stack>
+      </Row>
+      <Pressable
+        onPress={onClose}
+        hitSlop={10}
+        className="absolute w-[20px] h-[20px] rounded-full bg-neutral-600 items-center justify-center"
+        style={{ top: -4, right: -4 }}
+      >
+        <Icon name="close" size={12} />
+      </Pressable>
+    </View>
+  );
+}
+
 function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: { plan: Plan; canDelete: boolean; onComplete: () => void; onFail: () => void; onEdit: () => void; onDelete: () => void }) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
   const showBelow = plan.start < menuHeight + 8;
@@ -410,6 +435,12 @@ export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const now = useNow(30_000);
+  // 좌우로 밀어 날짜 이동, 0이 오늘
+  const [dayOffset, setDayOffset] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+  const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
+  const selectedKey = toLocalDateString(selectedDate);
+  const isToday = dayOffset === 0;
   const [plans, setPlans] = useState<Plan[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -421,6 +452,7 @@ export default function Home() {
   // 여러 플랜보드면 dailyPlanId가 여러 개라 첫 태스크 기준 사용
   const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
@@ -438,7 +470,7 @@ export default function Home() {
 
   // 일정 생성 후 복귀 시 최신 목록 반영 위해 포커스마다 재조회
   const loadDailyTasks = useCallback(() => {
-    getDailyTasks()
+    getDailyTasks(selectedKey)
       .then((daily) => {
         setChatDailyPlanId(daily.tasks[0]?.dailyPlanId ?? null);
         setPlans(daily.tasks.map(mapPlanTaskToPlan));
@@ -447,9 +479,30 @@ export default function Home() {
         setChatDailyPlanId(null);
         setPlans([]);
       });
-  }, []);
+  }, [selectedKey]);
 
   useFocusEffect(loadDailyTasks);
+
+  const moveDay = (delta: number) => {
+    setActiveId(null);
+    setSlideDirection(delta > 0 ? "next" : "prev");
+    setDayOffset((prev) => prev + delta);
+  };
+
+  // 가로로 확실히 민 경우만 날짜 이동, 세로 스크롤은 그대로
+  const swipeResponder = useRef(
+    PanResponder.create({
+      // 안쪽 세로 ScrollView보다 먼저 가로 움직임만 가로챔
+      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -60) moveDayRef.current(1);
+        else if (g.dx > 60) moveDayRef.current(-1);
+      },
+    }),
+  ).current;
+  const moveDayRef = useRef(moveDay);
+  moveDayRef.current = moveDay;
 
   // 플랜보드 중 오늘 이후 가장 가까운 시험일
   const [nextExamDate, setNextExamDate] = useState<string | null>(null);
@@ -486,7 +539,7 @@ export default function Home() {
     getUnavailableTimes(userId).then(setUnavailableTimes).catch(() => setUnavailableTimes([]));
   }, [userId]);
   useFocusEffect(loadUnavailableTimes);
-  const busyBlocks = buildBusyBlocks(unavailableTimes, now);
+  const busyBlocks = buildBusyBlocks(unavailableTimes, selectedDate);
   const examDDay = nextExamDate ? getDDay(nextExamDate, now) : null;
 
   useEffect(() => {
@@ -602,7 +655,14 @@ export default function Home() {
       {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
 
       <Row width="full" align="between" className="items-center pt-m pb-l">
-        <Text variant="header-large">{formatDateHeader(now)}</Text>
+        <Row gap="s" className="items-center">
+          <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
+          {!isToday && (
+            <Pressable onPress={() => moveDay(-dayOffset)} hitSlop={8}>
+              <Text variant="base-small" weight="medium" className="text-primary-500">오늘로</Text>
+            </Pressable>
+          )}
+        </Row>
         {examDDay !== null && examDDay >= 0 && (
           <Row gap="s" className="items-center">
             <Text variant="base-small" weight="medium" color="secondary">시험</Text>
@@ -611,14 +671,9 @@ export default function Home() {
         )}
       </Row>
 
-      {plans.length === 0 && (
-        <Stack gap="m" width="full" className="items-center bg-neutral-700 p-xl rounded-md mb-l">
-          <Text variant="base-large" weight="medium">아직 오늘의 계획이 없어요</Text>
-          <Text variant="base-medium" color="secondary" className="text-center">
-            새 플랜을 만들면 여기에 오늘 할 일이 채워져요
-          </Text>
-          <Button variant="primary" onPress={() => router.push("/ExamDatePage")}>새 플랜 생성하기</Button>
-        </Stack>
+      <View className="flex-1" {...swipeResponder.panHandlers}>
+      {plans.length === 0 && !emptyNoticeClosed && (
+        <EmptyPlanNotice onCreate={() => router.push("/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
       )}
 
       <ScrollView
@@ -630,7 +685,11 @@ export default function Home() {
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       >
-        <View style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
+        <Animated.View
+          key={selectedKey}
+          entering={dayOffset === 0 && slideDirection === "next" ? undefined : (slideDirection === "next" ? SlideInRight : SlideInLeft).duration(260)}
+          style={{ height: TIMELINE_HEIGHT, position: "relative" }}
+        >
           {HOURS.map((hour, i) => (
             <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
               <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
@@ -646,7 +705,7 @@ export default function Home() {
             <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
           ))}
 
-          <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />
+          {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />}
 
           {activePlan && (
             <ActionMenu
@@ -659,8 +718,9 @@ export default function Home() {
               onDelete={() => handleDelete(activePlan)}
             />
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
+      </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
@@ -706,7 +766,7 @@ export default function Home() {
 
       <AddPlanBoardModal
         visible={showAddPlan}
-        baseDate={now}
+        baseDate={isToday ? now : selectedDate}
         onClose={() => setShowAddPlan(false)}
         onCreated={handlePlanCreated}
       />
