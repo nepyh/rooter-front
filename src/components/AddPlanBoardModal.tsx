@@ -134,28 +134,48 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
   );
 }
 
-function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; selectedIndex: number; onChange: (index: number) => void }) {
+// 다이얼처럼 끝과 처음이 이어지게 같은 값을 여러 바퀴 이어 붙이고, 멈추면 가운데 바퀴로 몰래 되돌림
+const WHEEL_LOOP_CYCLES = 7;
+
+function WheelColumn({ data, selectedIndex, onChange, loop = false }: {
+  data: string[];
+  selectedIndex: number;
+  onChange: (index: number) => void;
+  loop?: boolean;
+}) {
   const scrollRef = useRef<ScrollView>(null);
   const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
+  const cycles = loop ? WHEEL_LOOP_CYCLES : 1;
+  const middleCycle = Math.floor(cycles / 2);
+  const rowCount = data.length * cycles;
 
-  const scrollToIndex = (index: number, animated = true) => {
-    scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
+  // 값 index → 가운데 바퀴의 실제 행 위치
+  const toRow = (index: number) => index + middleCycle * data.length;
+
+  const scrollToRow = (row: number, animated = true) => {
+    scrollRef.current?.scrollTo({ y: row * WHEEL_ITEM_HEIGHT, animated });
   };
 
   // 이 컬럼은 시트가 슬라이드업되는 동안(400ms) 이미 레이아웃되어 있어서, onLayout 시점에
   // scrollTo를 불러도 그 애니메이션과 겹쳐 씹히는 경우가 있습니다. 시트 애니메이션이
   // 끝난 뒤 한 번 더 위치를 맞춰서 확실히 보정합니다.
   useEffect(() => {
-    const timer = setTimeout(() => scrollToIndex(selectedIndex, false), 450);
+    const timer = setTimeout(() => scrollToRow(toRow(selectedIndex), false), 450);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const selectRow = (row: number) => {
+    const clamped = Math.max(0, Math.min(rowCount - 1, row));
+    const index = clamped % data.length;
+    // 가장자리 바퀴로 가면 같은 값의 가운데 바퀴로 옮겨 계속 돌릴 수 있게 함
+    if (loop && Math.floor(clamped / data.length) !== middleCycle) scrollToRow(toRow(index), false);
+    else scrollToRow(clamped);
+    onChange(index);
+  };
+
   const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(data.length - 1, index));
-    scrollToIndex(clamped);
-    onChange(clamped);
+    selectRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
   };
 
   return (
@@ -168,25 +188,25 @@ function WheelColumn({ data, selectedIndex, onChange }: { data: string[]; select
       decelerationRate="fast"
       onScrollEndDrag={handleMomentumEnd}
       onMomentumScrollEnd={handleMomentumEnd}
-      onLayout={() => scrollToIndex(selectedIndex, false)}
+      onLayout={() => scrollToRow(toRow(selectedIndex), false)}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
     >
-      {data.map((label, index) => (
-        <Pressable
-          key={label}
-          onPress={() => { scrollToIndex(index); onChange(index); }}
-          style={{ height: WHEEL_ITEM_HEIGHT }}
-          className="items-center justify-center"
-        >
-          <Text
-            variant="base-large"
-            weight={index === selectedIndex ? "medium" : "regular"}
-            color={index === selectedIndex ? "primary" : "disabled"}
+      {Array.from({ length: rowCount }, (_, row) => {
+        const index = row % data.length;
+        const isSelected = index === selectedIndex;
+        return (
+          <Pressable
+            key={row}
+            onPress={() => selectRow(row)}
+            style={{ height: WHEEL_ITEM_HEIGHT }}
+            className="items-center justify-center"
           >
-            {label}
-          </Text>
-        </Pressable>
-      ))}
+            <Text variant="base-large" weight={isSelected ? "medium" : "regular"} color={isSelected ? "primary" : "disabled"}>
+              {data[index]}
+            </Text>
+          </Pressable>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -211,8 +231,8 @@ function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Da
         className="absolute left-0 right-0 rounded-sm"
         style={{ top: WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ROWS / 2), height: WHEEL_ITEM_HEIGHT, backgroundColor: "rgba(107,114,128,0.3)" }}
       />
-      <WheelColumn data={HOUR_LABELS} selectedIndex={hour12 - 1} onChange={(i) => applyChange(i + 1, minute, meridiemIndex)} />
-      <WheelColumn data={MINUTE_LABELS} selectedIndex={minute} onChange={(i) => applyChange(hour12, i, meridiemIndex)} />
+      <WheelColumn data={HOUR_LABELS} selectedIndex={hour12 - 1} onChange={(i) => applyChange(i + 1, minute, meridiemIndex)} loop />
+      <WheelColumn data={MINUTE_LABELS} selectedIndex={minute} onChange={(i) => applyChange(hour12, i, meridiemIndex)} loop />
       <WheelColumn data={MERIDIEM_LABELS} selectedIndex={meridiemIndex} onChange={(i) => applyChange(hour12, minute, i)} />
     </View>
   );
