@@ -904,7 +904,10 @@ export default function Home() {
         visible={showAiChat}
         dailyPlanId={chatDailyPlanId}
         onClose={() => setShowAiChat(false)}
-        onPlanChanged={loadDailyTasks}
+        onPlanChanged={() => {
+          loadDailyTasks();
+          loadBoardInfo(); // 옮겨간 할일의 보드·과목 색 다시 연결
+        }}
       />
     </View>
   );
