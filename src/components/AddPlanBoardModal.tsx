@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch } from "@/components/ui";
 import { Icon } from "@/assets";
-import { getSubjects, getTextbooksBySubject, getTextbookDetail } from "@/api/catalog";
-import type { Subject, Textbook, ChapterTree } from "@/api/catalog";
+import { TextbookPicker } from "@/components/TextbookPicker";
+import type { TextbookWithSubject } from "@/components/TextbookPicker";
+import palette from "@/constants/palette";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import { WEEKDAYS } from "@/constants/date";
@@ -15,12 +17,6 @@ import { WEEKDAYS } from "@/constants/date";
 // ================================
 
 type PickerTarget = "start-date" | "start-time" | "end-date" | "end-time";
-
-interface FlatChapter {
-  id: number;
-  chapterName: string;
-  depth: number;
-}
 
 interface Props {
   visible: boolean;
@@ -60,15 +56,6 @@ const mergeTimePart = (base: Date, timePart: Date) => {
   next.setHours(timePart.getHours(), timePart.getMinutes(), 0, 0);
   return next;
 };
-
-// 단원은 대단원/소단원처럼 트리 구조로 내려와서, depth를 매겨 들여쓰기로 계층을 표현할 수 있게 평평하게 폅니다.
-const flattenChapterTree = (nodes: ChapterTree[], depth = 0): FlatChapter[] =>
-  [...nodes]
-    .sort((a, b) => a.chapterOrder - b.chapterOrder)
-    .flatMap((node) => [
-      { id: node.id, chapterName: node.chapterName, depth },
-      ...flattenChapterTree(node.children, depth + 1),
-    ]);
 
 // "90%" 같은 퍼센트 값은 부모 체인에 명확한 높이가 없으면(여기서는 배경을 감싸는 Pressable이
 // 그 경우) 제대로 해석되지 않아 시트가 내용물 크기로만 줄어들고 스크롤도 먹통이 됩니다.
@@ -231,84 +218,6 @@ function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Da
   );
 }
 
-function PickerRow<T extends { id: number }>({ label, options, selectedId, onSelect, emptyText, getLabel }: {
-  label: string;
-  options: T[];
-  selectedId: number | null;
-  onSelect: (id: number) => void;
-  emptyText: string;
-  getLabel: (option: T) => string;
-}) {
-  return (
-    <Stack gap="m">
-      <Text variant="base-medium" weight="medium">{label}</Text>
-      {options.length === 0 ? (
-        <Text color="disabled">{emptyText}</Text>
-      ) : (
-        <Row gap="s" className="flex-wrap">
-          {options.map((option) => {
-            const isSelected = selectedId === option.id;
-            return (
-              <Pressable
-                key={option.id}
-                onPress={() => onSelect(option.id)}
-                className="px-l py-s rounded-full border-2"
-                style={{
-                  borderColor: isSelected ? "#F6482D" : "#525866",
-                  backgroundColor: isSelected ? "rgba(246,72,45,0.15)" : "transparent",
-                }}
-              >
-                <Text weight="medium" style={{ color: isSelected ? "#F6482D" : "#8A919E" }}>
-                  {getLabel(option)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </Row>
-      )}
-    </Stack>
-  );
-}
-
-// 대단원/소단원처럼 계층이 있는 단원은 pill 형태보다 들여쓰기로 구분되는 세로 목록이 더 잘 보여서 따로 뺐습니다.
-function ChapterPicker({ options, selectedId, onSelect, emptyText }: {
-  options: FlatChapter[];
-  selectedId: number | null;
-  onSelect: (id: number) => void;
-  emptyText: string;
-}) {
-  return (
-    <Stack gap="m">
-      <Text variant="base-medium" weight="medium">단원</Text>
-      {options.length === 0 ? (
-        <Text color="disabled">{emptyText}</Text>
-      ) : (
-        <Stack gap="xs">
-          {options.map((chapter) => {
-            const isSelected = selectedId === chapter.id;
-            return (
-              <View key={chapter.id} style={{ marginLeft: chapter.depth * 16 }}>
-                <Pressable
-                  onPress={() => onSelect(chapter.id)}
-                  className="self-start px-l py-s rounded-sm border-2"
-                  style={{
-                    borderColor: isSelected ? "#F6482D" : "#525866",
-                    backgroundColor: isSelected ? "rgba(246,72,45,0.15)" : "transparent",
-                  }}
-                >
-                  <Text weight="medium" style={{ color: isSelected ? "#F6482D" : "#8A919E" }}>
-                    {chapter.chapterName}
-                  </Text>
-                </Pressable>
-              </View>
-            );
-          })}
-        </Stack>
-      )}
-    </Stack>
-  );
-}
-
 /**
  * 플랜보드 추가 모달
  * @param visible 모달 표시 여부를 설정합니다.
@@ -347,14 +256,10 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const [end, setEnd] = useState(() => new Date(roundToNextHour(baseDate).getTime() + 60 * 60_000));
   const [activePicker, setActivePicker] = useState<PickerTarget | null>(null);
 
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [textbooks, setTextbooks] = useState<Textbook[]>([]);
-  const [chapters, setChapters] = useState<FlatChapter[]>([]);
-  const [subjectId, setSubjectId] = useState<number | null>(null);
-  const [textbookId, setTextbookId] = useState<number | null>(null);
-  const [chapterId, setChapterId] = useState<number | null>(null);
-  const [textbookLabel, setTextbookLabel] = useState<{ subjectName: string; textbookName: string } | null>(null);
+  // 고른 교과서 (태스크 생성 API에 교과서 필드가 없어 화면 표시용)
+  const [selectedTextbooks, setSelectedTextbooks] = useState<Map<number, TextbookWithSubject>>(new Map());
   const [showTextbookPicker, setShowTextbookPicker] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -369,43 +274,14 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setAllDay(false);
     setStart(s);
     setEnd(new Date(s.getTime() + 60 * 60_000));
-    setSubjectId(null);
-    setTextbookId(null);
-    setChapterId(null);
-    setTextbookLabel(null);
+    setSelectedTextbooks(new Map());
     setShowTextbookPicker(false);
     setError("");
     setSubmitting(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  useEffect(() => {
-    if (!visible) return;
-    getSubjects().then(setSubjects).catch(() => setSubjects([]));
-  }, [visible]);
-
-  useEffect(() => {
-    setTextbookId(null);
-    setChapters([]);
-    if (subjectId === null) {
-      setTextbooks([]);
-      return;
-    }
-    getTextbooksBySubject(subjectId).then(setTextbooks).catch(() => setTextbooks([]));
-  }, [subjectId]);
-
-  useEffect(() => {
-    setChapterId(null);
-    if (textbookId === null) {
-      setChapters([]);
-      return;
-    }
-    getTextbookDetail(textbookId)
-      .then((detail) => setChapters(flattenChapterTree(detail.chapters)))
-      .catch(() => setChapters([]));
-  }, [textbookId]);
-
-  const canSubmit = title.trim().length > 0 && subjectId !== null && textbookId !== null && chapterId !== null && !submitting;
+  const canSubmit = title.trim().length > 0 && selectedTextbooks.size > 0 && !submitting;
 
   const applyPicked = (target: PickerTarget, picked: Date) => {
     const setter = target.startsWith("start") ? setStart : setEnd;
@@ -424,16 +300,16 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setTimeout(() => setActivePicker((prev) => (prev === target ? null : prev)), 500);
   };
 
-  const handleConfirmTextbook = () => {
-    if (subjectId === null || textbookId === null || chapterId === null) return;
-    const subjectName = subjects.find((s) => s.id === subjectId)?.name ?? "";
-    const textbookName = textbooks.find((t) => t.id === textbookId)?.title ?? "";
-    setTextbookLabel({ subjectName, textbookName });
-    setShowTextbookPicker(false);
+  const toggleTextbook = (textbook: TextbookWithSubject) => {
+    setSelectedTextbooks((prev) => {
+      const next = new Map(prev);
+      if (next.has(textbook.id)) next.delete(textbook.id); else next.set(textbook.id, textbook);
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || subjectId === null || textbookId === null || chapterId === null) return;
+    if (!canSubmit) return;
 
     let startAt = start;
     let endAt = end;
@@ -449,7 +325,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setError("");
     setSubmitting(true);
     try {
-      // 태스크 생성 API에 과목/교과서/단원 필드 없음, 선택값은 화면 표시만 하고 미전송
+      // 태스크 생성 API에 교과서 필드 없음, 선택값은 화면 표시만 하고 미전송
       const board = await getOrCreateCurrentPlanBoard();
       const estimatedMinutes = Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000));
       await createPlanTask({
@@ -548,45 +424,29 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">교과서</Text>
-                  {showTextbookPicker ? (
-                    <Stack gap="xl" width="full" className="bg-neutral-700 p-l rounded-md">
-                      <PickerRow label="과목" options={subjects} selectedId={subjectId} onSelect={setSubjectId} emptyText="과목을 불러오는 중입니다." getLabel={(s) => s.name} />
-                      {subjectId !== null && (
-                        <PickerRow label="교과서" options={textbooks} selectedId={textbookId} onSelect={setTextbookId} emptyText="교과서를 불러오는 중입니다." getLabel={(t) => t.title} />
-                      )}
-                      {textbookId !== null && (
-                        <ChapterPicker options={chapters} selectedId={chapterId} onSelect={setChapterId} emptyText="단원을 불러오는 중입니다." />
-                      )}
-                      <Pressable
-                        onPress={handleConfirmTextbook}
-                        disabled={chapterId === null}
-                        className="py-m rounded-sm items-center justify-center"
-                        style={{ backgroundColor: chapterId === null ? "#525866" : "#F6482D" }}
-                      >
-                        <Text variant="base-medium" weight="medium" className="text-white">선택 완료</Text>
-                      </Pressable>
-                    </Stack>
-                  ) : (
-                    <Row gap="xl">
-                      {textbookLabel && (
-                        <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
-                          <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 items-center justify-center">
-                            <Icon name="book" size={32} color="#8A919E" />
-                          </View>
-                          <Stack gap="xxs">
-                            <Text variant="base-small" weight="medium" className="text-white">{textbookLabel.textbookName}</Text>
-                            <Text variant="base-small" color="secondary">{textbookLabel.subjectName}</Text>
-                          </Stack>
-                        </Pressable>
-                      )}
-                      <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
-                        <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
-                          <Icon name="plus" size={24} color="#8A919E" />
+                  <Row gap="xl" className="flex-wrap">
+                    {[...selectedTextbooks.values()].map((textbook) => (
+                      <Pressable key={textbook.id} onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
+                        <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden">
+                          {textbook.coverImageUrl ? (
+                            <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                          ) : (
+                            <Icon name="book" size={32} color={palette.neutral["400"]} />
+                          )}
                         </View>
-                        <Text variant="base-small" color="secondary">교과서 {textbookLabel ? "변경하기" : "추가하기"}</Text>
+                        <Stack gap="xxs">
+                          <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
+                          <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.subjectName}</Text>
+                        </Stack>
                       </Pressable>
-                    </Row>
-                  )}
+                    ))}
+                    <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
+                      <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
+                        <Icon name="plus" size={24} color={palette.neutral["400"]} />
+                      </View>
+                      <Text variant="base-small" color="secondary">교과서 {selectedTextbooks.size > 0 ? "변경하기" : "추가하기"}</Text>
+                    </Pressable>
+                  </Row>
                 </Stack>
 
                 {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
@@ -596,6 +456,28 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
             </KeyboardAvoidingView>
         </Animated.View>
       </View>
+
+      {/* 교과서 선택 전체 화면 (Figma Add 2:1191), 뒤로가기로 시트에 복귀 */}
+      {showTextbookPicker && (
+        <View className="absolute inset-0 bg-background-primary px-6" style={{ paddingTop: insets.top + 16 }}>
+          <Row width="full" align="between" className="items-center pb-xl">
+            <Row gap="xs" className="items-center">
+              <Pressable onPress={() => setShowTextbookPicker(false)} hitSlop={8}>
+                <Icon name="chevronLeft" size={32} />
+              </Pressable>
+              <Text variant="header-medium" weight="semibold">교과서 선택</Text>
+            </Row>
+            <Text variant="base-medium" weight="medium">{`${selectedTextbooks.size}개 선택됨`}</Text>
+          </Row>
+          <TextbookPicker selectedIds={new Set(selectedTextbooks.keys())} onToggle={toggleTextbook} bottomInset={insets.bottom + 40} />
+          {/* 아래쪽 표지가 배경으로 흐려지는 그라데이션 */}
+          <View
+            pointerEvents="none"
+            className="absolute left-0 right-0 bottom-0"
+            style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary}00 0%, ${palette.background.primary} 100%)` }}
+          />
+        </View>
+      )}
     </Modal>
   );
 }

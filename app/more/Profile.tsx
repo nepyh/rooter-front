@@ -9,6 +9,18 @@ import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
 import { logout } from "@/api/auth";
 import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
+import type { UserInfo } from "@/api/user";
+import { getSchoolName } from "@/api/school";
+
+// ================================
+// Utils
+// ================================
+
+// 학생 프로필 등록 전이면 학년·반이 null
+const formatGradeClass = (info: UserInfo | null) => {
+  if (!info?.grade || !info.classNumber) return "-";
+  return `${info.grade}학년 ${info.classNumber}반`;
+};
 
 // ================================
 // Components
@@ -44,12 +56,17 @@ export default function ProfilePage() {
 
   const [bio, setBio] = useState(user?.bio ?? "");
   const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [schoolName, setSchoolName] = useState<string | null>(null);
 
   // 로그인 응답엔 소개(bio)/아바타가 없어서, 화면 진입 시 서버에서 최신 값을 받아옵니다.
   useEffect(() => {
     if (userId === null) return;
     getUserInfo(userId)
       .then((info) => {
+        setUserInfo(info);
+        if (info.schoolName) setSchoolName(info.schoolName);
+        else if (info.schoolId) getSchoolName(info.schoolId).then(setSchoolName).catch(() => setSchoolName(null));
         setBio(info.bio ?? "");
         if (info.avatarUrl) setProfileImageUri(info.avatarUrl);
         updateProfile({ bio: info.bio ?? "" });
@@ -140,6 +157,8 @@ export default function ProfilePage() {
         <Stack gap="xl" width="full" className="pt-xxl">
           <ReadOnlyField label="이름" value={user?.username ?? ""} />
           <ReadOnlyField label="이메일" value={user?.email ?? ""} />
+          <ReadOnlyField label="학교" value={schoolName ?? "-"} />
+          <ReadOnlyField label="학년 · 반" value={formatGradeClass(userInfo)} />
           <Stack gap="s" width="full">
             <Text variant="base-medium">소개</Text>
             <Input

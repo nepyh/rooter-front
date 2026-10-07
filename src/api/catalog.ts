@@ -15,6 +15,8 @@ export interface Textbook {
   publisherId: number | null;
   title: string;
   aiStatus: string;
+  // S3 임시 주소라 일정 시간 뒤 만료, 표지 없으면 null
+  coverImageUrl: string | null;
 }
 
 export interface ChapterTree {
@@ -31,6 +33,7 @@ export interface TextbookDetail {
   publisherId: number | null;
   title: string;
   aiStatus: string;
+  coverImageUrl: string | null;
   chapters: ChapterTree[];
 }
 

@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Modal, PanResponder, Pressable, ScrollView, View } from "react-native";
-import Animated, { Easing, SlideInLeft, SlideInRight, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Alert, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
 import { Stack, Row, Input, Button, Text, Toast, AddPlanBoardModal, AiChatModal } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
-import { CATEGORY_COLORS } from "@/constants/category";
+import { CATEGORY_COLORS, SUBJECT_CATEGORIES } from "@/constants/category";
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import { useNow } from "@/hooks/useNow";
-import { completeTask, deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, updatePlanTask } from "@/api/planBoard";
+import { deletePlanTask, getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects, updatePlanTask } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
 import { useUIStore, useUserStore } from "@/store";
 import { DAY_OF_WEEK_NAMES, getUnavailableTimes } from "@/api/user";
 import type { UnavailableTime } from "@/api/user";
 import { toLocalDateString } from "@/utils/date";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
@@ -437,7 +438,10 @@ export default function Home() {
   const now = useNow(30_000);
   // 좌우로 밀어 날짜 이동, 0이 오늘
   const [dayOffset, setDayOffset] = useState(0);
-  const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+  // 가로 페이지(어제|오늘|내일) 너비와 옆 페이지 눈금 위치
+  const pagerRef = useRef<ScrollView>(null);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [neighborOffset, setNeighborOffset] = useState(0);
   const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
   const selectedKey = toLocalDateString(selectedDate);
   const isToday = dayOffset === 0;
@@ -485,24 +489,54 @@ export default function Home() {
 
   const moveDay = (delta: number) => {
     setActiveId(null);
-    setSlideDirection(delta > 0 ? "next" : "prev");
     setDayOffset((prev) => prev + delta);
   };
 
-  // 가로로 확실히 민 경우만 날짜 이동, 세로 스크롤은 그대로
-  const swipeResponder = useRef(
-    PanResponder.create({
-      // 안쪽 세로 ScrollView보다 먼저 가로 움직임만 가로챔
-      onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderRelease: (_, g) => {
-        if (g.dx < -60) moveDayRef.current(1);
-        else if (g.dx > 60) moveDayRef.current(-1);
-      },
-    }),
-  ).current;
-  const moveDayRef = useRef(moveDay);
-  moveDayRef.current = moveDay;
+  // [오늘로]도 스와이프처럼 오늘 쪽 옆 페이지로 넘긴 뒤 날짜 변경
+  const pendingJumpRef = useRef<number | null>(null);
+  const finishJump = () => {
+    const delta = pendingJumpRef.current;
+    if (delta === null) return;
+    pendingJumpRef.current = null;
+    moveDay(delta);
+    pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
+  };
+  const goToday = () => {
+    if (!pageWidth) {
+      moveDay(-dayOffset);
+      return;
+    }
+    pendingJumpRef.current = -dayOffset;
+    setNeighborOffset(scrollYRef.current);
+    pagerRef.current?.scrollTo({ x: dayOffset > 0 ? 0 : pageWidth * 2, animated: true });
+    // 안드로이드는 코드로 넘길 때 onMomentumScrollEnd가 안 와서 시간으로 마무리
+    setTimeout(finishJump, 400);
+  };
+
+  // iOS는 세로 ScrollView가 터치를 먼저 가져가 JS 제스처가 끊겨서, 가로 넘김도 네이티브 페이지 스크롤로 처리
+  const handlePagerEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!pageWidth) return;
+    if (pendingJumpRef.current !== null) {
+      finishJump();
+      return;
+    }
+    const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+    if (page !== 1) moveDay(page - 1);
+    pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
+  };
+
+  const renderNeighborPage = () => (
+    <View style={{ width: pageWidth, overflow: "hidden" }}>
+      <View style={{ height: TIMELINE_HEIGHT, transform: [{ translateY: -neighborOffset }] }}>
+        {HOURS.map((hour, i) => (
+          <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
+            <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
+            <View className="flex-1 h-px bg-neutral-600 ml-s" />
+          </Row>
+        ))}
+      </View>
+    </View>
+  );
 
   // 플랜보드 중 오늘 이후 가장 가까운 시험일
   const [nextExamDate, setNextExamDate] = useState<string | null>(null);
@@ -521,15 +555,32 @@ export default function Home() {
 
   useFocusEffect(loadNextExam);
 
-  // 직접 추가한 계획 = 시험일 없는 기본 보드의 오늘 dailyPlanId
+  // 할일 응답에 보드·과목이 없어 보드별 그날 dailyPlanId로 연결
+  // 직접 추가 = 시험일 없는 기본 보드, 과목 색 = 과목이 하나뿐인 보드의 과목
   const [manualDailyPlanIds, setManualDailyPlanIds] = useState<Set<number>>(new Set());
-  const loadManualDailyPlanIds = useCallback(() => {
+  const [categoryByDailyPlanId, setCategoryByDailyPlanId] = useState<Map<number, Category>>(new Map());
+  const loadBoardInfo = useCallback(() => {
     getPlanBoards()
-      .then((boards) => Promise.all(boards.filter((board) => board.examDate === null).map((board) => getBoardDaily(board.id))))
-      .then((dailies) => setManualDailyPlanIds(new Set(dailies.map((daily) => daily.dailyPlanId).filter((id): id is number => typeof id === "number"))))
-      .catch(() => setManualDailyPlanIds(new Set()));
-  }, []);
-  useFocusEffect(loadManualDailyPlanIds);
+      .then((boards) => Promise.all(boards.map(async (board) => {
+        const [daily, subjects] = await Promise.all([
+          getBoardDaily(board.id, selectedKey),
+          board.examDate === null ? Promise.resolve([]) : getPlanBoardSubjects(board.id).catch(() => []),
+        ]);
+        const subjectNames = new Set(subjects.map((subject) => subject.subjectName));
+        const category = subjectNames.size === 1 ? SUBJECT_CATEGORIES[[...subjectNames][0]] ?? "neutral" : "neutral";
+        return { dailyPlanId: daily.dailyPlanId, manual: board.examDate === null, category };
+      })))
+      .then((infos) => {
+        const linked = infos.filter((info): info is typeof info & { dailyPlanId: number } => typeof info.dailyPlanId === "number");
+        setManualDailyPlanIds(new Set(linked.filter((info) => info.manual).map((info) => info.dailyPlanId)));
+        setCategoryByDailyPlanId(new Map(linked.map((info) => [info.dailyPlanId, info.category])));
+      })
+      .catch(() => {
+        setManualDailyPlanIds(new Set());
+        setCategoryByDailyPlanId(new Map());
+      });
+  }, [selectedKey]);
+  useFocusEffect(loadBoardInfo);
 
   // 수면·불가능 시간 표시, 학교(하교 시각)는 조회 API가 없어 미표시
   const userId = useUserStore((state) => state.userId);
@@ -548,7 +599,11 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activePlan = plans.find((plan) => plan.id === activeId) ?? null;
+  const coloredPlans = plans.map((plan) => ({
+    ...plan,
+    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
+  }));
+  const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
@@ -558,7 +613,11 @@ export default function Home() {
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
-    if (plan.status === "done") return; // 완료한 계획은 메뉴 없음
+    // 완료한 계획은 메뉴 없이 퀴즈(결과·이어 풀기)로 바로 이동
+    if (plan.status === "done") {
+      openQuiz(plan);
+      return;
+    }
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
@@ -580,16 +639,18 @@ export default function Home() {
   };
 
   // "완료"를 눌러 실제로 완료 처리될 때만(취소 토글이 아닐 때) 해당 과목 퀴즈로 이동합니다.
+  // 완료는 퀴즈 통과 시 서버가 처리, 여기선 퀴즈만 열어 퀴즈가 없거나 중간에 나가면 기본 상태 유지
+  const openQuiz = (plan: Plan) => {
+    setActiveId(null);
+    router.push({
+      pathname: "/home/QuizPage",
+      params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
+    });
+  };
+
   const handleComplete = (plan: Plan) => {
     if (plan.status !== "pending") return;
-    setPlanStatus(plan.id, "done");
-
-    completeTask(Number(plan.id), true).catch(() => {
-      setPlanStatus(plan.id, "pending"); // 서버 처리 실패 시 대기 상태로 복구
-      Alert.alert("처리 실패", "완료 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    });
-
-    router.push({ pathname: "/home/QuizPage", params: { category: plan.category } });
+    openQuiz(plan);
   };
 
   const handleFail = (plan: Plan) => {
@@ -616,11 +677,20 @@ export default function Home() {
       });
   };
 
+  // 계획 없는 날은 AI 채팅 안내 대신 같은 플랜 생성 말풍선 하나만 표시
+  const handleOpenAiChat = () => {
+    if (plans.length === 0) {
+      setEmptyNoticeClosed(false);
+      return;
+    }
+    setShowAiChat(true);
+  };
+
   // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
   const handlePlanCreated = () => {
     setShowAddPlan(false);
     loadDailyTasks();
-    loadManualDailyPlanIds(); // 기본 보드가 새로 생겼을 수 있음
+    loadBoardInfo(); // 기본 보드가 새로 생겼을 수 있음
   };
 
   const handleEditSave = (title: string, start: number, duration: number) => {
@@ -658,8 +728,8 @@ export default function Home() {
         <Row gap="s" className="items-center">
           <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
           {!isToday && (
-            <Pressable onPress={() => moveDay(-dayOffset)} hitSlop={8}>
-              <Text variant="base-small" weight="medium" className="text-primary-500">오늘로</Text>
+            <Pressable onPress={goToday} hitSlop={8}>
+              <Text variant="base-small" weight="medium" style={{ color: palette.primary["500"] }}>오늘로</Text>
             </Pressable>
           )}
         </Row>
@@ -671,10 +741,22 @@ export default function Home() {
         )}
       </Row>
 
-      <View className="flex-1" {...swipeResponder.panHandlers}>
+      <View className="flex-1" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
       {plans.length === 0 && !emptyNoticeClosed && (
         <EmptyPlanNotice onCreate={() => router.push("/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
       )}
+      {pageWidth > 0 && (
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        contentOffset={{ x: pageWidth, y: 0 }}
+        onScrollBeginDrag={() => setNeighborOffset(scrollYRef.current)}
+        onMomentumScrollEnd={handlePagerEnd}
+      >
+      {renderNeighborPage()}
+      <View style={{ width: pageWidth }}>
 
       <ScrollView
         ref={scrollRef}
@@ -685,11 +767,7 @@ export default function Home() {
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         onLayout={(e) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
       >
-        <Animated.View
-          key={selectedKey}
-          entering={dayOffset === 0 && slideDirection === "next" ? undefined : (slideDirection === "next" ? SlideInRight : SlideInLeft).duration(260)}
-          style={{ height: TIMELINE_HEIGHT, position: "relative" }}
-        >
+        <View key={selectedKey} style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
           {HOURS.map((hour, i) => (
             <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
               <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
@@ -701,7 +779,7 @@ export default function Home() {
             <BusyBlockView key={block.key} block={block} />
           ))}
 
-          {plans.map((plan) => (
+          {coloredPlans.map((plan) => (
             <PlanBlock key={plan.id} plan={plan} onPress={() => handleSelectPlan(plan)} />
           ))}
 
@@ -718,8 +796,12 @@ export default function Home() {
               onDelete={() => handleDelete(activePlan)}
             />
           )}
-        </Animated.View>
+        </View>
       </ScrollView>
+      </View>
+      {renderNeighborPage()}
+      </ScrollView>
+      )}
       </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
@@ -727,7 +809,7 @@ export default function Home() {
           <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
-          <Pressable onPress={() => setShowAiChat(true)} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={handleOpenAiChat} className="p-m rounded-full items-center justify-center">
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>

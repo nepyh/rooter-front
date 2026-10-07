@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { BackHandler, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
 import { Stack, Row, Text, Input, Button } from "@/components";
-import { Icon } from "@/assets";
 import { getFeedback, submitFeedback } from "@/api/feedback";
 import type { Difficulty, Feedback } from "@/api/feedback";
 
@@ -98,6 +97,14 @@ export default function FeedbackPage() {
     }
   };
 
+  // 제출 전에는 안드로이드 뒤로가기로 못 나가고 [제출]로만 나가기
+  const mustSubmit = !loading && !!planId && !result;
+  useEffect(() => {
+    if (!mustSubmit) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => true);
+    return () => subscription.remove();
+  }, [mustSubmit]);
+
   const adjustmentTasks = result?.insertedAdjustmentTasks ?? [];
 
   // 링크로 바로 열린 경우 돌아갈 화면이 없어 Home으로 이동
@@ -108,10 +115,6 @@ export default function FeedbackPage() {
       <StatusBar style="light" />
       <Stack align="between" width="full" className="flex-1">
         <Stack gap="xxl" width="full" className="flex-1">
-          <Pressable onPress={close} className="w-[28px] h-[28px] items-center justify-center">
-            <Icon name="close" size={24} />
-          </Pressable>
-
           {loading ? (
             <Stack gap="m" width="full" className="flex-1 items-center justify-center">
               <Text color="secondary">불러오는 중...</Text>
