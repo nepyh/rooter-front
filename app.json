@@ -58,7 +58,8 @@
             "./src/assets/fonts/Pretendard-SemiBold.ttf"
           ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "backgroundColor": "#33363F"
   }

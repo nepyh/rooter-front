@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, Button, Text, Toast } from '@/components';
 import { Icon } from '@/assets';
 import palette from '@/constants/palette';
+import { useUserStore } from '@/store';
 
 // ================================
 // Constants
@@ -20,12 +21,16 @@ export default function App() {
   const router = useRouter();
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
+  const isLogin = useUserStore((state) => state.isLogin);
 
   useEffect(() => {
     if (toast && TOAST_MESSAGES[toast]) {
       setShowToast(true);
     }
   }, [toast]);
+
+  // 로그인 정보가 남아 있으면 첫 화면 건너뛰고 Home
+  if (isLogin) return <Redirect href="/home" />;
 
   return (
     <View className="flex-1 pb-10 justify-end">
