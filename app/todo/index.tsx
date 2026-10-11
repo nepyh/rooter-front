@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
-import { router, useFocusEffect } from "expo-router";
+import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
