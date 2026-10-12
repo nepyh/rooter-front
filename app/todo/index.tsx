@@ -119,6 +119,7 @@ export default function TodoPage() {
 
   // 완료는 퀴즈 통과 시 서버가 처리, 체크는 퀴즈만 열어 Home 완료 버튼과 같게
   const handleToggle = (task: PlanTask) => {
+    if (task.isCompleted) return; // 완료한 할일은 반응 없음
     router.push({ pathname: "/home/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
