@@ -737,6 +737,12 @@ export default function Home() {
 
   const handleEditSave = (title: string, start: number, duration: number) => {
     const id = editingId;
+    // 같은 날 다른 계획과 시간이 겹치면 저장하지 않음
+    const overlap = plans.find((plan) => plan.id !== id && plan.start < start + duration && start < plan.start + plan.duration);
+    if (overlap) {
+      Alert.alert("시간이 겹쳐요", `'${overlap.title}' 계획과 시간이 겹쳐요. 다른 시간을 골라주세요.`);
+      return;
+    }
     const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
     const endMin = (startMin + duration) % DAY_MIN;
     const startTime = `${pad(Math.floor(startMin / 60))}:${pad(startMin % 60)}`;

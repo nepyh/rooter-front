@@ -9,6 +9,7 @@ import { TextbookPicker } from "@/components/TextbookPicker";
 import type { TextbookWithSubject } from "@/components/TextbookPicker";
 import palette from "@/constants/palette";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
+import { findOverlappingTask, getBusyTimes } from "@/api/busyTime";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import { WEEKDAYS } from "@/constants/date";
 
@@ -346,6 +347,15 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setSubmitting(true);
     try {
       // 태스크 생성 API에 교과서 필드 없음, 선택값은 화면 표시만 하고 미전송
+      // 다른 계획과 시간이 겹치면 만들지 않음, 자정을 넘기면 그날 끝까지만 비교
+      const dateKey = toDateString(startAt);
+      const overlapEnd = toDateString(endAt) === dateKey ? formatTimePill(endAt) : "24:00";
+      const busy = await getBusyTimes(dateKey, dateKey);
+      const overlap = findOverlappingTask(busy.days[0] ?? null, formatTimePill(startAt), overlapEnd);
+      if (overlap) {
+        setError(`'${overlap.taskName}' 계획(${overlap.startTime}~${overlap.endTime})과 시간이 겹쳐요. 다른 시간을 골라주세요.`);
+        return;
+      }
       const board = await getOrCreateCurrentPlanBoard();
       const estimatedMinutes = Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000));
       await createPlanTask({

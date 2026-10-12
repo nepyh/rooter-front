@@ -45,3 +45,15 @@ export const getBusyTimes = async (startDate: string, endDate: string): Promise<
   const response = await api.get('/busy-times', { params: { startDate, endDate } });
   return response.data;
 };
+
+/**
+ * 그날 다른 할일과 시간이 겹치는지 찾는 함수
+ * @param day 그날 바쁜 시간
+ * @param startTime 시작 (HH:mm)
+ * @param endTime 끝 (HH:mm, 하루 끝은 24:00)
+ * @param excludeTaskId 수정 중인 할일 ID, 자기 자신은 빼고 비교
+ * @returns 겹치는 할일, 없으면 undefined
+ */
+export const findOverlappingTask = (day: DailyBusyTime | null, startTime: string, endTime: string, excludeTaskId?: number) =>
+  day?.busyTimes.find((item) =>
+    item.type === 'TASK' && item.taskId !== excludeTaskId && item.startTime < endTime && startTime < item.endTime);
