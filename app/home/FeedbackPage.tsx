@@ -63,27 +63,29 @@ export default function FeedbackPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Feedback | null>(null);
 
-  // 이미 제출한 피드백이 있으면 결과 화면으로 바로 표시
+  // 피드백은 일일 계획당 1번이라, 같은 날 다른 할일 퀴즈 뒤에는 설문 없이 Home으로
   useEffect(() => {
     if (!planId) {
       setLoading(false);
       return;
     }
     getFeedback(planId)
-      .then(setResult)
-      .catch(() => setResult(null))
-      .finally(() => setLoading(false));
+      .then(() => router.replace("/home"))
+      .catch(() => setLoading(false));
   }, [planId]);
 
+  // 난이도·집중도·공부한 시간 모두 채워야 제출
+  const canSubmit = !!difficulty && focusLevel !== null && Number(timeSpent) > 0 && !submitting;
+
   const handleSubmit = async () => {
-    if (!planId || !difficulty) return;
+    if (!planId || !canSubmit || !difficulty || focusLevel === null) return;
     setSubmitting(true);
     setError("");
     try {
       setResult(await submitFeedback(planId, {
         difficulty,
-        timeSpentMinutes: timeSpent ? Number(timeSpent) : undefined,
-        focusLevel: focusLevel ?? undefined,
+        timeSpentMinutes: Number(timeSpent),
+        focusLevel,
       }));
     } catch (e) {
       const code = axios.isAxiosError(e) ? e.response?.data?.code : undefined;
@@ -192,7 +194,7 @@ export default function FeedbackPage() {
         {loading ? null : result || !planId ? (
           <Button variant="primary" onPress={close}>완료</Button>
         ) : (
-          <Button variant={difficulty && !submitting ? "primary" : "disabled"} onPress={handleSubmit}>
+          <Button variant={canSubmit ? "primary" : "disabled"} onPress={handleSubmit}>
             {submitting ? "제출 중..." : "제출"}
           </Button>
         )}
