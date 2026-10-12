@@ -6,6 +6,7 @@ import axios from "axios";
 import { Stack, Row, Text, Input, Button } from "@/components";
 import { getFeedback, submitFeedback } from "@/api/feedback";
 import type { Difficulty, Feedback } from "@/api/feedback";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
@@ -41,6 +42,11 @@ const chipStyles: Record<ChipState, string> = {
 // Components
 // ================================
 
+// 구글 폼의 "필수 질문입니다" 안내
+function RequiredNotice() {
+  return <Text variant="base-small" style={{ color: palette.utility["error-primary"] }}>필수 질문입니다</Text>;
+}
+
 function Chip({ label, state, onPress }: { label: string; state: ChipState; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} className={`flex-1 items-center justify-center py-xl rounded-md border-2 ${chipStyles[state]}`}>
@@ -74,11 +80,17 @@ export default function FeedbackPage() {
       .catch(() => setLoading(false));
   }, [planId]);
 
-  // 난이도·집중도·공부한 시간 모두 채워야 제출
-  const canSubmit = !!difficulty && focusLevel !== null && Number(timeSpent) > 0 && !submitting;
+  // 난이도·집중도·공부한 시간 모두 필수, 구글 폼처럼 [제출]을 누르면 빠진 항목에 안내
+  const [showRequired, setShowRequired] = useState(false);
+  const missing = { difficulty: !difficulty, focus: focusLevel === null, time: !(Number(timeSpent) > 0) };
+  const canSubmit = !missing.difficulty && !missing.focus && !missing.time && !submitting;
 
   const handleSubmit = async () => {
-    if (!planId || !canSubmit || !difficulty || focusLevel === null) return;
+    if (!planId || submitting) return;
+    if (!canSubmit || !difficulty || focusLevel === null) {
+      setShowRequired(true);
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
@@ -158,7 +170,8 @@ export default function FeedbackPage() {
                 </Stack>
 
                 <Stack gap="s" width="full">
-                  <Text variant="base-medium" weight="medium">난이도</Text>
+                  <Text variant="base-medium" weight="medium">난이도 <Text variant="base-medium" style={{ color: palette.utility["error-primary"] }}>*</Text></Text>
+                  {showRequired && missing.difficulty && <RequiredNotice />}
                   <Row gap="m" width="full">
                     {DIFFICULTIES.map((item) => (
                       <Chip key={item} label={item} state={difficulty === item ? "selected" : "default"} onPress={() => setDifficulty(item)} />
@@ -167,7 +180,8 @@ export default function FeedbackPage() {
                 </Stack>
 
                 <Stack gap="s" width="full">
-                  <Text variant="base-medium" weight="medium">집중도</Text>
+                  <Text variant="base-medium" weight="medium">집중도 <Text variant="base-medium" style={{ color: palette.utility["error-primary"] }}>*</Text></Text>
+                  {showRequired && missing.focus && <RequiredNotice />}
                   <Row gap="s" width="full">
                     {FOCUS_LEVELS.map((level) => (
                       <Chip key={level} label={String(level)} state={focusLevel === level ? "selected" : "default"} onPress={() => setFocusLevel(level)} />
@@ -176,7 +190,8 @@ export default function FeedbackPage() {
                 </Stack>
 
                 <Stack gap="s" width="full">
-                  <Text variant="base-medium" weight="medium">공부한 시간</Text>
+                  <Text variant="base-medium" weight="medium">공부한 시간 <Text variant="base-medium" style={{ color: palette.utility["error-primary"] }}>*</Text></Text>
+                  {showRequired && missing.time && <RequiredNotice />}
                   <Input
                     value={timeSpent}
                     onChangeText={(text) => setTimeSpent(text.replace(/[^0-9]/g, ""))}
@@ -194,7 +209,7 @@ export default function FeedbackPage() {
         {loading ? null : result || !planId ? (
           <Button variant="primary" onPress={close}>완료</Button>
         ) : (
-          <Button variant={canSubmit ? "primary" : "disabled"} onPress={handleSubmit}>
+          <Button variant={submitting ? "disabled" : "primary"} onPress={handleSubmit}>
             {submitting ? "제출 중..." : "제출"}
           </Button>
         )}
