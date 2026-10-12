@@ -296,6 +296,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setEnd(new Date(s.getTime() + 60 * 60_000));
     setSelectedTextbooks(new Map());
     setShowTextbookPicker(false);
+    setActivePicker(null);
     setError("");
     setSubmitting(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -416,9 +417,10 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "start-date" && (
                           <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
                         )}
-                        <View style={{ height: activePicker === "start-time" ? WHEEL_HEIGHT : 0, overflow: "hidden" }}>
+                        {/* 휠은 열 때만 그림, 숨겨 두면 숫자 칸 수백 개가 늘 깔려 시트 스크롤이 무거워짐 */}
+                        {activePicker === "start-time" && (
                           <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
-                        </View>
+                        )}
                       </View>
                     )}
 
@@ -434,9 +436,10 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "end-date" && (
                           <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
                         )}
-                        <View style={{ height: activePicker === "end-time" ? WHEEL_HEIGHT : 0, overflow: "hidden" }}>
+                        {/* 휠은 열 때만 그림, 숨겨 두면 숫자 칸 수백 개가 늘 깔려 시트 스크롤이 무거워짐 */}
+                        {activePicker === "end-time" && (
                           <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
-                        </View>
+                        )}
                       </View>
                     )}
                   </View>
