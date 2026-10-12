@@ -641,8 +641,12 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 끝나는 시각이 지금보다 이전인데 완료 안 된 계획은 실패로 표시
+  const dayStartMs = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
+  const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
   const coloredPlans = plans.map((plan) => ({
     ...plan,
+    status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
     category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
   }));
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
@@ -655,7 +659,7 @@ export default function Home() {
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
-    if (plan.status === "done") return; // 완료한 계획은 반응 없음
+    if (plan.status !== "pending") return; // 완료·실패(지난 계획 포함)는 메뉴 없음
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
