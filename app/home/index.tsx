@@ -655,11 +655,7 @@ export default function Home() {
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
-    // 완료한 계획은 메뉴 없이 퀴즈(결과·이어 풀기)로 바로 이동
-    if (plan.status === "done") {
-      openQuiz(plan);
-      return;
-    }
+    if (plan.status === "done") return; // 완료한 계획은 반응 없음
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;
