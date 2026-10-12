@@ -43,21 +43,11 @@ const getGenerateErrorMessage = (error: unknown) => {
   return GENERATE_ERROR_MESSAGES[error.response.data?.code] ?? "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.";
 };
 
-// 고른 소단원을 순서대로 이어지는 구간끼리 묶어 범위로 만듦, 서버는 같은 교과서 범위를 여러 개 받음
-const toSubjectRanges = (textbookId: number, leaves: ChapterTree[], selectedIds: Set<number>): PlanGenerationSubjectInput[] => {
-  const ranges: PlanGenerationSubjectInput[] = [];
-  let runStart: ChapterTree | null = null;
-  leaves.forEach((leaf, i) => {
-    const selected = selectedIds.has(leaf.id);
-    if (selected && !runStart) runStart = leaf;
-    const runEnds = selected && (i === leaves.length - 1 || !selectedIds.has(leaves[i + 1].id));
-    if (runEnds && runStart) {
-      ranges.push({ textbookId, startChapterId: runStart.id, endChapterId: leaf.id });
-      runStart = null;
-    }
-  });
-  return ranges;
-};
+// 학교마다 목차 순서대로 진도를 나가지 않아서, 고른 소단원을 이어 붙이지 않고 하나씩 따로 보냄
+const toSubjectEntries = (textbookId: number, leaves: ChapterTree[], selectedIds: Set<number>): PlanGenerationSubjectInput[] =>
+  leaves
+    .filter((leaf) => selectedIds.has(leaf.id))
+    .map((leaf) => ({ textbookId, startChapterId: leaf.id, endChapterId: leaf.id }));
 
 // ================================
 // Components
@@ -136,7 +126,10 @@ function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaf
 export default function ChapterSelectPage() {
   const { examDate, textbookIds } = useLocalSearchParams<{ examDate: string; textbookIds: string }>();
   const [textbooks, setTextbooks] = useState<TextbookDetail[]>([]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  // 대단원 토글은 여러 개 동시에 펼칠 수 있음
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  // 구글 폼처럼 [생성]을 눌렀을 때 빠진 교과서에 필수 안내 표시
+  const [showRequired, setShowRequired] = useState(false);
   // 누른 소단원만 체크
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -148,8 +141,7 @@ export default function ChapterSelectPage() {
   );
 
   // 교과서마다 목차를 하나 이상 골라야 생성 가능
-  const missingTextbook = textbooks.find((tb) => !leavesByTextbook[tb.id]?.some((leaf) => selectedIds.has(leaf.id)));
-  const canSubmit = textbooks.length > 0 && !missingTextbook && !submitting;
+  const missingIds = new Set(textbooks.filter((tb) => !leavesByTextbook[tb.id]?.some((leaf) => selectedIds.has(leaf.id))).map((tb) => tb.id));
 
   useEffect(() => {
     const ids = (textbookIds ?? "").split(",").filter(Boolean).map(Number);
@@ -166,8 +158,12 @@ export default function ChapterSelectPage() {
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
-    const subjects = textbooks.flatMap((tb) => toSubjectRanges(tb.id, leavesByTextbook[tb.id] ?? [], selectedIds));
+    if (submitting || textbooks.length === 0) return;
+    if (missingIds.size > 0) {
+      setShowRequired(true);
+      return;
+    }
+    const subjects = textbooks.flatMap((tb) => toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], selectedIds));
 
     setSubmitting(true);
     try {
@@ -228,14 +224,21 @@ export default function ChapterSelectPage() {
                 {textbooks.length > 1 && (
                   <Text variant="header-medium" weight="semibold" color="secondary" className="pt-s">{textbook.title}</Text>
                 )}
+                {showRequired && missingIds.has(textbook.id) && (
+                  <Text variant="base-small" style={{ color: palette.utility["error-primary"] }}>* 필수 항목이에요. 목차를 하나 이상 선택해주세요</Text>
+                )}
                 {[...textbook.chapters]
                   .sort((a, b) => a.chapterOrder - b.chapterOrder)
                   .map((node) => (
                     <TopLevelAccordion
                       key={node.id}
                       node={node}
-                      expanded={expandedId === node.id}
-                      onToggle={() => setExpandedId((prev) => (prev === node.id ? null : node.id))}
+                      expanded={expandedIds.has(node.id)}
+                      onToggle={() => setExpandedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(node.id)) next.delete(node.id); else next.add(node.id);
+                        return next;
+                      })}
                       selectedIds={selectedIds}
                       onToggleLeaf={toggleLeaf}
                     />
@@ -250,16 +253,15 @@ export default function ChapterSelectPage() {
           />
         </View>
 
-        {/* 교과서 여러 권 중 목차를 안 고른 게 있으면 안내 */}
-        {textbooks.length > 1 && selectedIds.size > 0 && missingTextbook && (
+        {showRequired && missingIds.size > 0 && (
           <Text variant="base-small" className="text-center pt-m" style={{ color: palette.utility["error-primary"] }}>
-            {`${missingTextbook.title}의 목차를 선택해주세요`}
+            선택하지 않은 필수 항목이 있어요
           </Text>
         )}
         <Pressable
           onPress={handleSubmit}
-          disabled={!canSubmit}
-          className={`h-16 rounded-md items-center justify-center w-full mt-l mb-xl ${canSubmit ? "bg-primary-500" : "bg-neutral-700"}`}
+          disabled={submitting}
+          className={`h-16 rounded-md items-center justify-center w-full mt-l mb-xl ${submitting ? "bg-neutral-700" : "bg-primary-500"}`}
         >
           <Text variant="base-medium" weight="medium" className="text-white">
             {submitting ? "계획 생성 중..." : "AI 학습 계획 생성"}
