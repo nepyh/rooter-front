@@ -1,6 +1,4 @@
-import { useEffect } from "react";
-import { Pressable, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Pressable } from "react-native";
 import { usePathname, router } from "expo-router";
 import { Row } from "./Row";
 import { Stack } from "./Stack";
@@ -37,29 +35,11 @@ const TABS: Tab[] = [
 // ================================
 
 function NavItem({ tab, active, onPress }: { tab: Tab; active: boolean; onPress: () => void }) {
-  const glow = useSharedValue(active ? 1 : 0);
-
-  useEffect(() => {
-    glow.value = withTiming(active ? 1 : 0, { duration: 800, easing: Easing.out(Easing.cubic) });
-  }, [active, glow]);
-
-  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
-
   return (
     <Pressable className="flex-1" onPress={onPress}>
       <Stack gap="xs" align="center" className="items-center py-s rounded-sm" style={{ height: 62 }}>
-        <View>
-          <Icon name={tab.icon} size={24} color="#8A919E" />
-          <Animated.View style={[{ position: "absolute", top: 0, left: 0 }, glowStyle]}>
-            <Icon name={tab.icon} size={24} color="#FFFFFF" />
-          </Animated.View>
-        </View>
-        <View>
-          <Text variant="base-small" color="disabled">{tab.label}</Text>
-          <Animated.View style={[{ position: "absolute", top: 0, left: 0 }, glowStyle]}>
-            <Text variant="base-small" color="primary">{tab.label}</Text>
-          </Animated.View>
-        </View>
+        <Icon name={tab.icon} size={24} color={active ? "#FFFFFF" : "#8A919E"} />
+        <Text variant="base-small" color={active ? "primary" : "disabled"}>{tab.label}</Text>
       </Stack>
     </Pressable>
   );
@@ -72,7 +52,7 @@ export function NavBar() {
   const pathname = usePathname();
 
   return (
-    <Row width="full" gap="xs" className="border-t border-neutral-600 items-center justify-center absolute bottom-0 left-0 pt-s pb-s px-xl bg-background-primary">
+    <Row width="full" gap="xs" className="border-t border-neutral-600 items-center justify-center absolute bottom-0 left-0 pt-s pb-xxl px-xl bg-background-primary">
       {TABS.map((tab) => {
         const active = pathname === tab.path;
         return (
