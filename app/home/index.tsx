@@ -143,6 +143,38 @@ const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   });
 };
 
+interface PlanColumn {
+  column: number; // 0부터
+  columns: number; // 겹치는 묶음의 칸 수
+}
+
+// 시간이 겹치는 계획끼리 묶어 빈 칸에 차례로 배치, 안 겹치면 한 칸(전체 너비)
+const layoutPlanColumns = (plans: Plan[]): Map<string, PlanColumn> => {
+  const result = new Map<string, PlanColumn>();
+  const sorted = [...plans].sort((a, b) => a.start - b.start || b.duration - a.duration);
+  let group: { id: string; column: number }[] = [];
+  let columnEnds: number[] = [];
+  let groupEnd = -1;
+
+  const flush = () => {
+    group.forEach(({ id, column }) => result.set(id, { column, columns: columnEnds.length }));
+    group = [];
+    columnEnds = [];
+  };
+
+  sorted.forEach((plan) => {
+    if (plan.start >= groupEnd) flush();
+    const end = plan.start + plan.duration;
+    let column = columnEnds.findIndex((columnEnd) => columnEnd <= plan.start);
+    if (column === -1) column = columnEnds.length;
+    columnEnds[column] = end;
+    group.push({ id: plan.id, column });
+    groupEnd = Math.max(groupEnd, end);
+  });
+  flush();
+  return result;
+};
+
 const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -238,7 +270,16 @@ function PlanBlockText({ plan, showLines, onTitleLayout, onLayout }: {
   );
 }
 
-function PlanBlock({ plan, onPress, onPressHidden }: { plan: Plan; onPress: () => void; onPressHidden: () => void }) {
+// 겹치는 계획 사이 간격 4의 절반씩 양쪽에
+const PLAN_COLUMN_GAP_HALF = 2;
+
+function PlanBlock({ plan, column, columns, onPress, onPressHidden }: {
+  plan: Plan;
+  column: number;
+  columns: number;
+  onPress: () => void;
+  onPressHidden: () => void;
+}) {
   const colors = CATEGORY_COLORS[plan.category];
   const override = STATUS_OVERRIDE[plan.status];
   const bar = override?.bar ?? colors.bar;
@@ -253,22 +294,35 @@ function PlanBlock({ plan, onPress, onPressHidden }: { plan: Plan; onPress: () =
   const fit: PlanTextFit = fullHeight <= available ? "full" : titleHeight <= available ? "title" : "none";
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: palette.background.primary, opacity }}
-      className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: "absolute",
+        top: plan.start,
+        left: `${(column * 100) / columns}%`,
+        width: `${100 / columns}%`,
+        height: plan.duration,
+        paddingLeft: column > 0 ? PLAN_COLUMN_GAP_HALF : 0,
+        paddingRight: column < columns - 1 ? PLAN_COLUMN_GAP_HALF : 0,
+      }}
     >
-      {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
-      <View className="absolute inset-0" style={{ backgroundColor: bg }} />
-      <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
-      <View className="flex-1 py-xxs" style={{ opacity: measured ? 1 : 0 }}>
-        {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
-      </View>
-      {/* 높이 제한 없이 그려 원래 높이 측정, 화면엔 안 보임 */}
-      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
-        <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
-      </View>
-    </Pressable>
+      <Pressable
+        onPress={onPress}
+        style={{ flex: 1, backgroundColor: palette.background.primary, opacity }}
+        className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+      >
+        {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
+        <View className="absolute inset-0" style={{ backgroundColor: bg }} />
+        <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
+        <View className="flex-1 py-xxs" style={{ opacity: measured ? 1 : 0 }}>
+          {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
+        </View>
+        {/* 높이 제한 없이 그려 원래 높이 측정, 화면엔 안 보임 */}
+        <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
+          <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -657,6 +711,7 @@ export default function Home() {
     category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
   }));
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
+  const planColumns = layoutPlanColumns(coloredPlans);
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
@@ -828,14 +883,22 @@ export default function Home() {
             <BusyBlockView key={block.key} block={block} />
           ))}
 
-          {coloredPlans.map((plan) => (
-            <PlanBlock
-              key={plan.id}
-              plan={plan}
-              onPress={() => handleSelectPlan(plan)}
-              onPressHidden={() => router.push({ pathname: "/todo", params: { date: selectedKey } })}
-            />
-          ))}
+          {/* 겹치는 계획은 칸을 나눠 나란히, 칸 너비를 %로 잡으려고 타임라인 오른쪽 영역에 따로 깜 */}
+          <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: TIMELINE_LEFT, right: 0 }}>
+            {coloredPlans.map((plan) => {
+              const { column, columns } = planColumns.get(plan.id) ?? { column: 0, columns: 1 };
+              return (
+                <PlanBlock
+                  key={plan.id}
+                  plan={plan}
+                  column={column}
+                  columns={columns}
+                  onPress={() => handleSelectPlan(plan)}
+                  onPressHidden={() => router.push({ pathname: "/todo", params: { date: selectedKey } })}
+                />
+              );
+            })}
+          </View>
 
           {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />}
 
