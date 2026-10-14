@@ -31,6 +31,8 @@ interface Props {
 // 화면 실측 높이로 고정 픽셀 값을 계산합니다.
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 
+// 서버 대화 이력과 상관없이 항상 맨 위에 보이는 시작 안내
+const GREETING: Message = { id: "greeting", role: "assistant", text: "일정 변경이 필요하거나 궁금한 점이 있다면\n저에게 물어봐주세요." };
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
 
@@ -89,16 +91,16 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   // 모달 열 때마다 서버 대화 이력으로 초기화
   useEffect(() => {
     if (!visible) return;
-    setMessages([]);
+    setMessages([GREETING]);
     setInput("");
     if (!dailyPlanId) return;
     getChatHistory(dailyPlanId)
-      .then((turns) => setMessages(turns.map((turn, i) => ({
+      .then((turns) => setMessages([GREETING, ...turns.map((turn, i): Message => ({
         id: `${turn.createdAt}-${i}`,
         role: turn.role.toLowerCase() === "user" ? "user" : "assistant",
         text: turn.content,
-      }))))
-      .catch(() => setMessages([]));
+      }))]))
+      .catch(() => setMessages([GREETING]));
   }, [visible, dailyPlanId]);
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -151,7 +153,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                   ref={scrollRef}
                   className="flex-1 w-full"
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end", paddingBottom: inputHeight + 20 }}
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-start", paddingBottom: inputHeight + 20 }}
                   onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
                 >
                   {messages.map((message, i) => (
@@ -168,7 +170,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                 {/* 글이 길어지면 위로 늘어나며 메시지 위에 겹쳐 그려짐, 최대 5줄 */}
                 <Row
                   align="between"
-                  className="absolute left-6 right-6 bottom-xxl z-10 items-end bg-neutral-700 pl-xl pr-xs py-xs rounded-[26px]"
+                  className="absolute left-6 right-6 bottom-xxl z-10 items-end bg-neutral-700 pl-xl pr-xs py-xs rounded-full"
                   onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
                 >
                   <TextInput
