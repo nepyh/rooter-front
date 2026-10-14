@@ -111,12 +111,13 @@ interface BusyBlock {
   label: string;
 }
 
-// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔
-const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string, label = `${startTime} - ${endTime}`): BusyBlock[] => {
+// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔, 두 조각 모두 전체 시간 표시
+const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
   const from = (parseHHmm(startTime) - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
   const rawEnd = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
   let to = (rawEnd - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
   if (to <= from) to += DAY_MIN;
+  const label = `${startTime} - ${endTime} | ${formatDuration(to - from)}`;
   const pieces: [number, number][] = to > DAY_MIN ? [[from, DAY_MIN], [0, to - DAY_MIN]] : [[from, to]];
   return pieces.map(([start, end], i) => ({ key: `${key}-${i}`, title, start, duration: end - start, label }));
 };
@@ -128,7 +129,7 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
 };
 
 // 서버 바쁜 시간 중 할일(TASK)은 계획 블록으로 따로 그려서 제외
-// 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림
+// 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림, 등교 시각이 없어 수면 끝을 시작으로 표시
 const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   if (!day) return [];
   const morningSleepEnd = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00")?.endTime;
@@ -136,8 +137,7 @@ const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
     if (item.type === "TASK") return [];
     if (item.type === "SCHOOL") {
       const start = morningSleepEnd && morningSleepEnd > item.startTime ? morningSleepEnd : item.startTime;
-      // 시작이 하교 전 아무 때나라 시각 줄 없이 제목 한 줄로만 표시
-      return toBusyBlocks(`school-${i}`, `${BUSY_TITLES.SCHOOL} · 하교 ${item.endTime}`, start, item.endTime, "");
+      return toBusyBlocks(`school-${i}`, BUSY_TITLES.SCHOOL, start, item.endTime);
     }
     return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, BUSY_TITLES[item.type], item.startTime, item.endTime);
   });
@@ -183,7 +183,7 @@ function BusyBlockView({ block }: { block: BusyBlock }) {
       <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
       <Stack gap="xs" className="flex-1 py-xxs">
         <Text variant="base-small" weight="medium">{block.title}</Text>
-        {block.duration >= 40 && !!block.label && (
+        {block.duration >= 40 && (
           <Row gap="xs" className="items-center">
             <Icon name="history" size={12} color="rgba(255,255,255,0.6)" />
             <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{block.label}</Text>
