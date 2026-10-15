@@ -863,15 +863,6 @@ export default function Home() {
       </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        {showNoPlanChatNotice && (
-          <Animated.View
-            entering={FadeIn.duration(NOTICE_FADE_MS)}
-            exiting={FadeOut.duration(NOTICE_FADE_MS)}
-            className="mb-s py-m px-l rounded-xs bg-neutral-1000"
-          >
-            <Text variant="base-medium">계획이 있어야 AI와 대화할 수 있어요</Text>
-          </Animated.View>
-        )}
         <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
           <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
             <Icon name="plus" size={20} />
@@ -880,6 +871,18 @@ export default function Home() {
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>
+        {/* 디자인처럼 버튼 바 위에 겹쳐 가운데, 버튼보다 넓어서 좌우로 넉넉히 펼쳐 배치 */}
+        {showNoPlanChatNotice && (
+          <View pointerEvents="none" className="absolute items-center justify-center" style={{ top: 0, bottom: 0, left: -200, right: -200 }}>
+            <Animated.View
+              entering={FadeIn.duration(NOTICE_FADE_MS)}
+              exiting={FadeOut.duration(NOTICE_FADE_MS)}
+              className="py-m px-l rounded-xs bg-neutral-1000/75"
+            >
+              <Text variant="base-medium">계획이 있어야 AI와 대화할 수 있어요</Text>
+            </Animated.View>
+          </View>
+        )}
       </View>
 
       {editingPlan && (
