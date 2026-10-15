@@ -52,7 +52,7 @@ interface Props extends ViewProps {
  * @param width Stack width를 설정합니다.
  * @param align Stack 정렬 방법을 설정합니다.
  */
-export function Stack({ gap = "none", width = "auto", align = "start", className = "", children, ...props }: Props) {
+export function Stack({ gap = "none", width = "auto", align = "start", className = "", style, children, ...props }: Props) {
   return (
     <View
       className={`
@@ -61,8 +61,9 @@ export function Stack({ gap = "none", width = "auto", align = "start", className
         ${alignStyles[align]}
         ${className}
       `}
-      style={{ gap: Gap[gap] }}
       {...props}
+      // 넘겨받은 style이 간격을 덮지 않게 합침
+      style={[{ gap: Gap[gap] }, style]}
     >
       {children}
     </View>
