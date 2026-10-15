@@ -211,7 +211,7 @@ function WheelColumn({ data, selectedIndex, onChange, loop = false }: {
   );
 }
 
-function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
+export function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
   const hour24 = value.getHours();
   const meridiemIndex = hour24 >= 12 ? 1 : 0;
   const hour12 = ((hour24 + 11) % 12) + 1;
