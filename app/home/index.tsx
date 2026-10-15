@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Modal, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
-import Animated, { Easing, FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
@@ -50,9 +50,6 @@ const DAY_MIN = 24 * 60;
 const TIMELINE_HEIGHT = DAY_MIN;
 const TIMELINE_LEFT = 52;
 const POPOVER_HEIGHT = 92;
-// 계획 없는 날 AI 안내가 떠 있는 시간, 페이드 시간 (Toast와 동일)
-const NO_PLAN_CHAT_NOTICE_MS = 2000;
-const NOTICE_FADE_MS = 300;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
@@ -724,7 +721,7 @@ export default function Home() {
   };
 
   // 계획 없는 날은 AI 채팅 안내 대신 같은 플랜 생성 말풍선 하나만 표시
-  // AI 채팅은 일일 계획 단위라 계획 없는 날은 채팅 대신 버튼 위에 안내만 잠깐 표시
+  // AI 채팅은 일일 계획 단위라 계획 없는 날은 채팅 대신 안내 토스트만 표시
   const handleOpenAiChat = () => {
     if (plans.length === 0) {
       setShowNoPlanChatNotice(true);
@@ -732,12 +729,6 @@ export default function Home() {
     }
     setShowAiChat(true);
   };
-
-  useEffect(() => {
-    if (!showNoPlanChatNotice) return;
-    const timer = setTimeout(() => setShowNoPlanChatNotice(false), NO_PLAN_CHAT_NOTICE_MS);
-    return () => clearTimeout(timer);
-  }, [showNoPlanChatNotice]);
 
   // createPlanTask 응답에 태스크 정보 없음, 생성 후 목록 재조회
   const handlePlanCreated = () => {
@@ -871,18 +862,6 @@ export default function Home() {
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>
-        {/* 디자인처럼 버튼 바 위에 겹쳐 가운데, 버튼보다 넓어서 좌우로 넉넉히 펼쳐 배치 */}
-        {showNoPlanChatNotice && (
-          <View pointerEvents="none" className="absolute items-center justify-center" style={{ top: 0, bottom: 0, left: -200, right: -200 }}>
-            <Animated.View
-              entering={FadeIn.duration(NOTICE_FADE_MS)}
-              exiting={FadeOut.duration(NOTICE_FADE_MS)}
-              className="py-m px-l rounded-xs bg-neutral-1000/75"
-            >
-              <Text variant="base-medium">계획이 있어야 AI와 대화할 수 있어요</Text>
-            </Animated.View>
-          </View>
-        )}
       </View>
 
       {editingPlan && (
@@ -898,6 +877,7 @@ export default function Home() {
       )}
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
+      {showNoPlanChatNotice && <Toast text="계획이 있어야 AI와 대화할 수 있어요" onClose={() => setShowNoPlanChatNotice(false)} />}
 
       <AddMenu
         visible={showAddMenu}
