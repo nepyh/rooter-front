@@ -277,7 +277,8 @@ export default function QuizPage() {
   };
 
   // 퀴즈가 없으면 서버가 AI로 만들어 몇 초 걸려서 전체 화면 로딩으로 대기
-  if (loading) return <LoadingScreen text="퀴즈 준비 중..." />;
+  // 기다리다 나가면 퀴즈 화면을 닫음
+  if (loading) return <LoadingScreen text="퀴즈 준비 중..." onBack={() => router.back()} />;
 
   if (phase === "intro") {
     return (
