@@ -172,8 +172,15 @@ const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opa
 };
 
 // 일정을 넣지 않는 시간 표시용, 누를 수 없음
+// 학교·수면은 서로 구분되게 색을 따로, 불가능 시간은 기본 회색
+const BUSY_COLORS: Record<"sleep" | "school", { bar: string; bg: string }> = {
+  "sleep": { bar: palette.busy["sleep-bar"], bg: palette.busy["sleep-bg"] },
+  "school": { bar: palette.busy["school-bar"], bg: palette.busy["school-bg"] },
+};
+
 function BusyBlockView({ block }: { block: BusyBlock }) {
-  const colors = CATEGORY_COLORS.neutral;
+  const kind = block.key.split("-")[0];
+  const colors = kind === "sleep" || kind === "school" ? BUSY_COLORS[kind] : CATEGORY_COLORS.neutral;
   return (
     <View
       pointerEvents="none"

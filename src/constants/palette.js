@@ -60,6 +60,13 @@ module.exports = {
   background: {
     primary: "#33363F",
   },
+  // 홈 타임라인 학교·수면 블록, 같은 회색 계열에서 수면은 푸른빛·학교는 누런빛
+  busy: {
+    "sleep-bar": "#6B7A99",
+    "sleep-bg": "#6B7A9926",
+    "school-bar": "#998F7A",
+    "school-bg": "#998F7A26",
+  },
   quiz: {
     "score-top": "#6D2E30",
   },
