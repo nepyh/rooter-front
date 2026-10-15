@@ -44,6 +44,13 @@ const getQuizErrorMessage = (error: unknown, fallback: string) => {
   return QUIZ_ERROR_MESSAGES[code] ?? fallback;
 };
 
+// 맞혔을 때 칭찬, 같은 문제는 늘 같은 문구가 나오게 문제 순서로 고름
+const CORRECT_MESSAGES = ["정답이에요!", "훌륭한걸요?", "좋아요!!", "완벽해요!"];
+
+// 2문제 이상 연속으로 맞히면 콤보 안내
+const getCorrectMessage = (questionIndex: number, combo: number) =>
+  combo >= 2 ? `${combo}번째 콤보입니다!!` : CORRECT_MESSAGES[questionIndex % CORRECT_MESSAGES.length];
+
 // 점수 화면 아래 결과 안내, 디자인에 없어 한 줄로만 표시
 const getResultNotice = (result: TaskQuizResult) => {
   if (result.passed) return "통과! 할 일이 완료 처리됐어요.";
@@ -157,6 +164,9 @@ export default function QuizPage() {
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
+  // 지금 문제까지 이어서 맞힌 개수
+  let combo = 0;
+  for (let i = currentIndex; i >= 0 && graded[questions[i].id]?.isCorrect; i -= 1) combo += 1;
   const isLast = currentIndex === questions.length - 1;
   const selectedChoiceId = current ? answers[current.id] : undefined;
   const currentGrade = current ? graded[current.id] : undefined;
@@ -329,7 +339,7 @@ export default function QuizPage() {
   const bubbleText = reviewResult
     ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
     : currentGrade
-      ? currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요."
+      ? currentGrade.isCorrect ? getCorrectMessage(currentIndex, combo) : currentGrade.reason ?? "아쉽지만 오답이에요."
       : null;
 
   return (
