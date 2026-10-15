@@ -4,7 +4,7 @@ import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } 
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
-import { Stack, Row, Text } from "@/components";
+import { Stack, Row, Text, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
@@ -191,6 +191,9 @@ export default function ChapterSelectPage() {
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
 
+  // AI가 시험일까지 계획을 만드는 동안 전체 화면 로딩
+  if (submitting) return <LoadingScreen text="플랜 생성 중..." />;
+
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>
       <View className="flex-1">
@@ -260,12 +263,9 @@ export default function ChapterSelectPage() {
         )}
         <Pressable
           onPress={handleSubmit}
-          disabled={submitting}
-          className={`h-16 rounded-md items-center justify-center w-full mt-l mb-xl ${submitting ? "bg-neutral-700" : "bg-primary-500"}`}
+          className="h-16 rounded-md items-center justify-center w-full mt-l mb-xl bg-primary-500"
         >
-          <Text variant="base-medium" weight="medium" className="text-white">
-            {submitting ? "계획 생성 중..." : "AI 학습 계획 생성"}
-          </Text>
+          <Text variant="base-medium" weight="medium" className="text-white">AI 학습 계획 생성</Text>
         </Pressable>
       </View>
     </Animated.View>
