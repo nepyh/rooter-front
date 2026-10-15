@@ -3,7 +3,7 @@ import { BackHandler, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
-import { Stack, Row, Text, Input, Button } from "@/components";
+import { Stack, Row, Text, Input, Button, LoadingView } from "@/components";
 import { getFeedback, submitFeedback } from "@/api/feedback";
 import type { Difficulty, Feedback } from "@/api/feedback";
 
@@ -116,9 +116,7 @@ export default function FeedbackPage() {
       <Stack align="between" width="full" className="flex-1">
         <Stack gap="xxl" width="full" className="flex-1">
           {loading ? (
-            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
-              <Text color="secondary">불러오는 중...</Text>
-            </Stack>
+            <LoadingView />
           ) : !planId ? (
             <Stack gap="m" width="full" className="flex-1 items-center justify-center">
               <Text color="secondary">오늘의 학습 계획을 찾을 수 없어요.</Text>
