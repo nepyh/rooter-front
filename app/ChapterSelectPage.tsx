@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
-import { Stack, Row, Text } from "@/components";
+import { Stack, Row, Text, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
@@ -133,6 +133,8 @@ export default function ChapterSelectPage() {
   // 누른 소단원만 체크
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  // 로딩 중 뒤로가기를 누르면 늦게 온 생성 결과는 무시
+  const submitIdRef = useRef(0);
   const overlayOpacity = useSharedValue(1);
 
   const leavesByTextbook = useMemo(
@@ -165,6 +167,7 @@ export default function ChapterSelectPage() {
     }
     const subjects = textbooks.flatMap((tb) => toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], selectedIds));
 
+    const submitId = ++submitIdRef.current;
     setSubmitting(true);
     try {
       await generatePlan({
@@ -172,11 +175,11 @@ export default function ChapterSelectPage() {
         subjects,
         examDate: examDate || undefined,
       });
-      router.replace("/home");
+      if (submitId === submitIdRef.current) router.replace("/home");
     } catch (error) {
-      Alert.alert("계획 생성 실패", getGenerateErrorMessage(error));
+      if (submitId === submitIdRef.current) Alert.alert("계획 생성 실패", getGenerateErrorMessage(error));
     } finally {
-      setSubmitting(false);
+      if (submitId === submitIdRef.current) setSubmitting(false);
     }
   };
 
@@ -190,6 +193,15 @@ export default function ChapterSelectPage() {
   };
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
+
+  // AI가 시험일까지 계획을 만드는 동안 전체 화면 로딩
+  if (submitting) {
+    const cancelSubmit = () => {
+      submitIdRef.current += 1;
+      setSubmitting(false);
+    };
+    return <LoadingScreen text="플랜 생성 중..." onBack={cancelSubmit} />;
+  }
 
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>
@@ -260,12 +272,9 @@ export default function ChapterSelectPage() {
         )}
         <Pressable
           onPress={handleSubmit}
-          disabled={submitting}
-          className={`h-16 rounded-md items-center justify-center w-full mt-l mb-xl ${submitting ? "bg-neutral-700" : "bg-primary-500"}`}
+          className="h-16 rounded-md items-center justify-center w-full mt-l mb-xl bg-primary-500"
         >
-          <Text variant="base-medium" weight="medium" className="text-white">
-            {submitting ? "계획 생성 중..." : "AI 학습 계획 생성"}
-          </Text>
+          <Text variant="base-medium" weight="medium" className="text-white">AI 학습 계획 생성</Text>
         </Pressable>
       </View>
     </Animated.View>

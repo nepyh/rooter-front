@@ -3,7 +3,7 @@ import axios from "axios";
 import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text, Button } from "@/components";
+import { Stack, Row, Text, Button, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz";
@@ -276,6 +276,10 @@ export default function QuizPage() {
     return selectedChoiceId === choiceId ? "selected" : "default";
   };
 
+  // 퀴즈가 없으면 서버가 AI로 만들어 몇 초 걸려서 전체 화면 로딩으로 대기
+  // 기다리다 나가면 퀴즈 화면을 닫음
+  if (loading) return <LoadingScreen text="퀴즈 준비 중..." onBack={() => router.back()} />;
+
   if (phase === "intro") {
     return (
       <View className="flex-1">
@@ -347,12 +351,7 @@ export default function QuizPage() {
             {questions.length > 0 && <ProgressBar total={questions.length} current={currentIndex} />}
           </Row>
 
-          {loading ? (
-            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
-              {/* 퀴즈가 없으면 서버가 이때 AI로 만들어 몇 초 걸림 */}
-              <Text color="secondary" className="text-center">{"퀴즈를 만들고 있어요\n잠시만 기다려주세요"}</Text>
-            </Stack>
-          ) : error && !current ? (
+          {error && !current ? (
             <Stack gap="m" width="full" className="flex-1 items-center justify-center">
               <Text color="secondary">{error}</Text>
             </Stack>
@@ -382,7 +381,7 @@ export default function QuizPage() {
         <Stack gap="xl" width="full" className="pt-l">
           {bubbleText && <ExplanationBubble text={bubbleText} />}
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
-          {loading ? null : !current && error && phase === "answering" ? (
+          {!current && error && phase === "answering" ? (
             <Button variant="primary" onPress={handleStart}>다시 시도</Button>
           ) : !current ? (
             <Button variant="primary" onPress={() => router.back()}>확인</Button>
