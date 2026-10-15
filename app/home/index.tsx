@@ -132,15 +132,22 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
 // 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림, 등교 시각이 없어 수면 끝을 시작으로 표시
 const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   if (!day) return [];
-  const morningSleepEnd = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00")?.endTime;
-  return day.busyTimes.flatMap((item, i) => {
+  const morningSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00");
+  const nightSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.endTime === "24:00");
+  const morningSleepEnd = morningSleep?.endTime;
+  // 서버는 수면을 밤(23:00~24:00)과 아침(00:00~06:30)으로 나눠 줘서, 한 번의 잠으로 합쳐 총 수면 시간 표시
+  const mergedSleep = morningSleep && nightSleep
+    ? toBusyBlocks("sleep", BUSY_TITLES.SLEEP, nightSleep.startTime, morningSleep.endTime)
+    : [];
+  return mergedSleep.concat(day.busyTimes.flatMap((item, i) => {
     if (item.type === "TASK") return [];
+    if (mergedSleep.length > 0 && (item === morningSleep || item === nightSleep)) return [];
     if (item.type === "SCHOOL") {
       const start = morningSleepEnd && morningSleepEnd > item.startTime ? morningSleepEnd : item.startTime;
       return toBusyBlocks(`school-${i}`, BUSY_TITLES.SCHOOL, start, item.endTime);
     }
     return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, BUSY_TITLES[item.type], item.startTime, item.endTime);
-  });
+  }));
 };
 
 interface PlanColumn {
