@@ -88,7 +88,8 @@ function TypingBubble({ marginTop }: { marginTop: number }) {
   return (
     <Stack gap="xs" width="full" style={{ marginTop }}>
       <Row align="start" width="full">
-        <Row gap="xs" className="px-l rounded-[24px] bg-neutral-700 items-center" style={{ height: 44 }}>
+        {/* 점 사이 8, 4면 붙어 보임 */}
+        <Row gap="s" className="px-l rounded-[24px] bg-neutral-700 items-center" style={{ height: 44 }}>
           {[0, 1, 2].map((i) => <TypingDot key={i} index={i} />)}
         </Row>
       </Row>
