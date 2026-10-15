@@ -46,15 +46,29 @@ const bubbleGap = (messages: Message[], index: number) => {
   return messages[index - 1].role === messages[index].role ? 8 : 20;
 };
 
+// AI 답변은 한 덩어리로 오면 읽기 어려워 문장이 끝날 때마다 줄을 나눔, "1.5"처럼 뒤에 띄어쓰기 없는 점은 유지
+const splitSentences = (text: string) =>
+  text
+    .replace(/([.!?])\s+/g, "$1\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+// 채팅 글자는 19px, 줄 간격을 넓혀 여러 줄도 읽기 쉽게
+const BUBBLE_LINE_HEIGHT = 28;
+
 function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: number }) {
   const isUser = message.role === "user";
+  const lines = isUser ? [message.text] : splitSentences(message.text);
   return (
     <Row align={isUser ? "end" : "start"} width="full" style={{ marginTop }}>
       <View
         className={`px-l py-m rounded-[24px] ${isUser ? "bg-primary-500" : "bg-neutral-700"}`}
-        style={{ maxWidth: "80%" }}
+        style={{ maxWidth: "85%", gap: 6 }}
       >
-        <Text variant="base-medium" className="text-white">{message.text}</Text>
+        {lines.map((line, i) => (
+          <Text key={i} variant="base-large" className="text-white" style={{ lineHeight: BUBBLE_LINE_HEIGHT }}>{line}</Text>
+        ))}
       </View>
     </Row>
   );
