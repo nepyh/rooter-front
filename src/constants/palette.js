@@ -68,6 +68,8 @@ module.exports = {
     "school-bg": "#998F7A26",
   },
   quiz: {
-    "score-top": "#6D2E30",
+    "result-bottom": "#55393B",
+    "score-top": "#9D3F37",
+    "score-bottom": "#5B383F",
   },
 };
