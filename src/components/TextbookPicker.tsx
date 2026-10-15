@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { Stack, Row } from "@/components/layout";
-import { Text } from "@/components/ui";
+import { Text, LoadingView } from "@/components/ui";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
@@ -88,11 +88,18 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
+  // 과목·교과서를 불러오는 동안 빈 격자 대신 불러오는 중 표시
+  const [loadingTextbooks, setLoadingTextbooks] = useState(true);
   const userId = useUserStore((state) => state.userId);
   const [grade, setGrade] = useState<number | null>(null);
 
   useEffect(() => {
-    getSubjects().then(setSubjects).catch(() => setSubjects([]));
+    getSubjects()
+      .then((list) => {
+        setSubjects(list);
+        if (list.length === 0) setLoadingTextbooks(false);
+      })
+      .catch(() => setLoadingTextbooks(false));
   }, []);
 
   // 회원가입 때 입력한 학년, 못 불러오면 전체 표시
@@ -105,13 +112,17 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
     if (subjects.length === 0) return;
 
     const targets = selectedSubjectId === null ? subjects : subjects.filter((s) => s.id === selectedSubjectId);
+    setLoadingTextbooks(true);
     Promise.all(
       targets.map((subject) =>
         getTextbooksBySubject(subject.id)
           .then((list) => list.map((textbook) => ({ ...textbook, subjectName: subject.name })))
           .catch(() => [] as TextbookWithSubject[])
       )
-    ).then((lists) => setTextbooks(lists.flat()));
+    ).then((lists) => {
+      setTextbooks(lists.flat());
+      setLoadingTextbooks(false);
+    });
   }, [subjects, selectedSubjectId]);
 
   // 제목이 "N학년 ..."으로 시작해서 학년 기준으로 거름, 학년 표기 없는 교과서는 유지
@@ -138,6 +149,7 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
         </Row>
       </ScrollView>
 
+      {loadingTextbooks ? <LoadingView /> : (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset }}>
         <View className="flex-row flex-wrap" style={{ gap: 20 }}>
           {visibleTextbooks.map((textbook) => (
@@ -150,6 +162,7 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
           ))}
         </View>
       </ScrollView>
+      )}
     </View>
   );
 }
