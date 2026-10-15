@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View } from "react-native";
 import { Text } from "./Text";
-import Animated, { FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 // ================================
 // Components
@@ -28,6 +28,7 @@ export function Toast({ text, onClose, className = "" }: Props) {
 
   return (
     <Animated.View
+      entering={FadeIn.duration(300)}
       exiting={FadeOut.duration(300)}
       className="absolute bottom-[80px] w-full items-center z-10"
     >
