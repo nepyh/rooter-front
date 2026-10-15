@@ -166,7 +166,8 @@ export default function QuizPage() {
   const current = questions[currentIndex];
   // 지금 문제까지 이어서 맞힌 개수
   let combo = 0;
-  for (let i = currentIndex; i >= 0 && graded[questions[i].id]?.isCorrect; i -= 1) combo += 1;
+  // 퀴즈를 불러오기 전에는 문제가 없어 건너뜀
+  for (let i = currentIndex; i >= 0 && questions[i] && graded[questions[i].id]?.isCorrect; i -= 1) combo += 1;
   const isLast = currentIndex === questions.length - 1;
   const selectedChoiceId = current ? answers[current.id] : undefined;
   const currentGrade = current ? graded[current.id] : undefined;
