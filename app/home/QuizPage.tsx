@@ -156,6 +156,8 @@ export default function QuizPage() {
   gradedRef.current = graded;
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<TaskQuizResult | null>(null);
+  // 해설 말풍선이 보기 위에 떠 있어서, 마지막 보기가 가리지 않게 말풍선 높이만큼 아래 여백
+  const [bubbleHeight, setBubbleHeight] = useState(0);
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
@@ -361,7 +363,11 @@ export default function QuizPage() {
               <Text color="secondary">아직 준비된 퀴즈가 없어요.</Text>
             </Stack>
           ) : (
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <ScrollView
+              className="flex-1"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: bubbleText ? bubbleHeight : 0 }}
+            >
               <Stack gap="xxl" width="full">
                 <QuestionCard index={currentIndex} text={current.questionText} />
                 <Stack gap="m" width="full">
@@ -377,10 +383,19 @@ export default function QuizPage() {
               </Stack>
             </ScrollView>
           )}
+          {/* 해설은 보기 위에 겹쳐 띄워서 말풍선 밖으로는 뒤 보기가 그대로 보이게 */}
+          {bubbleText && (
+            <View
+              pointerEvents="none"
+              className="absolute left-0 right-0 bottom-0 pt-xl pb-xs"
+              onLayout={(e) => setBubbleHeight(e.nativeEvent.layout.height)}
+            >
+              <ExplanationBubble text={bubbleText} />
+            </View>
+          )}
         </Stack>
 
         <Stack gap="xl" width="full" className="pt-l">
-          {bubbleText && <ExplanationBubble text={bubbleText} />}
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
           {loading ? null : !current && error && phase === "answering" ? (
             <Button variant="primary" onPress={handleStart}>다시 시도</Button>
