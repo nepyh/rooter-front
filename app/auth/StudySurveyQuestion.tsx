@@ -110,7 +110,7 @@ export default function StudySurveyQuestion() {
     const nextAnswers = [...prevAnswers, String(selected)].join(",");
 
     if (isLast && plan) {
-      router.replace({ pathname: "/PlanGeneratingPage", params: { plan, answers: nextAnswers } });
+      router.push({ pathname: "/PlanGeneratingPage", params: { plan, answers: nextAnswers } });
       return;
     }
 

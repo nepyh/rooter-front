@@ -1,9 +1,10 @@
-import { useEffect } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
 import { Text } from "@/components";
+import { Icon } from "@/assets";
 import { generatePlan } from "@/api/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 import { submitStudyStyle } from "@/api/studyStyle";
@@ -40,6 +41,8 @@ const getGenerateErrorMessage = (error: unknown) => {
  */
 export default function PlanGeneratingPage() {
   const { plan, answers } = useLocalSearchParams<{ plan: string; answers?: string }>();
+  // 로딩 중 뒤로 나가면 늦게 온 생성 결과로 화면을 옮기지 않음
+  const leftRef = useRef(false);
 
   useEffect(() => {
     const { examDate, subjects } = JSON.parse(plan ?? "{}") as { examDate?: string; subjects?: string };
@@ -59,8 +62,9 @@ export default function PlanGeneratingPage() {
           subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
           examDate: examDate || undefined,
         });
-        router.replace("/home");
+        if (!leftRef.current) router.replace("/home");
       } catch (error) {
+        if (leftRef.current) return;
         Alert.alert("계획 생성 실패", getGenerateErrorMessage(error), [{ text: "확인", onPress: () => router.back() }]);
       }
     };
@@ -68,11 +72,24 @@ export default function PlanGeneratingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 설문 마지막 문항으로 돌아감
+  const goBack = () => {
+    leftRef.current = true;
+    if (router.canGoBack()) router.back(); else router.replace("/home");
+  };
+
   return (
-    <View className="flex-1 items-center justify-center" style={{ gap: 28 }}>
+    <View className="flex-1">
       <StatusBar style="light" />
-      <ActivityIndicator size="large" color={palette.primary["500"]} />
-      <Text variant="title-small">플랜 생성 중...</Text>
+      <View className="flex-row items-center pb-l">
+        <Pressable onPress={goBack}>
+          <Icon name="chevronLeft" size={28} />
+        </Pressable>
+      </View>
+      <View className="flex-1 items-center justify-center" style={{ gap: 28 }}>
+        <ActivityIndicator size="large" color={palette.primary["500"]} />
+        <Text variant="title-small">플랜 생성 중...</Text>
+      </View>
     </View>
   );
 }
