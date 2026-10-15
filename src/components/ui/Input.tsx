@@ -1,5 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from "react";
-import { View, TextInput, TextInputProps, Pressable} from "react-native";
+import { View, TextInput, TextInputProps, Pressable, Platform } from "react-native";
 import { Text } from "./Text";
 import { Row, Stack } from "../layout";
 import { Icon } from "@/assets";
@@ -25,8 +25,23 @@ export const Input = forwardRef<TextInput, Props>(
     const [focused, setFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const inputRef = useRef<TextInput>(null);
+    // 다시 포커스한 뒤 첫 입력인지, iOS 비밀번호 칸은 이때 기존 글자를 전부 지움
+    const refocusedRef = useRef(false);
 
     useImperativeHandle(ref, () => inputRef.current as TextInput);
+
+    // iOS 비밀번호 칸이 지운 기존 글자를 되살려 이어서 입력, 전부 지우기는 X 버튼으로
+    const handleChangeText = (text: string) => {
+      const prev = value ?? "";
+      const wasRefocused = refocusedRef.current;
+      refocusedRef.current = false;
+      const isSecure = secureTextEntry && !showPassword;
+      if (Platform.OS === "ios" && isSecure && wasRefocused && prev.length > 0 && text.length <= 1) {
+        onChangeText?.(text === "" ? prev.slice(0, -1) : prev + text);
+        return;
+      }
+      onChangeText?.(text);
+    };
 
     const handleClear = () => {
       onChangeText?.("");
@@ -45,8 +60,11 @@ export const Input = forwardRef<TextInput, Props>(
             <TextInput
               ref={inputRef}
               value={value}
-              onChangeText={onChangeText}
-              onFocus={() => setFocused(true)}
+              onChangeText={handleChangeText}
+              onFocus={() => {
+                refocusedRef.current = true;
+                setFocused(true);
+              }}
               onBlur={() => setFocused(false)}
               placeholderTextColor="#C9CDD6"
               secureTextEntry={secureTextEntry && !showPassword}
