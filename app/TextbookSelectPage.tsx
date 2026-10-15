@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import Animated, { SlideOutLeft } from "react-native-reanimated";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
@@ -101,18 +102,26 @@ export default function TextbookSelectPage() {
   }, [subjects, selectedSubjectId]);
 
   // 선택 버튼 없이 교과서를 누르면 바로 목차 선택으로
-  const handleSelect = (id: number) => {
+  // 고른 교과서를 먼저 기억해 왼쪽으로 밀려나는 퇴장을 켠 뒤 이동, 목차 화면은 오른쪽에서 들어옴
+  const [nextTextbookId, setNextTextbookId] = useState<number | null>(null);
+  const handleSelect = (id: number) => setNextTextbookId(id);
+
+  useEffect(() => {
+    if (nextTextbookId === null) return;
     router.push({
       pathname: "/ChapterSelectPage",
-      params: { examDate, textbookIds: String(id) },
+      params: { examDate, textbookIds: String(nextTextbookId) },
     });
-  };
+  }, [nextTextbookId, examDate]);
+
+  // 목차에서 돌아오면 다시 고를 수 있게 초기화
+  useFocusEffect(useCallback(() => setNextTextbookId(null), []));
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 시험 날짜 선택으로
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/ExamDatePage"));
 
   return (
-    <View className="flex-1">
+    <Animated.View exiting={nextTextbookId !== null ? SlideOutLeft.duration(300) : undefined} className="flex-1">
       <StatusBar style="light" />
 
       <Row width="full" className="items-center pb-l">
@@ -149,6 +158,6 @@ export default function TextbookSelectPage() {
           ))}
         </View>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
