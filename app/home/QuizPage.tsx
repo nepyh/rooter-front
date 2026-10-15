@@ -44,10 +44,10 @@ const getQuizErrorMessage = (error: unknown, fallback: string) => {
   return QUIZ_ERROR_MESSAGES[code] ?? fallback;
 };
 
-// 맞혔을 때 칭찬, 같은 문제는 늘 같은 문구가 나오게 문제 순서로 고름
+// 맞혔을 때 칭찬, 문제마다 무작위로 하나
 const CORRECT_MESSAGES = ["정답이에요!", "훌륭한걸요?", "좋아요!!", "완벽해요!", "잘했어요!", "정확해요!", "역시 대단해요!", "이대로만 가요!"];
 
-const getCorrectMessage = (questionIndex: number) => CORRECT_MESSAGES[questionIndex % CORRECT_MESSAGES.length];
+const pickCorrectMessage = () => CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)];
 
 // 점수 화면 아래 결과 안내, 디자인에 없어 한 줄로만 표시
 const getResultNotice = (result: TaskQuizResult) => {
@@ -162,6 +162,12 @@ export default function QuizPage() {
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
+  // 다시 그려질 때마다 문구가 바뀌지 않게 문제별로 처음 뽑은 문구 유지
+  const correctMessagesRef = useRef<Record<number, string>>({});
+  const getCorrectMessage = (questionId: number) => {
+    correctMessagesRef.current[questionId] ??= pickCorrectMessage();
+    return correctMessagesRef.current[questionId];
+  };
   const isLast = currentIndex === questions.length - 1;
   const selectedChoiceId = current ? answers[current.id] : undefined;
   const currentGrade = current ? graded[current.id] : undefined;
@@ -334,7 +340,7 @@ export default function QuizPage() {
   const bubbleText = reviewResult
     ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
     : currentGrade
-      ? currentGrade.isCorrect ? getCorrectMessage(currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
+      ? currentGrade.isCorrect ? getCorrectMessage(current?.id ?? currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
       : null;
 
   return (
