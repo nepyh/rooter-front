@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text } from "@/components";
+import { Stack, Row, Text, LoadingView } from "@/components";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
@@ -72,12 +72,19 @@ export default function TextbookSelectPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
+  // 과목·교과서를 불러오는 동안 빈 격자 대신 불러오는 중 표시
+  const [loadingTextbooks, setLoadingTextbooks] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const userId = useUserStore((state) => state.userId);
   const [grade, setGrade] = useState<number | null>(null);
 
   useEffect(() => {
-    getSubjects().then(setSubjects).catch(() => setSubjects([]));
+    getSubjects()
+      .then((list) => {
+        setSubjects(list);
+        if (list.length === 0) setLoadingTextbooks(false);
+      })
+      .catch(() => setLoadingTextbooks(false));
   }, []);
 
   // 회원가입 때 입력한 학년, 못 불러오면 전체 표시
@@ -98,13 +105,17 @@ export default function TextbookSelectPage() {
     if (subjects.length === 0) return;
 
     const targets = selectedSubjectId === null ? subjects : subjects.filter((s) => s.id === selectedSubjectId);
+    setLoadingTextbooks(true);
     Promise.all(
       targets.map((subject) =>
         getTextbooksBySubject(subject.id)
           .then((list) => list.map((textbook) => ({ ...textbook, subjectName: subject.name })))
           .catch(() => [] as TextbookWithSubject[])
       )
-    ).then((lists) => setTextbooks(lists.flat()));
+    ).then((lists) => {
+      setTextbooks(lists.flat());
+      setLoadingTextbooks(false);
+    });
   }, [subjects, selectedSubjectId]);
 
   const toggleTextbook = (id: number) => {
@@ -154,6 +165,7 @@ export default function TextbookSelectPage() {
         ))}
       </Row>
 
+      {loadingTextbooks ? <LoadingView /> : (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         <View className="flex-row flex-wrap" style={{ gap: 20 }}>
           {visibleTextbooks.map((textbook) => (
@@ -166,6 +178,7 @@ export default function TextbookSelectPage() {
           ))}
         </View>
       </ScrollView>
+      )}
 
       <Pressable
         onPress={handleSelect}
