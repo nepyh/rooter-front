@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Pressable, ScrollView, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text, Button } from "@/components";
+import { Stack, Row, Text, Button, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz";
@@ -117,28 +116,6 @@ function ExplanationBubble({ text }: { text: string }) {
       </View>
       <Icon name="mascotFace" size={52} />
     </Row>
-  );
-}
-
-// 퀴즈가 없으면 서버가 AI로 만들어 몇 초 걸려서, 회원가입 분석 중 화면처럼 도는 아이콘으로 대기
-function QuizLoading() {
-  const rotation = useSharedValue(0);
-  const spinnerStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
-
-  useEffect(() => {
-    rotation.value = withRepeat(withTiming(360, { duration: 900, easing: Easing.linear }), -1);
-  }, [rotation]);
-
-  return (
-    <View className="flex-1 items-center justify-center">
-      <StatusBar style="light" />
-      <View style={{ alignItems: "center", gap: 28 }}>
-        <Animated.View style={spinnerStyle}>
-          <Icon name="loading" size={60} color={palette.primary["500"]} />
-        </Animated.View>
-        <Text variant="title-small">퀴즈 준비 중...</Text>
-      </View>
-    </View>
   );
 }
 
@@ -299,7 +276,8 @@ export default function QuizPage() {
     return selectedChoiceId === choiceId ? "selected" : "default";
   };
 
-  if (loading) return <QuizLoading />;
+  // 퀴즈가 없으면 서버가 AI로 만들어 몇 초 걸려서 전체 화면 로딩으로 대기
+  if (loading) return <LoadingScreen text="퀴즈 준비 중..." />;
 
   if (phase === "intro") {
     return (
