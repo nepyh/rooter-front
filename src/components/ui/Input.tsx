@@ -21,7 +21,7 @@ interface Props extends TextInputProps{
  * @param label Input label을 추가합니다.
  */
 export const Input = forwardRef<TextInput, Props>(
-  ({ label, errorMessage, className = "", onChangeText, value, secureTextEntry, ...props }, ref) => {
+  ({ label, errorMessage, className = "", onChangeText, onKeyPress, value, secureTextEntry, ...props }, ref) => {
     const [focused, setFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const inputRef = useRef<TextInput>(null);
@@ -30,16 +30,28 @@ export const Input = forwardRef<TextInput, Props>(
 
     useImperativeHandle(ref, () => inputRef.current as TextInput);
 
-    // iOS 비밀번호 칸이 지운 기존 글자를 되살려 이어서 입력, 전부 지우기는 X 버튼으로
+    // 마지막으로 누른 키, onChangeText보다 먼저 들어옴
+    const lastKeyRef = useRef("");
+
+    // iOS 가려진 비밀번호 칸은 다시 포커스한 뒤 첫 키에 기존 글자를 통째로 지움
+    // 지우는 호출("")은 무시하고, 다음 글자나 지우기 키를 기존 글자에 이어 붙임
     const handleChangeText = (text: string) => {
       const prev = value ?? "";
-      const wasRefocused = refocusedRef.current;
-      refocusedRef.current = false;
       const isSecure = secureTextEntry && !showPassword;
-      if (Platform.OS === "ios" && isSecure && wasRefocused && prev.length > 0 && text.length <= 1) {
-        onChangeText?.(text === "" ? prev.slice(0, -1) : prev + text);
-        return;
+      if (Platform.OS === "ios" && isSecure && refocusedRef.current && prev.length > 0) {
+        if (text === "") {
+          if (lastKeyRef.current !== "Backspace") return;
+          refocusedRef.current = false;
+          onChangeText?.(prev.slice(0, -1));
+          return;
+        }
+        refocusedRef.current = false;
+        if (text.length === 1) {
+          onChangeText?.(prev + text);
+          return;
+        }
       }
+      refocusedRef.current = false;
       onChangeText?.(text);
     };
 
@@ -61,6 +73,10 @@ export const Input = forwardRef<TextInput, Props>(
               ref={inputRef}
               value={value}
               onChangeText={handleChangeText}
+              onKeyPress={(e) => {
+                lastKeyRef.current = e.nativeEvent.key;
+                onKeyPress?.(e);
+              }}
               onFocus={() => {
                 refocusedRef.current = true;
                 setFocused(true);
