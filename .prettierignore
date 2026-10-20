@@ -1,0 +1,16 @@
+# dependencies
+node_modules/
+package-lock.json
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# generated native folders
+ios/
+android/
+
+# assets
+src/assets/fonts/
