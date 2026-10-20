@@ -1,4 +1,4 @@
-import { submitStudyStyle } from '../../studyStyle';
+import { submitStudyStyle } from '../studyStyle';
 
 /**
  * 설문 답변 문자열을 공부 스타일로 저장. 실패해도 다음 화면으로 넘어갈 수 있도록 에러를 던지지 않음

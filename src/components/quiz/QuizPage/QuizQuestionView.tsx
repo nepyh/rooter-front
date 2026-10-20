@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { Stack } from "../../layout";
-import { MascotBubble } from "../common/MascotBubble";
+import { MascotBubble } from "./MascotBubble";
 import { QuestionCard } from "./QuestionCard";
 import { QuizOptionRow } from "./QuizOptionRow";
 import type { TaskQuizQuestion } from "@/api/quiz/QuizPage";

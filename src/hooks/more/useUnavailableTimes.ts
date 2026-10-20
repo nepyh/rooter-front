@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "@/store";
 import { addUnavailableTime, getUnavailableTimes } from "@/api/user";
 import type { UnavailableTime } from "@/api/user";
-import { normalizeClock } from "@/utils/more/time";
+import { normalizeClock } from "@/utils/common/time";
 
 // ================================
 // Hooks

@@ -6,7 +6,7 @@ import { Text, BackHeader } from "@/components";
 import { generatePlan } from "@/api/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
-import { saveStudyStyleAnswers } from "@/api/learningSurvey/common";
+import { saveStudyStyleAnswers } from "@/api/common";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/token";
 

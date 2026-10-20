@@ -8,12 +8,12 @@ import { ActionMenu } from "./ActionMenu";
 import {
   TIMELINE_HEIGHT,
   TIMELINE_LEFT,
-  formatClock,
   layoutPlanColumns,
   minutesSinceWindowStart,
   type BusyBlock,
   type Plan,
 } from "@/utils/home/timeline";
+import { formatClock } from "@/utils/common/time";
 
 // ================================
 // Components

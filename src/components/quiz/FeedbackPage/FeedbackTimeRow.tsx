@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Text } from "../../ui/Text";
 import { TimeWheelPicker } from "../../AddPlanBoardModal";
-import { formatClock } from "@/utils/home/timeline";
+import { formatClock } from "@/utils/common/time";
 import { getSpacing } from "@/utils/token";
 
 // ================================

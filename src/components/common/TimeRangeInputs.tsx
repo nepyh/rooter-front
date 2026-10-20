@@ -1,6 +1,6 @@
 import { View } from "react-native";
-import { Row } from "../../layout";
-import { Input } from "../../ui/Input";
+import { Row } from "../layout";
+import { Input } from "../ui/Input";
 
 // ================================
 // Components

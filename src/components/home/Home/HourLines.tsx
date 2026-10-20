@@ -1,7 +1,8 @@
 import { View } from "react-native";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
-import { HOURS, pad } from "@/utils/home/timeline";
+import { HOURS } from "@/utils/home/timeline";
+import { pad } from "@/utils/common/time";
 
 // ================================
 // Components

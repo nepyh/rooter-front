@@ -6,3 +6,4 @@ export { QuizQuestionView } from "./QuizQuestionView";
 export { ScoreCircle } from "./ScoreCircle";
 export { QuizIntro } from "./QuizIntro";
 export { QuizScore } from "./QuizScore";
+export { MascotBubble } from "./MascotBubble";

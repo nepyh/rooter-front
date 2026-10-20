@@ -2,6 +2,7 @@ import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import type { DailyBusyTime } from "@/api/busyTime";
 import type { PlanTask } from "@/api/planBoard";
+import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
 // ================================
 // Types
@@ -58,7 +59,6 @@ export interface PlanColumn {
 // ================================
 
 export const WINDOW_START_MIN = 0;
-export const DAY_MIN = 24 * 60;
 export const TIMELINE_HEIGHT = DAY_MIN;
 export const TIMELINE_LEFT = 52;
 export const POPOVER_HEIGHT = 92;
@@ -75,12 +75,8 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
 // Functions
 // ================================
 
-export const pad = (n: number) => String(n).padStart(2, "0");
-
 export const minutesSinceWindowStart = (date: Date) =>
   (date.getHours() * 60 + date.getMinutes() - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
-
-export const formatClock = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
 export const formatDateHeader = (date: Date) =>
   `${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAYS[date.getDay()]})`;
@@ -108,11 +104,6 @@ export const parseClock = (value: string) => {
   const h = Number(match[1]);
   const m = Number(match[2]);
   if (h > 24 || m > 59) return null;
-  return h * 60 + m;
-};
-
-export const parseHHmm = (value: string) => {
-  const [h, m] = value.split(":").map(Number);
   return h * 60 + m;
 };
 

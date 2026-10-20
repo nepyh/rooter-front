@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { LoadingScreen } from "@/components";
-import { saveStudentProfile, saveStudyStyleAnswers } from "@/api/learningSurvey/common";
+import { saveStudyStyleAnswers } from "@/api/common";
+import { saveStudentProfile } from "@/api/learningSurvey/common";
 import { useUserStore } from "@/store";
 
 // ================================

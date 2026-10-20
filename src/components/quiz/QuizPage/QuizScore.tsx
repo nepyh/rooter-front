@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Text } from "../../ui/Text";
-import { MascotBubble } from "../common/MascotBubble";
+import { MascotBubble } from "./MascotBubble";
 import { ScoreCircle } from "./ScoreCircle";
 import type { TaskQuizResult } from "@/api/quiz/QuizPage";
 import { color } from "@/constants/token/color";

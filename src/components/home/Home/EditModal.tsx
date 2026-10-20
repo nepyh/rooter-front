@@ -5,7 +5,8 @@ import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Text } from "../../ui/Text";
 import { color } from "@/constants/token/color";
-import { DAY_MIN, WINDOW_START_MIN, parseClock, type Plan } from "@/utils/home/timeline";
+import { WINDOW_START_MIN, parseClock, type Plan } from "@/utils/home/timeline";
+import { DAY_MIN } from "@/utils/common/time";
 
 // ================================
 // Components

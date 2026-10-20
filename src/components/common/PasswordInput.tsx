@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { Input } from "../../ui/Input";
+import { Input } from "../ui/Input";
 
 // ================================
 // Components

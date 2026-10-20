@@ -4,8 +4,8 @@ import { useFocusEffect } from "expo-router";
 import type { Category } from "@/constants/category";
 import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/planBoard";
 import { getBoardInfo, getEditErrorMessage } from "@/api/home/Home";
+import { DAY_MIN } from "@/utils/common/time";
 import {
-  DAY_MIN,
   WINDOW_START_MIN,
   formatDuration,
   mapPlanTaskToPlan,

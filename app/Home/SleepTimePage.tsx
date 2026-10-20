@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Button, BackHeader, PageTitle, TimeRow, WheelBox, WheelColumn } from "@/components";
 import { getSpacing } from "@/utils/token";
-import { pad } from "@/utils/home/timeline";
+import { pad } from "@/utils/common/time";
 
 // ================================
 // Types

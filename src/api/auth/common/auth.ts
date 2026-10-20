@@ -21,16 +21,3 @@ export const login = async (email: string, password: string) => {
 
   return response.data;
 };
-
-/**
- * 로그아웃 API 함수
- * @returns response.data
- */
-export const logout = async () => {
-  try {
-    const response = await api.post('/auth/logout');
-    return response.data;
-  } finally {
-    useUserStore.getState().logout();
-  }
-};

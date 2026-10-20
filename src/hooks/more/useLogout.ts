@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { logout } from "@/api/auth/common";
+import { logout } from "@/api/more/common";
 
 // ================================
 // Hooks
