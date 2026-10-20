@@ -111,12 +111,13 @@ interface BusyBlock {
   label: string;
 }
 
-// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔
-const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string, label = `${startTime} - ${endTime}`): BusyBlock[] => {
+// 타임라인 끝(다음 날 시작 시각)을 넘는 구간은 두 조각으로 나눔, 두 조각 모두 전체 시간 표시
+const toBusyBlocks = (key: string, title: string, startTime: string, endTime: string): BusyBlock[] => {
   const from = (parseHHmm(startTime) - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
   const rawEnd = endTime === "24:00" ? DAY_MIN : parseHHmm(endTime);
   let to = (rawEnd - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
   if (to <= from) to += DAY_MIN;
+  const label = `${startTime} - ${endTime} | ${formatDuration(to - from)}`;
   const pieces: [number, number][] = to > DAY_MIN ? [[from, DAY_MIN], [0, to - DAY_MIN]] : [[from, to]];
   return pieces.map(([start, end], i) => ({ key: `${key}-${i}`, title, start, duration: end - start, label }));
 };
@@ -128,19 +129,57 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
 };
 
 // 서버 바쁜 시간 중 할일(TASK)은 계획 블록으로 따로 그려서 제외
-// 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림
+// 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림, 등교 시각이 없어 수면 끝을 시작으로 표시
 const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   if (!day) return [];
-  const morningSleepEnd = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00")?.endTime;
-  return day.busyTimes.flatMap((item, i) => {
+  const morningSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00");
+  const nightSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.endTime === "24:00");
+  const morningSleepEnd = morningSleep?.endTime;
+  // 서버는 수면을 밤(23:00~24:00)과 아침(00:00~06:30)으로 나눠 줘서, 한 번의 잠으로 합쳐 총 수면 시간 표시
+  const mergedSleep = morningSleep && nightSleep
+    ? toBusyBlocks("sleep", BUSY_TITLES.SLEEP, nightSleep.startTime, morningSleep.endTime)
+    : [];
+  return mergedSleep.concat(day.busyTimes.flatMap((item, i) => {
     if (item.type === "TASK") return [];
+    if (mergedSleep.length > 0 && (item === morningSleep || item === nightSleep)) return [];
     if (item.type === "SCHOOL") {
       const start = morningSleepEnd && morningSleepEnd > item.startTime ? morningSleepEnd : item.startTime;
-      // 시작이 하교 전 아무 때나라 시각 줄 없이 제목 한 줄로만 표시
-      return toBusyBlocks(`school-${i}`, `${BUSY_TITLES.SCHOOL} · 하교 ${item.endTime}`, start, item.endTime, "");
+      return toBusyBlocks(`school-${i}`, BUSY_TITLES.SCHOOL, start, item.endTime);
     }
     return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, BUSY_TITLES[item.type], item.startTime, item.endTime);
+  }));
+};
+
+interface PlanColumn {
+  column: number; // 0부터
+  columns: number; // 겹치는 묶음의 칸 수
+}
+
+// 시간이 겹치는 계획끼리 묶어 빈 칸에 차례로 배치, 안 겹치면 한 칸(전체 너비)
+const layoutPlanColumns = (plans: Plan[]): Map<string, PlanColumn> => {
+  const result = new Map<string, PlanColumn>();
+  const sorted = [...plans].sort((a, b) => a.start - b.start || b.duration - a.duration);
+  let group: { id: string; column: number }[] = [];
+  let columnEnds: number[] = [];
+  let groupEnd = -1;
+
+  const flush = () => {
+    group.forEach(({ id, column }) => result.set(id, { column, columns: columnEnds.length }));
+    group = [];
+    columnEnds = [];
+  };
+
+  sorted.forEach((plan) => {
+    if (plan.start >= groupEnd) flush();
+    const end = plan.start + plan.duration;
+    let column = columnEnds.findIndex((columnEnd) => columnEnd <= plan.start);
+    if (column === -1) column = columnEnds.length;
+    columnEnds[column] = end;
+    group.push({ id: plan.id, column });
+    groupEnd = Math.max(groupEnd, end);
   });
+  flush();
+  return result;
 };
 
 const mapPlanTaskToPlan = (task: PlanTask): Plan => {
@@ -190,7 +229,7 @@ function BusyBlockView({ block }: { block: BusyBlock }) {
       <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
       <Stack gap="xs" className="flex-1 py-xxs">
         <Text variant="base-small" weight="medium">{block.title}</Text>
-        {block.duration >= 40 && !!block.label && (
+        {block.duration >= 40 && (
           <Row gap="xs" className="items-center">
             <Icon name="history" size={12} color="rgba(255,255,255,0.6)" />
             <Text variant="base-caption" style={{ color: "rgba(255,255,255,0.6)" }}>{block.label}</Text>
@@ -238,7 +277,16 @@ function PlanBlockText({ plan, showLines, onTitleLayout, onLayout }: {
   );
 }
 
-function PlanBlock({ plan, onPress, onPressHidden }: { plan: Plan; onPress: () => void; onPressHidden: () => void }) {
+// 겹치는 계획 사이 간격 4의 절반씩 양쪽에
+const PLAN_COLUMN_GAP_HALF = 2;
+
+function PlanBlock({ plan, column, columns, onPress, onPressHidden }: {
+  plan: Plan;
+  column: number;
+  columns: number;
+  onPress: () => void;
+  onPressHidden: () => void;
+}) {
   const colors = CATEGORY_COLORS[plan.category];
   const override = STATUS_OVERRIDE[plan.status];
   const bar = override?.bar ?? colors.bar;
@@ -253,22 +301,35 @@ function PlanBlock({ plan, onPress, onPressHidden }: { plan: Plan; onPress: () =
   const fit: PlanTextFit = fullHeight <= available ? "full" : titleHeight <= available ? "title" : "none";
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={{ position: "absolute", top: plan.start, left: TIMELINE_LEFT, right: 0, height: plan.duration, backgroundColor: palette.background.primary, opacity }}
-      className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: "absolute",
+        top: plan.start,
+        left: `${(column * 100) / columns}%`,
+        width: `${100 / columns}%`,
+        height: plan.duration,
+        paddingLeft: column > 0 ? PLAN_COLUMN_GAP_HALF : 0,
+        paddingRight: column < columns - 1 ? PLAN_COLUMN_GAP_HALF : 0,
+      }}
     >
-      {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
-      <View className="absolute inset-0" style={{ backgroundColor: bg }} />
-      <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
-      <View className="flex-1 py-xxs" style={{ opacity: measured ? 1 : 0 }}>
-        {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
-      </View>
-      {/* 높이 제한 없이 그려 원래 높이 측정, 화면엔 안 보임 */}
-      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
-        <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
-      </View>
-    </Pressable>
+      <Pressable
+        onPress={onPress}
+        style={{ flex: 1, backgroundColor: palette.background.primary, opacity }}
+        className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+      >
+        {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
+        <View className="absolute inset-0" style={{ backgroundColor: bg }} />
+        <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
+        <View className="flex-1 py-xxs" style={{ opacity: measured ? 1 : 0 }}>
+          {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
+        </View>
+        {/* 높이 제한 없이 그려 원래 높이 측정, 화면엔 안 보임 */}
+        <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
+          <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -658,6 +719,7 @@ export default function Home() {
     category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
   }));
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
+  const planColumns = layoutPlanColumns(coloredPlans);
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
@@ -830,14 +892,22 @@ export default function Home() {
             <BusyBlockView key={block.key} block={block} />
           ))}
 
-          {coloredPlans.map((plan) => (
-            <PlanBlock
-              key={plan.id}
-              plan={plan}
-              onPress={() => handleSelectPlan(plan)}
-              onPressHidden={() => router.push({ pathname: "/todo", params: { date: selectedKey } })}
-            />
-          ))}
+          {/* 겹치는 계획은 칸을 나눠 나란히, 칸 너비를 %로 잡으려고 타임라인 오른쪽 영역에 따로 깜 */}
+          <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: TIMELINE_LEFT, right: 0 }}>
+            {coloredPlans.map((plan) => {
+              const { column, columns } = planColumns.get(plan.id) ?? { column: 0, columns: 1 };
+              return (
+                <PlanBlock
+                  key={plan.id}
+                  plan={plan}
+                  column={column}
+                  columns={columns}
+                  onPress={() => handleSelectPlan(plan)}
+                  onPressHidden={() => router.push({ pathname: "/todo", params: { date: selectedKey } })}
+                />
+              );
+            })}
+          </View>
 
           {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />}
 

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -8,7 +8,6 @@ import { Stack, Row, Text, LoadingView, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
-import { generatePlan } from "@/api/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 import palette from "@/constants/palette";
 
@@ -24,24 +23,6 @@ const flattenLeaves = (nodes: ChapterTree[]): ChapterTree[] =>
   [...nodes]
     .sort((a, b) => a.chapterOrder - b.chapterOrder)
     .flatMap((node) => (node.children.length === 0 ? [node] : flattenLeaves(node.children)));
-
-// 계획 생성 실패 시 백엔드 code별 안내 문구
-const GENERATE_ERROR_MESSAGES: Record<string, string> = {
-  "INVALID_DATE_RANGE": "시험일은 내일 이후로 선택해주세요.",
-  "MISSING_DATE_INFO": "시험 날짜를 다시 선택해주세요.",
-  "INVALID_DATE_FORMAT": "시험 날짜를 다시 선택해주세요.",
-  "SUBJECTS_REQUIRED": "목차를 하나 이상 선택해주세요.",
-  "INVALID_SUBJECT_RANGE": "선택한 목차 범위를 다시 확인해주세요.",
-  "INVALID_TITLE": "계획 이름이 올바르지 않아요.",
-  "GENERATION_FAILED": "AI가 계획을 만들지 못했어요. 잠시 후 다시 시도해주세요.",
-};
-
-const getGenerateErrorMessage = (error: unknown) => {
-  if (!axios.isAxiosError(error)) return "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.";
-  if (error.code === "ECONNABORTED") return "계획을 만드는 데 시간이 너무 오래 걸렸어요. 잠시 후 다시 시도해주세요.";
-  if (!error.response) return "인터넷 연결을 확인해주세요.";
-  return GENERATE_ERROR_MESSAGES[error.response.data?.code] ?? "학습 계획을 만들지 못했습니다. 잠시 후 다시 시도해주세요.";
-};
 
 // 학교마다 목차 순서대로 진도를 나가지 않아서, 고른 소단원을 이어 붙이지 않고 하나씩 따로 보냄
 const toSubjectEntries = (textbookId: number, leaves: ChapterTree[], selectedIds: Set<number>): PlanGenerationSubjectInput[] =>
@@ -162,28 +143,15 @@ export default function ChapterSelectPage() {
     });
   };
 
-  const handleSubmit = async () => {
-    if (submitting || textbooks.length === 0) return;
+  const handleSubmit = () => {
+    if (textbooks.length === 0) return;
     if (missingIds.size > 0) {
       setShowRequired(true);
       return;
     }
     const subjects = textbooks.flatMap((tb) => toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], selectedIds));
-
-    const submitId = ++submitIdRef.current;
-    setSubmitting(true);
-    try {
-      await generatePlan({
-        title: examDate ? `${examDate} 시험 대비` : "새 학습 계획",
-        subjects,
-        examDate: examDate || undefined,
-      });
-      if (submitId === submitIdRef.current) router.replace("/home");
-    } catch (error) {
-      if (submitId === submitIdRef.current) Alert.alert("계획 생성 실패", getGenerateErrorMessage(error));
-    } finally {
-      if (submitId === submitIdRef.current) setSubmitting(false);
-    }
+    // 플랜 생성은 수면 시간·공부 스타일 설문을 마친 뒤
+    router.push({ pathname: "/SleepTimePage", params: { examDate, subjects: JSON.stringify(subjects) } });
   };
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 교과서 선택으로
@@ -279,7 +247,7 @@ export default function ChapterSelectPage() {
           onPress={handleSubmit}
           className="h-16 rounded-md items-center justify-center w-full mt-l mb-xl bg-primary-500"
         >
-          <Text variant="base-medium" weight="medium" className="text-white">AI 학습 계획 생성</Text>
+          <Text variant="base-medium" weight="medium" className="text-white">다음</Text>
         </Pressable>
       </View>
     </Animated.View>

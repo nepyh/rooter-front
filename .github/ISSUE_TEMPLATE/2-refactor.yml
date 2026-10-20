@@ -1,0 +1,25 @@
+name: 🔨 Refactor
+description: 동작 변경 없이 코드 구조·가독성·성능을 개선합니다.
+labels: '🔨 Refactor'
+title: '[Refactor]: '
+body:
+  - type: input
+    attributes:
+      label: ✨ 개요
+      description: 리팩토링에 대한 한줄 설명
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 할 일
+      description: 리팩토링 할 코드
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 💬 기타
+      description: 추가로 하고 싶은 말이 있다면 작성
+    validations:
+      required: false
