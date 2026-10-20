@@ -1,155 +1,80 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from "expo-router";
-import { View, TextInput } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { Stack, Input, Button, Text, Toast } from '@/components';
+import { AuthScreen, EmailInput, PasswordInput, Input, Button, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
-import { signup, login } from '@/api/auth';
+import { login } from '@/api/auth/common';
+import { signup, getSignupError } from '@/api/auth/Signup';
+import { useFormField } from '@/hooks/useFormField';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/password';
-import axios from "axios";
 
 export default function Signup() {
-  const [user, setUser] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [checkPassword, setCheckPassword] = useState("");
-
-  const [userErrorMessage, setUserErrorMessage] = useState("");
-  const [emailErrorMessage, setEmailErrorMessage] = useState("");
-  const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
-  const [checkPasswordErrorMessage, setCheckPasswordErrorMessage] = useState("");
-
-  const userRef = useRef<TextInput>(null);
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
-  const checkPasswordRef = useRef<TextInput>(null);
+  const username = useFormField();
+  const email = useFormField();
+  const password = useFormField();
+  const checkPassword = useFormField();
 
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
-  const [showToast, setShowToast] = useState(false);
-  const [responseMessage, setResponseMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
 
   const handleSubmit = async () => {
     setBtnVariant("disabled");
 
-    if (!isValidPassword(password)) {
-      setPasswordErrorMessage(PASSWORD_ERROR_MESSAGE);
-      passwordRef.current?.focus();
-      passwordRef.current?.setNativeProps({ selection: { start: password.length, end: password.length } });
+    if (!isValidPassword(password.value)) {
+      password.setError(PASSWORD_ERROR_MESSAGE);
+      password.focus(true);
       setBtnVariant("primary");
       return;
     }
 
-    if (password != checkPassword) {
-      setCheckPasswordErrorMessage("비밀번호가 일치하지 않습니다.");
-      passwordRef.current?.focus();
+    if (password.value !== checkPassword.value) {
+      checkPassword.setError("비밀번호가 일치하지 않습니다.");
+      password.focus();
       setBtnVariant("primary");
       return;
     }
 
     try {
-      await signup(user, email, password);
+      await signup(username.value, email.value, password.value);
       // 이후 학교/학년/반 저장 API가 로그인 토큰을 요구해서, 가입 직후 바로 로그인해둡니다.
-      await login(email, password);
+      await login(email.value, password.value);
 
       router.push("/Auth/SchoolSelect");
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.log("==============================")
-        console.log("status:", error.response?.status);
-        console.log("data:", error.response?.data);
-        console.log("message:", error.response?.data?.message);
+      const authError = getSignupError(error);
+      if (!authError) return;
 
-        const status = error.response?.status;
-
-        if (status === 400) { 
-          setUserErrorMessage("이름은 12자 이하여야 합니다.");
-          userRef.current?.focus();
-          return; 
-        } if (status === 406) {
-          setPasswordErrorMessage("비밀번호는 대소문자, 숫자를 포함하여야 합니다.")
-          passwordRef.current?.focus();
-          return;
-        } if (status === 409) {
-          setEmailErrorMessage("이미 사용 중인 이메일입니다.");
-          emailRef.current?.focus();
-          return;
-        } if (status === 500) {
-          setResponseMessage("서버 에러가 발생하였습니다.");
-          setShowToast(true);
-          setBtnVariant("primary");;
-          return;
-        }
+      if (authError.target === "toast") {
+        setToastMessage(authError.message);
+        setBtnVariant("primary");
+        return;
       }
+
+      const field = { username, email, password }[authError.target];
+      field.setError(authError.message);
+      field.focus();
     }
-  }
+  };
 
   useEffect(() => {
-    const isError = !user || !email || !password || !checkPassword;
+    const isError = !username.value || !email.value || !password.value || !checkPassword.value;
     setBtnVariant(isError ? "disabled" : "primary");
-  }, [user, email, password, checkPassword]);
+  }, [username.value, email.value, password.value, checkPassword.value]);
 
   return (
-    <View className="flex-1">
-      <StatusBar style="auto" />
-      <Stack align="between" className="flex-1">
-        <Stack gap="xxl">
-          <Stack gap="s">
-            <Text variant="title-medium"> 회원가입 </Text>
-            <Text color="secondary"> 회원가입을 진행합니다. </Text>
-          </Stack>
-          <Stack width="full" gap="m">
-            <Input
-              ref={userRef}
-              value={user}
-              onChangeText={(text: string) => {
-                setUser(text);
-                setUserErrorMessage("");
-              }}
-              label="이름"
-              placeholder="이름을 입력해주세요"
-              errorMessage={userErrorMessage}
-            />
-            <Input
-              ref={emailRef}
-              value={email}
-              onChangeText={(text: string) => {
-                setEmail(text);
-                setEmailErrorMessage("");
-              }}
-              label="이메일"
-              placeholder="이메일을 입력해주세요"
-              errorMessage={emailErrorMessage}
-              autoCapitalize="none"
-            />
-            <Input
-              ref={passwordRef}
-              value={password}
-              onChangeText={(text: string) => {
-                setPassword(text);
-                setPasswordErrorMessage("");
-              }}
-              label="비밀번호"
-              placeholder="비밀번호를 입력해주세요"
-              errorMessage={passwordErrorMessage}
-              secureTextEntry
-            />
-            <Input
-              ref={checkPasswordRef}
-              value={checkPassword}
-              onChangeText={(text: string) => {
-                setCheckPassword(text);
-                setCheckPasswordErrorMessage("");
-              }}
-              label="비밀번호 확인"
-              placeholder="비밀번호를 다시 입력해주세요"
-              errorMessage={checkPasswordErrorMessage}
-              secureTextEntry
-            />
-          </Stack>
-        </Stack>
-        <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
-        {showToast && <Toast text={responseMessage} onClose={() => setShowToast(false)} />}
-      </Stack>
-    </View>
+    <AuthScreen
+      title="회원가입"
+      description="회원가입을 진행합니다."
+      footer={
+        <>
+          <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
+          {!!toastMessage && <Toast text={toastMessage} onClose={() => setToastMessage("")} />}
+        </>
+      }
+    >
+      <Input {...username.inputProps} label="이름" placeholder="이름을 입력해주세요" />
+      <EmailInput {...email.inputProps} />
+      <PasswordInput {...password.inputProps} />
+      <PasswordInput {...checkPassword.inputProps} label="비밀번호 확인" placeholder="비밀번호를 다시 입력해주세요" />
+    </AuthScreen>
   );
 }

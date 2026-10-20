@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Text } from "@/components";
 import { Icon } from "@/assets";
-import { logout } from "@/api/auth";
+import { logout } from "@/api/auth/common";
 
 /**
  * 계정 설정 화면

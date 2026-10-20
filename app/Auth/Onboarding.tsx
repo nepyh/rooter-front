@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Stack, Button, Text, Toast } from '@/components';
-import { Icon } from '@/assets';
-import { color } from "@/constants/token/color";
+import { RooterLogo, Stack, Button, Text, Toast } from '@/components';
 import { useUserStore } from '@/store';
 
 // ================================
@@ -35,12 +33,7 @@ export default function Onboarding() {
   return (
     <View className="flex-1 pb-spacing-11 justify-end">
       <StatusBar style="auto" />
-      <Stack gap="l" className="flex-1 items-center justify-center">
-        <Icon name="mascot" size={140} color={color.primary["500"]} />
-        <Text weight="semibold" style={{ color: color.primary["500"], fontSize: 50, lineHeight: 60, fontFamily: "Jalnan2" }}>
-          Rooter
-        </Text>
-      </Stack>
+      <RooterLogo className="flex-1" />
       <Stack gap="xxl" className="items-center">
         {showToast && toast && <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />}
         <Button variant="primary" icon="mail" onPress={() => router.push("/Auth/Login")}> 이메일로 로그인하기 </Button>

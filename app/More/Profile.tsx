@@ -7,10 +7,10 @@ import { Stack, Row, Text, Input, Button } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { useUserStore } from "@/store";
-import { logout } from "@/api/auth";
+import { logout } from "@/api/auth/common";
 import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
 import type { UserInfo } from "@/api/user";
-import { getSchoolName } from "@/api/school";
+import { getSchoolName } from "@/api/more/Profile";
 import { getSpacing } from "@/utils/token";
 
 // ================================

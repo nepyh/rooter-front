@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { useRef, useState } from "react";
+import { TextInput } from "react-native";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Input, Button, Text } from "@/components";
-import type { Variant } from "@/components/ui/Button";
-import { searchMiddleSchools, type School } from "@/api/school";
+import { AuthScreen, SchoolSearchInput, ClassInfoInputs, SchoolInquiryLink, Stack, Button } from "@/components";
+import type { School } from "@/api/auth/SchoolSelect";
 
 // ================================
 // Components
@@ -16,17 +14,13 @@ import { searchMiddleSchools, type School } from "@/api/school";
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
-  const [hasSelectedOnce, setHasSelectedOnce] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [grade, setGrade] = useState("");
   const [classNum, setClassNum] = useState("");
-  const [schools, setSchools] = useState<School[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const schoolRef = useRef<TextInput>(null);
 
-  const showSuggestions = query.length > 0 && !selected;
-
-  const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
+  const btnVariant = selected && grade && classNum ? "primary" : "disabled";
 
   const handleChangeQuery = (text: string) => {
     setQuery(text);
@@ -34,16 +28,14 @@ export default function SchoolSelect() {
   };
 
   const handleSelect = (school: School) => {
-    const isSameSchool = selectedSchool?.schoolId === school.schoolId;
-
-    setQuery(school.name);
-    setSelected(true);
-    setHasSelectedOnce(true);
-    setSelectedSchool(school);
-    if (!isSameSchool) {
+    // 같은 학교를 다시 고르면 입력해 둔 학년·반을 유지
+    if (selectedSchool?.schoolId !== school.schoolId) {
       setGrade("");
       setClassNum("");
     }
+    setQuery(school.name);
+    setSelected(true);
+    setSelectedSchool(school);
     schoolRef.current?.blur();
   };
 
@@ -59,95 +51,28 @@ export default function SchoolSelect() {
     });
   };
 
-  useEffect(() => {
-    setBtnVariant(selected && grade && classNum ? "primary" : "disabled");
-  }, [selected, grade, classNum]);
-
-  useEffect(() => {
-    if (!showSuggestions) {
-      setSchools([]);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      searchMiddleSchools(query)
-        .then(setSchools)
-        .catch(() => setSchools([]));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query, showSuggestions]);
-
   return (
-    <View className="flex-1">
-      <StatusBar style="auto" />
-      <Stack align="between" className="flex-1">
-        <Stack gap="xxl">
-          <Stack gap="s">
-            <Text variant="title-medium"> {selected ? "학교 정보 입력" : "학교 선택"} </Text>
-            <Text color="secondary">
-              {selected ? "학년, 반을 입력해주세요" : "현재 재학 중인 학교를 선택해주세요"}
-            </Text>
-          </Stack>
-          <Stack width="full" gap="m">
-            <View className="relative z-10">
-              <Input
-                ref={schoolRef}
-                value={query}
-                onChangeText={handleChangeQuery}
-                editable={!selected}
-                onPressIn={selected ? handleEditSchool : undefined}
-                label="학교명"
-                placeholder="학교 이름을 입력해주세요."
-              />
-              {showSuggestions && (
-                <View className="absolute top-full mt-spacing-3 w-full z-20 shadow-lg" style={{ elevation: 8 }}>
-                  <Stack width="full" className="bg-neutral-700 rounded-radius-4 overflow-hidden">
-                    {schools.map((school) => (
-                      <Pressable key={school.schoolId} className="p-spacing-6 w-full" onPress={() => handleSelect(school)}>
-                        <Text variant="base-large" weight="medium">
-                          {school.name} ({school.region})
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </Stack>
-                </View>
-              )}
-            </View>
-            {hasSelectedOnce && (
-              <Row gap="m" width="full">
-                <View className="flex-1">
-                  <Input
-                    value={grade}
-                    onChangeText={setGrade}
-                    label="학년"
-                    keyboardType="number-pad"
-                    maxLength={2}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Input
-                    value={classNum}
-                    onChangeText={setClassNum}
-                    label="반"
-                    keyboardType="number-pad"
-                    maxLength={2}
-                  />
-                </View>
-              </Row>
-            )}
-          </Stack>
-        </Stack>
+    <AuthScreen
+      title={selected ? "학교 정보 입력" : "학교 선택"}
+      description={selected ? "학년, 반을 입력해주세요" : "현재 재학 중인 학교를 선택해주세요"}
+      footer={
         <Stack gap="l" width="full">
           <Button variant={btnVariant} onPress={handleComplete}> 선택 완료 </Button>
-          {!selected && (
-            <Row gap="s" width="full" className="justify-center items-end">
-              <Text color="disabled"> 재학 중인 학교가 없나요? </Text>
-              <Text weight="medium" className="underline" style={{ color: "#F6482D" }}> 문의하기 </Text>
-            </Row>
-          )}
+          {!selected && <SchoolInquiryLink />}
         </Stack>
-      </Stack>
-    </View>
+      }
+    >
+      <SchoolSearchInput
+        ref={schoolRef}
+        query={query}
+        selected={selected}
+        onChangeQuery={handleChangeQuery}
+        onSelect={handleSelect}
+        onEdit={handleEditSchool}
+      />
+      {selectedSchool && (
+        <ClassInfoInputs grade={grade} classNum={classNum} onChangeGrade={setGrade} onChangeClassNum={setClassNum} />
+      )}
+    </AuthScreen>
   );
 }
