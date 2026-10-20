@@ -9,7 +9,7 @@
     "ios": {
       "icon": "./src/assets/app.icon",
       "supportsTablet": true,
-      "bundleIdentifier": "com.hyphen.rooter",
+      "bundleIdentifier": "io.github.nepyh.rooter",
       "infoPlist": {
         "NSBonjourServices": [
           "_expo._tcp"
