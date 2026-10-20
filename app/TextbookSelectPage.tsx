@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import Animated, { SlideOutLeft } from "react-native-reanimated";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text } from "@/components";
+import { Stack, Row, Text, LoadingView } from "@/components";
 import { Icon } from "@/assets";
 import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
@@ -32,7 +33,7 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
   );
 }
 
-function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
+function TextbookCard({ textbook, onPress }: { textbook: TextbookWithSubject; onPress: () => void }) {
   // 서버 출판사 이름, 없으면 제목 괄호 안 출판사
   const publisherName = textbook.publisherName ?? textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
   // 출판사는 아랫줄에 따로 보여서 제목에서 제외
@@ -42,18 +43,12 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
     <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
       <View
         className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
-        style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: "#F6482D" }}
+        style={{ aspectRatio: 210 / 270 }}
       >
         {textbook.coverImageUrl ? (
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
           <Icon name="book" size={32} color="#8A919E" />
-        )}
-        {selected && <View className="absolute inset-0 rounded-xxs" style={{ backgroundColor: "rgba(246,72,45,0.3)" }} />}
-        {selected && (
-          <View className="absolute top-xs right-xs w-5 h-5 rounded-full bg-primary-500 items-center justify-center">
-            <Icon name="check" size={12} color="#FFFFFF" />
-          </View>
         )}
       </View>
       <Stack gap="xxs" width="full">
@@ -72,12 +67,18 @@ export default function TextbookSelectPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
+
+  // 과목·교과서를 불러오는 동안 빈 격자 대신 불러오는 중 표시
+  const [loadingTextbooks, setLoadingTextbooks] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const userId = useUserStore((state) => state.userId);
-  const [grade, setGrade] = useState<number | null>(null);
 
   useEffect(() => {
-    getSubjects().then(setSubjects).catch(() => setSubjects([]));
+    getSubjects()
+      .then((list) => {
+        setSubjects(list);
+        if (list.length === 0) setLoadingTextbooks(false);
+      })
+      .catch(() => setLoadingTextbooks(false));
   }, []);
 
   // 회원가입 때 입력한 학년, 못 불러오면 전체 표시
@@ -98,43 +99,46 @@ export default function TextbookSelectPage() {
     if (subjects.length === 0) return;
 
     const targets = selectedSubjectId === null ? subjects : subjects.filter((s) => s.id === selectedSubjectId);
+    setLoadingTextbooks(true);
     Promise.all(
       targets.map((subject) =>
         getTextbooksBySubject(subject.id)
           .then((list) => list.map((textbook) => ({ ...textbook, subjectName: subject.name })))
           .catch(() => [] as TextbookWithSubject[])
       )
-    ).then((lists) => setTextbooks(lists.flat()));
+    ).then((lists) => {
+      setTextbooks(lists.flat());
+      setLoadingTextbooks(false);
+    });
   }, [subjects, selectedSubjectId]);
 
-  const toggleTextbook = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
+  // 선택 버튼 없이 교과서를 누르면 바로 목차 선택으로
+  // 고른 교과서를 먼저 기억해 왼쪽으로 밀려나는 퇴장을 켠 뒤 이동, 목차 화면은 오른쪽에서 들어옴
+  const [nextTextbookId, setNextTextbookId] = useState<number | null>(null);
+  const handleSelect = (id: number) => setNextTextbookId(id);
 
-  const handleSelect = () => {
-    if (selectedIds.size === 0) return;
+  useEffect(() => {
+    if (nextTextbookId === null) return;
     router.push({
       pathname: "/ChapterSelectPage",
-      params: { examDate, textbookIds: Array.from(selectedIds).join(",") },
+      params: { examDate, textbookIds: String(nextTextbookId) },
     });
-  };
+  }, [nextTextbookId, examDate]);
+
+  // 목차에서 돌아오면 다시 고를 수 있게 초기화
+  useFocusEffect(useCallback(() => setNextTextbookId(null), []));
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 시험 날짜 선택으로
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/ExamDatePage"));
 
   return (
-    <View className="flex-1">
+    <Animated.View exiting={nextTextbookId !== null ? SlideOutLeft.duration(300) : undefined} className="flex-1">
       <StatusBar style="light" />
 
-      <Row width="full" align="between" className="items-center pb-l">
+      <Row width="full" className="items-center pb-l">
         <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
-        <Text variant="base-large" color="disabled">{`${selectedIds.size}개 선택됨`}</Text>
       </Row>
 
       <Stack gap="s" width="full" className="pb-xl">
@@ -154,18 +158,19 @@ export default function TextbookSelectPage() {
         ))}
       </Row>
 
+      {loadingTextbooks ? <LoadingView /> : (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         <View className="flex-row flex-wrap" style={{ gap: 20 }}>
           {visibleTextbooks.map((textbook) => (
             <TextbookCard
               key={textbook.id}
               textbook={textbook}
-              selected={selectedIds.has(textbook.id)}
-              onPress={() => toggleTextbook(textbook.id)}
+              onPress={() => handleSelect(textbook.id)}
             />
           ))}
         </View>
       </ScrollView>
+      )}
 
       <Pressable
         onPress={handleSelect}

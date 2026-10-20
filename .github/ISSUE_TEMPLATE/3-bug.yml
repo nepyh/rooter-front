@@ -1,0 +1,29 @@
+name: 🐞 Bug
+description: 오류·크래시가 발생하였습니다.
+labels: '🐞 Bug'
+title: '[Bug]: '
+body:
+  - type: input
+    attributes:
+      label: ✨ 개요
+      description: 무엇이 문제인지 한줄 설명
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 재현법
+      description: 이 버그나 문제를 재현하는 명확한 과정이 있다면 작성
+      value: |
+        - [ ]
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: 💻 환경
+      description: OS, 브라우저, 버전 등 환경에 대한 정보
+  - type: textarea
+    attributes:
+      label: 💬 기타
+      description: 추가로 하고 싶은 말이 있다면 작성
+    validations:
+      required: false

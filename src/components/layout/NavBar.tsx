@@ -10,7 +10,7 @@ import type { IconName } from "@/assets";
 // Types
 // ================================
 
-type TabPath = "/home" | "/todo" | "/calendar" | "/more";
+type TabPath = "/home" | "/todo" | "/quiz" | "/calendar" | "/more";
 
 interface Tab {
   key: string;
@@ -25,7 +25,8 @@ interface Tab {
 
 const TABS: Tab[] = [
   { key: "home", label: "홈", icon: "home", path: "/home" },
-  { key: "todo", label: "할 일", icon: "checklist", path: "/todo" },
+  { key: "todo", label: "할일", icon: "checklist", path: "/todo" },
+  { key: "quiz", label: "퀴즈", icon: "quiz", path: "/quiz" },
   { key: "calendar", label: "캘린더", icon: "calendar", path: "/calendar" },
   { key: "more", label: "더보기", icon: "menu", path: "/more" },
 ];
