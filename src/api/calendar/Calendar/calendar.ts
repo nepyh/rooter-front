@@ -1,26 +1,26 @@
-import api from './axios';
-import type { PlanTask } from './planBoard';
+import api from '../../axios';
+import type { PlanTask } from '../../planBoard';
 
 // ================================
 // Types
 // ================================
 
 export interface CalendarDay {
-  date: string; // yyyy-MM-dd
+  date: string;
   plannedMinutes: number;
 }
 
 export interface CalendarExam {
   planBoardId: number;
   title: string;
-  examDate: string; // yyyy-MM-dd
+  examDate: string;
   dDay: number;
 }
 
 export interface CalendarEvent {
   id: number;
   title: string;
-  eventDate: string; // yyyy-MM-dd
+  eventDate: string;
   memo?: string | null;
 }
 
@@ -31,23 +31,23 @@ export interface CalendarRange {
 }
 
 export interface DailyCompletion {
-  date: string; // yyyy-MM-dd
+  date: string;
   totalTasks: number;
   completedTasks: number;
-  completionRate: number; // 0~100
+  completionRate: number;
   tasks: PlanTask[];
   events: CalendarEvent[];
 }
 
 export interface CreateCalendarEventInput {
   title: string;
-  eventDate: string; // yyyy-MM-dd
+  eventDate: string;
   memo?: string;
 }
 
 export interface UpdateCalendarEventInput {
   title?: string;
-  eventDate?: string; // yyyy-MM-dd
+  eventDate?: string;
   memo?: string;
 }
 
