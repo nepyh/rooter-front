@@ -1,6 +1,6 @@
-import api, { AI_TIMEOUT_MS } from './axios';
+import api, { AI_TIMEOUT_MS } from '../../axios';
 import { toLocalDateString } from '@/utils/date';
-import type { PlanTask } from './planBoard';
+import type { PlanTask } from '../../planBoard';
 
 // ================================
 // Types
@@ -46,7 +46,7 @@ export interface QuizQuestionResult {
   correctChoiceId: number | null;
   correctChoiceText: string | null;
   isCorrect: boolean;
-  explanation: string | null; // 풀이 기능 전 퀴즈는 null
+  explanation: string | null;
 }
 
 export interface QuizResult {
@@ -63,7 +63,6 @@ export interface QuizResult {
  * @returns 생성된 퀴즈 문제
  */
 export const generateQuiz = async (date?: string): Promise<Quiz> => {
-  // 서버의 오늘이 UTC 기준이라 날짜 생략 시 기기 기준 오늘 날짜 전달
   const response = await api.post('/quiz/generate', { date: date ?? toLocalDateString(new Date()) }, { timeout: AI_TIMEOUT_MS });
   return response.data;
 };
@@ -90,14 +89,14 @@ export const submitQuiz = async (dailyPlanId: number, answers: QuizAnswer[]): Pr
 };
 
 // ================================
-// 할일별 완료 확인 퀴즈 (문항마다 즉시 채점)
+// Task Quiz
 // ================================
 
 export interface TaskQuizQuestion {
   id: number;
   questionText: string;
   choices: QuizChoice[];
-  selectedChoiceId: number | null; // 이미 답한 문제면 채워짐, 이어 풀기용
+  selectedChoiceId: number | null;
 }
 
 export interface TaskQuizSubject {
@@ -109,7 +108,6 @@ export interface TaskQuiz {
   planTaskId: number;
   attemptNumber: number;
   questions: TaskQuizQuestion[];
-  // 할일 이름·플랜보드 과목으로 서버가 추정한 과목, 모르면 null
   subject: TaskQuizSubject | null;
   subjects: TaskQuizSubject[];
 }
@@ -118,17 +116,17 @@ export interface TaskQuizAnswerResult {
   questionId: number;
   isCorrect: boolean;
   correctChoiceId: number;
-  reason: string | null; // 틀렸을 때 고른 보기가 틀린 이유, 맞으면 null
-  explanation?: string | null; // 백엔드 B-16 반영 시 문항마다 자세한 풀이
+  reason: string | null;
+  explanation?: string | null;
 }
 
 export interface TaskQuizResult {
   attemptNumber: number;
   correctCount: number;
   totalCount: number;
-  passed: boolean; // 4개 이상 정답이면 할일 자동 완료
-  retryScheduled: boolean; // 불합격 시 10분 뒤 재시도, 남은 할일 15분씩 밀림
-  taskInvalidated: boolean; // 3번 모두 불합격이면 미완료 확정
+  passed: boolean;
+  retryScheduled: boolean;
+  taskInvalidated: boolean;
   results: QuizQuestionResult[];
   shiftedTasks: PlanTask[];
 }

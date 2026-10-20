@@ -1,4 +1,4 @@
-import api, { AI_TIMEOUT_MS } from './axios';
+import api, { AI_TIMEOUT_MS } from '../../axios';
 
 // ================================
 // Types
@@ -9,12 +9,12 @@ export type Difficulty = "쉬움" | "적당" | "어려움";
 export interface SubmitFeedbackInput {
   difficulty: Difficulty;
   timeSpentMinutes?: number;
-  focusLevel?: number; // 1~5
+  focusLevel?: number;
 }
 
 export interface AdjustmentTask {
   dailyPlanId: number;
-  planDate: string; // yyyy-MM-dd
+  planDate: string;
   taskName: string;
 }
 

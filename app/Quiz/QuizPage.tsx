@@ -1,278 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import axios from "axios";
-import { Pressable, ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Stack, Row, Text, Button, LoadingScreen } from "@/components";
-import { Icon } from "@/assets";
-import type { IconName } from "@/assets";
-import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz";
-import type { TaskQuiz, TaskQuizAnswerResult, TaskQuizResult } from "@/api/quiz";
-import { completeTask } from "@/api/planBoard";
+import {
+  Stack,
+  Row,
+  Text,
+  Button,
+  LoadingScreen,
+  CenterMessage,
+  QuizCloseButton,
+  QuizProgressBar,
+  QuizQuestionView,
+  QuizIntro,
+  QuizScore,
+} from "@/components";
 import type { Category } from "@/constants/category";
-import { color } from "@/constants/token/color";
+import { useTaskQuiz } from "@/hooks/quiz/useTaskQuiz";
 import { useUserStore } from "@/store";
-import { getSpacing } from "@/utils/token";
-
-// ================================
-// Types
-// ================================
-
-type OptionState = "default" | "selected" | "correct" | "wrong";
-type Phase = "intro" | "answering" | "review" | "score";
-
-// ================================
-// Constants
-// ================================
-
-// 퀴즈 응답에 과목 정보가 없어 Home에서 넘겨준 카테고리로만 과목 태그 표시
-const SUBJECT_LABELS: Partial<Record<Category, string>> = {
-  "math": "수학",
-  "english": "영어",
-  "science": "과학",
-  "social": "사회",
-};
-
-// 퀴즈 조회·채점 실패 시 백엔드 code별 안내 문구
-const QUIZ_ERROR_MESSAGES: Record<string, string> = {
-  "TASK_QUIZ_NOT_FOUND": "퀴즈가 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.",
-  "TASK_QUIZ_ALREADY_SUBMITTED": "이미 채점이 끝난 퀴즈예요.",
-  "TASK_QUIZ_INCOMPLETE_ANSWERS": "아직 풀지 않은 문제가 있어요.",
-  "TASK_QUIZ_INVALID_ANSWER": "보기를 다시 선택해주세요.",
-};
-
-const getQuizErrorMessage = (error: unknown, fallback: string) => {
-  if (axios.isAxiosError(error) && error.code === "ECONNABORTED") return "퀴즈를 만드는 데 시간이 오래 걸리고 있어요. 다시 시도해주세요.";
-  const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
-  return QUIZ_ERROR_MESSAGES[code] ?? fallback;
-};
-
-// 맞혔을 때 칭찬, 문제마다 무작위로 하나
-const CORRECT_MESSAGES = ["정답이에요!", "훌륭한걸요?", "좋아요!!", "완벽해요!", "잘했어요!", "정확해요!", "역시 대단해요!", "이대로만 가요!"];
-
-const pickCorrectMessage = () => CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)];
-
-// 점수 화면 아래 결과 안내, 디자인에 없어 한 줄로만 표시
-const getResultNotice = (result: TaskQuizResult) => {
-  if (result.passed) return "통과! 할 일이 완료 처리됐어요.";
-  if (result.taskInvalidated) return "세 번 모두 통과하지 못해 이번 할 일은 미완료로 확정됐어요.";
-  if (result.retryScheduled) return "10분 뒤 새 문제로 다시 도전할 수 있어요. 남은 일정은 15분씩 미뤄졌어요.";
-  return null;
-};
-
-// ================================
-// Styles
-// ================================
-
-const optionStyles: Record<OptionState, string> = {
-  "default": "border-neutral-600",
-  "selected": "border-primary-500 bg-primary-500/30",
-  "correct": "border-utility-success-primary bg-utility-success-primary/30",
-  "wrong": "border-utility-error-primary bg-utility-error-primary/30",
-};
-
-const optionIcons: Partial<Record<OptionState, { name: IconName; color: string }>> = {
-  "correct": { name: "check", color: color.utility["success-primary"] },
-  "wrong": { name: "close", color: color.utility["error-primary"] },
-};
-
-// ================================
-// Components
-// ================================
-
-function OptionRow({ label, state, onPress }: { label: string; state: OptionState; onPress?: () => void }) {
-  const icon = optionIcons[state];
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      className={`flex-row gap-spacing-3 items-center justify-center p-spacing-6 rounded-radius-4 border-2 w-full ${optionStyles[state]}`}
-    >
-      {icon && <Icon name={icon.name} size={20} color={icon.color} />}
-      <Text variant="base-large" className="text-center">{label}</Text>
-    </Pressable>
-  );
-}
-
-function ProgressBar({ total, current }: { total: number; current: number }) {
-  return (
-    <Row gap="xs" className="flex-1 h-[6px] items-center">
-      {Array.from({ length: total }, (_, i) => (
-        <View key={i} className={`flex-1 h-full rounded-radius-full ${i <= current ? "bg-primary-500" : "bg-neutral-600"}`} />
-      ))}
-    </Row>
-  );
-}
-
-function QuestionCard({ index, text }: { index: number; text: string }) {
-  return (
-    <View className="bg-neutral-700 rounded-radius-4 p-spacing-6 w-full" style={{ minHeight: 200, gap: getSpacing("spacing-11") }}>
-      <View className="self-start bg-neutral-600 px-spacing-4 py-spacing-2 rounded-radius-2">
-        <Text variant="header-small">{`Q${index + 1}`}</Text>
-      </View>
-      <Text variant="title-medium" className="text-center">{text}</Text>
-    </View>
-  );
-}
-
-// 해설 말풍선, 마스코트 쪽 모서리만 각지게
-function ExplanationBubble({ text }: { text: string }) {
-  return (
-    <Row gap="m" width="full" className="items-end">
-      <View className="flex-1 bg-neutral-700 px-spacing-6 py-spacing-5 rounded-tl-radius-5 rounded-tr-radius-5 rounded-bl-radius-5">
-        <Text variant="base-large">{text}</Text>
-      </View>
-      <Icon name="mascotFace" size={52} />
-    </Row>
-  );
-}
-
-function ScoreCircle({ correct, total }: { correct: number; total: number }) {
-  const score = total > 0 ? Math.round((correct / total) * 100) : 0;
-  return (
-    <View
-      className="w-[280px] h-[280px] rounded-radius-full border-[10px] border-primary-500 items-center justify-center self-center"
-      style={{
-        gap: getSpacing("spacing-7"),
-        experimental_backgroundImage: `linear-gradient(180deg, ${color.quiz["score-top"]} 0%, ${color.quiz["score-bottom"]} 100%)`,
-      }}
-    >
-      <Text variant="base-large">나의 점수</Text>
-      <Stack gap="s" className="items-center">
-        <Text weight="semibold" style={{ fontSize: 40, lineHeight: 50, letterSpacing: -0.4 }}>{`${score}점`}</Text>
-        <Text variant="base-large" color="secondary">{`${correct}/${total}`}</Text>
-      </Stack>
-    </View>
-  );
-}
+import { SUBJECT_LABELS } from "@/utils/quiz/quiz";
 
 /**
  * 퀴즈 화면
+ * 퀴즈가 없으면 서버가 AI 로 만드느라 몇 초 걸려서 전체 화면 로딩으로 기다리고, 기다리다 나가면 퀴즈 화면을 닫음
  */
 export default function QuizPage() {
   const { taskId, dailyPlanId, category } = useLocalSearchParams<{ taskId?: string; dailyPlanId?: string; category?: Category }>();
-  const [serverSubject, setServerSubject] = useState<string | null>(null);
-  const subjectLabel = serverSubject ?? (category ? SUBJECT_LABELS[category] : undefined);
   const username = useUserStore((state) => state.user?.username);
-  const insets = useSafeAreaInsets();
-  const [phase, setPhase] = useState<Phase>("intro");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [quiz, setQuiz] = useState<TaskQuiz | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({}); // questionId -> selectedChoiceId
-  const [graded, setGraded] = useState<Record<number, TaskQuizAnswerResult>>({}); // 문제마다 즉시 채점 결과
-  const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState<TaskQuizResult | null>(null);
-  // 해설 말풍선이 보기 위에 떠 있어서, 마지막 보기가 가리지 않게 말풍선 높이만큼 아래 여백
-  const [bubbleHeight, setBubbleHeight] = useState(0);
-
-  const questions = quiz?.questions ?? [];
-  const current = questions[currentIndex];
-  // 다시 그려질 때마다 문구가 바뀌지 않게 문제별로 처음 뽑은 문구 유지
-  const correctMessagesRef = useRef<Record<number, string>>({});
-  const getCorrectMessage = (questionId: number) => {
-    correctMessagesRef.current[questionId] ??= pickCorrectMessage();
-    return correctMessagesRef.current[questionId];
-  };
-  const isLast = currentIndex === questions.length - 1;
-  const selectedChoiceId = current ? answers[current.id] : undefined;
-  const currentGrade = current ? graded[current.id] : undefined;
-
-  const submit = async (id: number) => {
-    setChecking(true);
-    setError("");
-    try {
-      const quizResult = await submitTaskQuiz(id);
-      // 통과하면 서버가 할일을 자동 완료하지만, 완료 API로도 한 번 더 맞춤 (이미 완료면 그대로 성공, 실패해도 결과 화면은 보여줌)
-      if (quizResult.passed) await completeTask(id, true).catch(() => {});
-      setResult(quizResult);
-      // 풀 때 문항마다 풀이를 이미 봤으면 바로 점수, 아니면 1번부터 풀이 보기
-      const sawAllExplanations = questions.length > 0 && questions.every((q) => !!gradedRef.current[q.id]?.explanation);
-      setCurrentIndex(0);
-      setPhase("review");
-    } catch (e) {
-      setError(getQuizErrorMessage(e, "채점 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."));
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  // 시작 화면을 보는 동안 퀴즈를 미리 불러와 과목 표시, 서버가 즉석 생성하면 기다리는 시간도 줄어듦
-  const prefetchRef = useRef<Promise<TaskQuiz> | null>(null);
-  useEffect(() => {
-    const id = Number(taskId);
-    if (!id) return;
-    const request = getTaskQuiz(id);
-    prefetchRef.current = request;
-    request.then((data) => setServerSubject(data.subject?.subjectName ?? null)).catch(() => {});
-  }, [taskId]);
-
-  // 이미 답한 문제는 건너뛰고 안 푼 문제부터 이어 풀기
-  const handleStart = async () => {
-    const id = Number(taskId);
-    setPhase("answering");
-    if (!id) {
-      setError("퀴즈를 풀 할 일을 찾지 못했어요.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      // 미리 불러온 게 실패했으면 다시 요청, 다음 [다시 시도]는 항상 새로 요청
-      const prefetched = prefetchRef.current;
-      prefetchRef.current = null;
-      const data = await (prefetched ? prefetched.catch(() => getTaskQuiz(id)) : getTaskQuiz(id));
-      setServerSubject(data.subject?.subjectName ?? null);
-      setQuiz(data);
-      setAnswers(Object.fromEntries(data.questions.filter((q) => q.selectedChoiceId !== null).map((q) => [q.id, q.selectedChoiceId as number])));
-      const firstOpen = data.questions.findIndex((q) => q.selectedChoiceId === null);
-      if (firstOpen === -1) await submit(id);
-      else setCurrentIndex(firstOpen);
-    } catch (e) {
-      setError(getQuizErrorMessage(e, "퀴즈를 준비하지 못했습니다. 잠시 후 다시 시도해주세요."));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelect = (choiceId: number) => {
-    if (!current || currentGrade) return;
-    setAnswers((prev) => ({ ...prev, [current.id]: choiceId }));
-  };
-
-  // [확인]: 이 문제만 제출해 바로 채점
-  const handleConfirm = async () => {
-    if (!current || selectedChoiceId === undefined || !quiz) return;
-    setChecking(true);
-    setError("");
-    try {
-      const grade = await answerTaskQuizQuestion(quiz.planTaskId, current.id, selectedChoiceId);
-      setGraded((prev) => ({ ...prev, [current.id]: grade }));
-    } catch (e) {
-      const code = axios.isAxiosError(e) ? e.response?.data?.code : undefined;
-      if (code === "TASK_QUIZ_QUESTION_ALREADY_ANSWERED") handleNext(); // 이미 답한 문제는 다음으로
-      else setError(getQuizErrorMessage(e, "채점하지 못했습니다. 잠시 후 다시 시도해주세요."));
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  // [다음]: 마지막 문제 뒤에 전체 제출해 풀이 보기
-  const handleNext = () => {
-    if (!quiz) return;
-    if (isLast) submit(quiz.planTaskId);
-    else setCurrentIndex((i) => i + 1);
-  };
-
-  // 풀이 보기 [다음]: 마지막이면 점수 화면
-  const handleReviewNext = () => {
-    if (isLast) setPhase("score");
-    else setCurrentIndex((i) => i + 1);
-  };
-
-  const reviewResult = phase === "review" && current ? result?.results.find((r) => r.questionId === current.id) : undefined;
+  const quiz = useTaskQuiz(taskId);
+  const subjectLabel = quiz.serverSubject ?? (category ? SUBJECT_LABELS[category] : undefined);
+  const { phase, current, error, checking, isLast } = quiz;
 
   const goFeedback = () => {
     if (!dailyPlanId) {
@@ -282,93 +38,15 @@ export default function QuizPage() {
     router.replace({ pathname: "/Quiz/FeedbackPage", params: { dailyPlanId } });
   };
 
-  const getOptionState = (choiceId: number): OptionState => {
-    if (reviewResult) {
-      if (choiceId === reviewResult.correctChoiceId) return "correct";
-      if (choiceId === reviewResult.selectedChoiceId) return "wrong";
-      return "default";
-    }
-    if (currentGrade) {
-      if (choiceId === currentGrade.correctChoiceId) return "correct";
-      if (choiceId === selectedChoiceId) return "wrong";
-      return "default";
-    }
-    return selectedChoiceId === choiceId ? "selected" : "default";
-  };
+  if (quiz.loading) return <LoadingScreen text="퀴즈 준비 중..." onBack={() => router.back()} />;
 
-  // 퀴즈가 없으면 서버가 AI로 만들어 몇 초 걸려서 전체 화면 로딩으로 대기
-  // 기다리다 나가면 퀴즈 화면을 닫음
-  if (loading) return <LoadingScreen text="퀴즈 준비 중..." onBack={() => router.back()} />;
+  if (phase === "intro") return <QuizIntro subjectLabel={subjectLabel} onStart={quiz.start} />;
 
-  if (phase === "intro") {
-    return (
-      <View className="flex-1">
-        <StatusBar style="light" />
-        <Stack align="between" width="full" className="flex-1">
-          <Stack gap="xxl" width="full">
-            <Pressable onPress={() => router.back()} className="w-[28px] h-[28px] items-center justify-center">
-              <Icon name="close" size={24} />
-            </Pressable>
-            <Stack gap="xl" width="full">
-              <Icon name="mascotFace" size={100} />
-              <Stack gap="m" width="full">
-                <Row gap="m" className="items-center">
-                  {subjectLabel && (
-                    <View className="bg-primary-500/20 px-spacing-3 py-spacing-2 rounded-radius-2">
-                      <Text variant="base-medium" weight="medium" style={{ color: color.primary["500"] }}>{subjectLabel}</Text>
-                    </View>
-                  )}
-                  <Text variant="title-medium">학습 테스트</Text>
-                </Row>
-                <Text variant="base-large">
-                  사용자의 학습이 제대로 되었는지{"\n"}확인하기 위해 학습 테스트를 시작할게요
-                </Text>
-              </Stack>
-            </Stack>
-          </Stack>
-          <Button variant="primary" onPress={handleStart}>시작</Button>
-        </Stack>
-      </View>
-    );
+  if (phase === "score" && quiz.result) {
+    return <QuizScore result={quiz.result} username={username} subjectLabel={subjectLabel} onNext={goFeedback} />;
   }
 
-  if (phase === "score" && result) {
-    const notice = getResultNotice(result);
-    // 바탕 그라데이션이 화면 끝까지 닿게 레이아웃 좌우 여백·하단 안전영역만큼 넓혀 깔고 안쪽은 같은 여백
-    return (
-      <View
-        className="flex-1 -mx-spacing-7 px-spacing-7"
-        style={{
-          marginBottom: -insets.bottom,
-          paddingBottom: insets.bottom,
-          experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary} 0%, ${color.quiz["result-bottom"]} 100%)`,
-        }}
-      >
-        <StatusBar style="light" />
-        <Stack align="between" width="full" className="flex-1">
-          <Stack gap="m" width="full" className="pt-[60px]">
-            {!!username && <Text variant="header-large">{`${username}님,`}</Text>}
-            <Text variant="title-large">
-              {`${subjectLabel ? `${subjectLabel} ` : ""}학습 테스트를\n완료했어요!`}
-            </Text>
-          </Stack>
-          <ScoreCircle correct={result.correctCount} total={result.totalCount} />
-          <Stack gap="xl" width="full">
-            {notice && <ExplanationBubble text={notice} />}
-            <Button variant="primary" onPress={goFeedback}>다음</Button>
-          </Stack>
-        </Stack>
-      </View>
-    );
-  }
-
-  // 틀리면 서버가 준 틀린 이유, 맞으면 정답 안내
-  // 풀이 보기에서는 자세한 풀이, 풀 때는 틀린 이유만
-  const bubbleText = reviewResult
-    ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
-    : currentGrade
-      ? currentGrade.isCorrect ? getCorrectMessage(current?.id ?? currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
-      : null;
+  const locked = !!quiz.currentGrade || !!quiz.reviewResult;
 
   return (
     <View className="flex-1">
@@ -376,65 +54,35 @@ export default function QuizPage() {
       <Stack align="between" width="full" className="flex-1">
         <Stack gap="xxl" width="full" className="flex-1">
           <Row gap="l" width="full" className="items-center">
-            <Pressable onPress={() => router.back()} className="w-[28px] h-[28px] items-center justify-center">
-              <Icon name="close" size={24} />
-            </Pressable>
-            {questions.length > 0 && <ProgressBar total={questions.length} current={currentIndex} />}
+            <QuizCloseButton />
+            {quiz.questions.length > 0 && <QuizProgressBar total={quiz.questions.length} current={quiz.currentIndex} />}
           </Row>
 
-          {error && !current ? (
-            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
-              <Text color="secondary">{error}</Text>
-            </Stack>
-          ) : !current ? (
-            <Stack gap="m" width="full" className="flex-1 items-center justify-center">
-              <Text color="secondary">아직 준비된 퀴즈가 없어요.</Text>
-            </Stack>
+          {!current ? (
+            <CenterMessage text={error || "아직 준비된 퀴즈가 없어요."} />
           ) : (
-            <ScrollView
-              className="flex-1"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: bubbleText ? bubbleHeight : 0 }}
-            >
-              <Stack gap="xxl" width="full">
-                <QuestionCard index={currentIndex} text={current.questionText} />
-                <Stack gap="m" width="full">
-                  {current.choices.map((choice) => (
-                    <OptionRow
-                      key={choice.id}
-                      label={choice.choiceText}
-                      state={getOptionState(choice.id)}
-                      onPress={currentGrade || reviewResult ? undefined : () => handleSelect(choice.id)}
-                    />
-                  ))}
-                </Stack>
-              </Stack>
-            </ScrollView>
-          )}
-          {/* 해설은 보기 위에 겹쳐 띄워서 말풍선 밖으로는 뒤 보기가 그대로 보이게 */}
-          {bubbleText && (
-            <View
-              pointerEvents="none"
-              className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0 pt-spacing-6 pb-spacing-2"
-              onLayout={(e) => setBubbleHeight(e.nativeEvent.layout.height)}
-            >
-              <ExplanationBubble text={bubbleText} />
-            </View>
+            <QuizQuestionView
+              question={current}
+              index={quiz.currentIndex}
+              optionStateOf={quiz.optionStateOf}
+              onSelect={locked ? undefined : quiz.select}
+              bubbleText={quiz.bubbleText}
+            />
           )}
         </Stack>
 
         <Stack gap="xl" width="full" className="pt-spacing-5">
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
           {!current && error && phase === "answering" ? (
-            <Button variant="primary" onPress={handleStart}>다시 시도</Button>
+            <Button variant="primary" onPress={quiz.start}>다시 시도</Button>
           ) : !current ? (
             <Button variant="primary" onPress={() => router.back()}>확인</Button>
           ) : phase === "review" ? (
-            <Button variant="primary" onPress={handleReviewNext}>{isLast ? "점수 보기" : "다음"}</Button>
-          ) : currentGrade ? (
-            <Button variant={checking ? "disabled" : "primary"} onPress={handleNext}>{checking ? "채점 중..." : "다음"}</Button>
+            <Button variant="primary" onPress={quiz.reviewNext}>{isLast ? "점수 보기" : "다음"}</Button>
+          ) : quiz.currentGrade ? (
+            <Button variant={checking ? "disabled" : "primary"} onPress={quiz.next}>{checking ? "채점 중..." : "다음"}</Button>
           ) : (
-            <Button variant={selectedChoiceId === undefined || checking ? "disabled" : "primary"} onPress={handleConfirm}>
+            <Button variant={quiz.selectedChoiceId === undefined || checking ? "disabled" : "primary"} onPress={quiz.confirm}>
               {checking ? "채점 중..." : "확인"}
             </Button>
           )}

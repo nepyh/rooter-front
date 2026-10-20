@@ -5,6 +5,7 @@ export * from "./home";
 export * from "./calendar";
 export * from "./learningSurvey";
 export * from "./more";
+export * from "./quiz";
 export { AddPlanBoardModal } from "./AddPlanBoardModal";
 export { AiChatModal } from "./AiChatModal";
 export { TextbookPicker } from "./TextbookPicker";
