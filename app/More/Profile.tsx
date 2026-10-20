@@ -1,158 +1,31 @@
-import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import * as ImagePicker from "expo-image-picker";
-import { Stack, Row, Text, Input, Button } from "@/components";
-import { Icon } from "@/assets";
-import type { IconName } from "@/assets";
-import { useUserStore } from "@/store";
-import { logout } from "@/api/auth/common";
-import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
-import type { UserInfo } from "@/api/user";
-import { getSchoolName } from "@/api/more/Profile";
+import { Stack, Text, Input, Button, MorePageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField } from "@/components";
+import { useProfile } from "@/hooks/more/useProfile";
+import { useLogout } from "@/hooks/more/useLogout";
+import { formatGradeClass } from "@/utils/more/profile";
 import { getSpacing } from "@/utils/token";
-
-// ================================
-// Utils
-// ================================
-
-// 학생 프로필 등록 전이면 학년·반이 null
-const formatGradeClass = (info: UserInfo | null) => {
-  if (!info?.grade || !info.classNumber) return "-";
-  return `${info.grade}학년 ${info.classNumber}반`;
-};
-
-// ================================
-// Components
-// ================================
-
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <Stack gap="s" width="full">
-      <Text variant="base-medium">{label}</Text>
-      <View className="bg-neutral-700 rounded-radius-4 p-spacing-6 w-full">
-        <Text variant="base-large" weight="medium">{value}</Text>
-      </View>
-    </Stack>
-  );
-}
-
-function MenuRow({ icon, label, onPress }: { icon?: IconName; label: string; onPress?: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="flex-row items-center justify-between p-spacing-4 rounded-radius-3 w-full">
-      <Text variant="base-medium" weight="medium" className="text-text-primary">{label}</Text>
-      <Icon name={icon ?? "chevronRight"} size={24} />
-    </Pressable>
-  );
-}
 
 /**
  * 프로필 화면
  */
 export default function ProfilePage() {
-  const user = useUserStore((state) => state.user);
-  const userId = useUserStore((state) => state.userId);
-  const updateProfile = useUserStore((state) => state.updateProfile);
-
-  const [bio, setBio] = useState(user?.bio ?? "");
-  const [profileImageUri, setProfileImageUri] = useState(user?.profileImageUri);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [schoolName, setSchoolName] = useState<string | null>(null);
-
-  // 로그인 응답엔 소개(bio)/아바타가 없어서, 화면 진입 시 서버에서 최신 값을 받아옵니다.
-  useEffect(() => {
-    if (userId === null) return;
-    getUserInfo(userId)
-      .then((info) => {
-        setUserInfo(info);
-        if (info.schoolName) setSchoolName(info.schoolName);
-        else if (info.schoolId) getSchoolName(info.schoolId).then(setSchoolName).catch(() => setSchoolName(null));
-        setBio(info.bio ?? "");
-        if (info.avatarUrl) setProfileImageUri(info.avatarUrl);
-        updateProfile({ bio: info.bio ?? "" });
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
-  const handlePickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("권한 필요", "프로필 사진을 변경하려면 사진 접근 권한이 필요합니다.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (result.canceled || userId === null) return;
-
-    const asset = result.assets[0];
-    setProfileImageUri(asset.uri);
-
-    try {
-      await uploadAvatar(userId, { uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType });
-      updateProfile({ profileImageUri: asset.uri });
-    } catch {
-      Alert.alert("업로드 실패", "프로필 사진 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    }
-  };
+  const { user, userInfo, schoolName, bio, setBio, profileImageUri, pickImage, saveBio } = useProfile();
+  const handleLogout = useLogout();
 
   const handleSave = async () => {
-    if (userId === null) return;
-
-    try {
-      await updateUserProfile(userId, { bio });
-      updateProfile({ bio, profileImageUri });
-      router.replace("/More/More");
-    } catch {
-      Alert.alert("저장 실패", "소개 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    }
-  };
-
-  const handleLogout = async () => {
-    // logout()은 서버 호출 성공/실패와 무관하게 로컬 로그인 상태를 항상 정리합니다.
-    try {
-      await logout();
-    } catch {
-      // 로컬 상태는 이미 정리됐으므로 무시하고 화면만 이동합니다.
-    }
-    router.replace("/Auth/Onboarding");
+    if (await saveBio()) router.replace("/More/More");
   };
 
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-
-      <Row gap="s" className="items-center pb-spacing-5">
-        <Pressable onPress={() => router.back()}>
-          <Icon name="chevronLeft" size={28} />
-        </Pressable>
-        <Text variant="header-large">프로필</Text>
-      </Row>
+      <MorePageHeader title="프로필" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-9") }}>
         <Stack width="full" className="items-center pt-spacing-5">
-          <View className="w-[100px] h-[100px]">
-            <View className="w-[100px] h-[100px] rounded-radius-full overflow-hidden bg-neutral-700 items-center justify-center">
-              {profileImageUri ? (
-                <Image source={{ uri: profileImageUri }} style={{ width: 100, height: 100 }} />
-              ) : (
-                <Text variant="title-small">{(user?.username ?? "?").slice(0, 1)}</Text>
-              )}
-            </View>
-            <Pressable
-              onPress={handlePickImage}
-              className="absolute bottom-spacing-0 right-spacing-0 w-[28px] h-[28px] rounded-radius-full bg-background-primary items-center justify-center"
-            >
-              <Icon name="camera" size={16} />
-            </Pressable>
-          </View>
+          <ProfileAvatar imageUri={profileImageUri} fallbackText={(user?.username ?? "?").slice(0, 1)} onPressCamera={pickImage} />
         </Stack>
 
         <Stack gap="xl" width="full" className="pt-spacing-9">
@@ -172,10 +45,10 @@ export default function ProfilePage() {
           </Stack>
         </Stack>
 
-        <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4 mt-spacing-9">
+        <MenuGroup className="mt-spacing-9">
           <MenuRow label="비밀번호 변경" onPress={() => router.push("/More/ChangePassword")} />
           <MenuRow label="로그아웃" onPress={handleLogout} />
-        </Stack>
+        </MenuGroup>
       </ScrollView>
 
       <Button variant="primary" onPress={handleSave} className="mt-spacing-5">수정하기</Button>

@@ -1,167 +1,100 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { useState } from "react";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import axios from "axios";
-import { Stack, Input, Button, Text, Toast } from "@/components";
-import type { Variant } from "@/components/ui/Button";
-import { Icon } from "@/assets";
-import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/password";
+import { Button, Toast, PasswordInput, ChangePasswordScreen } from "@/components";
 import { changePassword } from "@/api/user";
+import { isWrongCurrentPassword } from "@/api/more/ChangePassword";
+import { useFormField } from "@/hooks/useFormField";
 import { useUserStore } from "@/store";
+import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/password";
+
+// ================================
+// Types
+// ================================
 
 type Step = "verify" | "reset";
 
+// ================================
+// Components
+// ================================
+
 /**
  * 비밀번호 변경 화면
+ * 현재 비밀번호는 따로 확인하지 않고, 새 비밀번호와 함께 변경 API 를 부를 때 서버가 검증함
  */
 export default function ChangePasswordPage() {
   const userId = useUserStore((state) => state.userId);
   const logout = useUserStore((state) => state.logout);
   const [step, setStep] = useState<Step>("verify");
+  const [toastMessage, setToastMessage] = useState("");
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [currentPasswordErrorMessage, setCurrentPasswordErrorMessage] = useState("");
+  const currentPassword = useFormField();
+  const newPassword = useFormField();
+  const confirmPassword = useFormField();
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [newPasswordErrorMessage, setNewPasswordErrorMessage] = useState("");
-  const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = useState("");
+  const isFilled = step === "verify" ? !!currentPassword.value : !!newPassword.value && !!confirmPassword.value;
+  const btnVariant = isFilled ? "primary" : "disabled";
 
-  const newPasswordRef = useRef<TextInput>(null);
-  const confirmPasswordRef = useRef<TextInput>(null);
-
-  const [btnVariant, setBtnVariant] = useState<Variant>("disabled");
-  const [showToast, setShowToast] = useState(false);
-  const [responseMessage, setResponseMessage] = useState("");
-
-  useEffect(() => {
-    const isFilled = step === "verify"
-      ? !!currentPassword
-      : !!newPassword && !!confirmPassword;
-    setBtnVariant(isFilled ? "primary" : "disabled");
-  }, [step, currentPassword, newPassword, confirmPassword]);
-
-  // 에러 후 재포커스 시 커서가 맨 앞으로 가지 않도록 텍스트 끝으로 이동시킵니다.
-  const focusAtEnd = (ref: React.RefObject<TextInput | null>, value: string) => {
-    ref.current?.focus();
-    ref.current?.setNativeProps({ selection: { start: value.length, end: value.length } });
-  };
-
-  const handleVerify = () => {
-    // 현재 비밀번호 검증은 새 비밀번호와 함께 한 번에(변경 API 호출 시) 서버가 처리
-    setStep("reset");
-  };
+  const handleVerify = () => setStep("reset");
 
   const handleReset = async () => {
-    if (!isValidPassword(newPassword)) {
-      setNewPasswordErrorMessage(PASSWORD_ERROR_MESSAGE);
-      focusAtEnd(newPasswordRef, newPassword);
+    if (!isValidPassword(newPassword.value)) {
+      newPassword.setError(PASSWORD_ERROR_MESSAGE);
+      newPassword.focus(true);
       return;
     }
-    if (newPassword !== confirmPassword) {
-      setConfirmPasswordErrorMessage("새 비밀번호가 일치하지 않습니다.");
-      focusAtEnd(confirmPasswordRef, confirmPassword);
+    if (newPassword.value !== confirmPassword.value) {
+      confirmPassword.setError("새 비밀번호가 일치하지 않습니다.");
+      confirmPassword.focus(true);
       return;
     }
     if (userId === null) return;
 
     try {
-      await changePassword(userId, { currentPassword, newPassword });
-      // 비밀번호 변경 시 백엔드가 기존 토큰 무효화, 다시 로그인 필요
+      await changePassword(userId, { currentPassword: currentPassword.value, newPassword: newPassword.value });
       logout();
       router.replace({ pathname: "/Auth/Onboarding", params: { toast: "password-changed" } });
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data?.code === "WRONG_CURRENT_PASSWORD") {
+      if (isWrongCurrentPassword(error)) {
         setStep("verify");
-        setCurrentPasswordErrorMessage("현재 비밀번호가 일치하지 않습니다.");
+        currentPassword.setError("현재 비밀번호가 일치하지 않습니다.");
         return;
       }
-      setResponseMessage("비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.");
-      setShowToast(true);
+      setToastMessage("비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
   };
 
+  const handleSubmit = step === "verify" ? handleVerify : handleReset;
+
   return (
-    <View className="flex-1">
-      <StatusBar style="light" />
-      <Stack gap="xl" className="flex-1 pb-spacing-11">
-        <View className="py-spacing-5">
-          <Pressable onPress={() => router.back()}>
-            <Icon name="chevronLeft" size={32} />
-          </Pressable>
-        </View>
-
-        <Stack align="between" className="flex-1">
-          {step === "verify" ? (
-            <Stack gap="xxl">
-              <Stack gap="s">
-                <Text variant="title-medium"> 비밀번호 변경 </Text>
-                <Text color="secondary"> 현재 비밀번호를 확인합니다. </Text>
-              </Stack>
-              <Stack width="full" gap="m">
-                <Input
-                  value={currentPassword}
-                  onChangeText={(text: string) => {
-                    setCurrentPassword(text);
-                    setCurrentPasswordErrorMessage("");
-                  }}
-                  label="현재 비밀번호"
-                  placeholder="현재 비밀번호를 입력해주세요"
-                  errorMessage={currentPasswordErrorMessage}
-                  secureTextEntry
-                  returnKeyType="done"
-                  onSubmitEditing={() => {
-                    if (btnVariant !== "disabled") handleVerify();
-                  }}
-                />
-              </Stack>
-            </Stack>
-          ) : (
-            <Stack gap="xxl">
-              <Stack gap="s">
-                <Text variant="title-medium"> 비밀번호 변경 </Text>
-                <Text color="secondary"> 새 비밀번호를 설정합니다. </Text>
-              </Stack>
-              <Stack width="full" gap="m">
-                <Input
-                  ref={newPasswordRef}
-                  value={newPassword}
-                  onChangeText={(text: string) => {
-                    setNewPassword(text);
-                    setNewPasswordErrorMessage("");
-                  }}
-                  label="새 비밀번호"
-                  placeholder="새 비밀번호를 입력해주세요"
-                  errorMessage={newPasswordErrorMessage}
-                  secureTextEntry
-                />
-                <Input
-                  ref={confirmPasswordRef}
-                  value={confirmPassword}
-                  onChangeText={(text: string) => {
-                    setConfirmPassword(text);
-                    setConfirmPasswordErrorMessage("");
-                  }}
-                  label="새 비밀번호 확인"
-                  placeholder="새 비밀번호를 다시 입력해주세요"
-                  errorMessage={confirmPasswordErrorMessage}
-                  secureTextEntry
-                  returnKeyType="done"
-                  onSubmitEditing={() => {
-                    if (btnVariant !== "disabled") handleReset();
-                  }}
-                />
-              </Stack>
-            </Stack>
-          )}
-
-          <Button variant={btnVariant} onPress={step === "verify" ? handleVerify : handleReset}>
-            {step === "verify" ? "다음" : "변경하기"}
-          </Button>
-          {showToast && <Toast text={responseMessage} onClose={() => setShowToast(false)} />}
-        </Stack>
-      </Stack>
-    </View>
+    <ChangePasswordScreen
+      description={step === "verify" ? "현재 비밀번호를 확인합니다." : "새 비밀번호를 설정합니다."}
+      footer={
+        <>
+          <Button variant={btnVariant} onPress={handleSubmit}>{step === "verify" ? "다음" : "변경하기"}</Button>
+          {!!toastMessage && <Toast text={toastMessage} onClose={() => setToastMessage("")} />}
+        </>
+      }
+    >
+      {step === "verify" ? (
+        <PasswordInput
+          {...currentPassword.inputProps}
+          label="현재 비밀번호"
+          placeholder="현재 비밀번호를 입력해주세요"
+          returnKeyType="done"
+          onSubmitEditing={() => { if (isFilled) handleVerify(); }}
+        />
+      ) : (
+        <>
+          <PasswordInput {...newPassword.inputProps} label="새 비밀번호" placeholder="새 비밀번호를 입력해주세요" />
+          <PasswordInput
+            {...confirmPassword.inputProps}
+            label="새 비밀번호 확인"
+            placeholder="새 비밀번호를 다시 입력해주세요"
+            returnKeyType="done"
+            onSubmitEditing={() => { if (isFilled) handleReset(); }}
+          />
+        </>
+      )}
+    </ChangePasswordScreen>
   );
 }

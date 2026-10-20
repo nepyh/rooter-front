@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text, Switch } from "@/components";
-import { Icon } from "@/assets";
+import { Stack, MorePageHeader, NotificationRow } from "@/components";
 
-// TODO: 실제 알림 종류/설정 저장 API 연동 전까지는 로컬 상태로만 토글합니다.
+// ================================
+// Constants
+// ================================
+
+/**
+ * 알림 설정 목록. 알림 종류·설정 저장 API 연동 전이라 화면 안에서만 켜고 끔
+ */
 const NOTIFICATION_ROWS = [
   { id: "type-1", label: "알림 종류", defaultEnabled: true },
   { id: "type-2", label: "알림 종류", defaultEnabled: false },
@@ -15,15 +19,6 @@ const NOTIFICATION_ROWS = [
 // ================================
 // Components
 // ================================
-
-function NotificationRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: () => void }) {
-  return (
-    <Row width="full" align="between" className="items-center">
-      <Text variant="base-large" className="text-text-primary">{label}</Text>
-      <Switch value={value} onToggle={onToggle} />
-    </Row>
-  );
-}
 
 /**
  * 알림 화면
@@ -38,14 +33,7 @@ export default function NotificationPage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-
-      <Row gap="s" className="items-center pb-spacing-5">
-        <Pressable onPress={() => router.back()}>
-          <Icon name="chevronLeft" size={28} />
-        </Pressable>
-        <Text variant="header-large">알림</Text>
-      </Row>
-
+      <MorePageHeader title="알림" />
       <Stack gap="xl" width="full" className="pt-spacing-5">
         {NOTIFICATION_ROWS.map((row, i) => (
           <NotificationRow key={row.id} label={row.label} value={enabled[i]} onToggle={() => toggle(i)} />
