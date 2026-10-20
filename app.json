@@ -4,7 +4,7 @@
     "slug": "rooter",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/app.icon",
+    "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "icon": "./src/assets/app.icon",
