@@ -172,8 +172,15 @@ const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opa
 };
 
 // 일정을 넣지 않는 시간 표시용, 누를 수 없음
+// 학교·수면은 서로 구분되게 색을 따로, 불가능 시간은 기본 회색
+const BUSY_COLORS: Record<"sleep" | "school", { bar: string; bg: string }> = {
+  "sleep": { bar: palette.busy["sleep-bar"], bg: palette.busy["sleep-bg"] },
+  "school": { bar: palette.busy["school-bar"], bg: palette.busy["school-bg"] },
+};
+
 function BusyBlockView({ block }: { block: BusyBlock }) {
-  const colors = CATEGORY_COLORS.neutral;
+  const kind = block.key.split("-")[0];
+  const colors = kind === "sleep" || kind === "school" ? BUSY_COLORS[kind] : CATEGORY_COLORS.neutral;
   return (
     <View
       pointerEvents="none"
@@ -641,8 +648,12 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 끝나는 시각이 지금보다 이전인데 완료 안 된 계획은 실패로 표시
+  const dayStartMs = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
+  const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
   const coloredPlans = plans.map((plan) => ({
     ...plan,
+    status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
     category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
   }));
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
@@ -655,11 +666,7 @@ export default function Home() {
 
   // 액션메뉴 팝업이 현재 화면(스크롤 뷰포트) 밖으로 가려지면, 팝업이 가운데 오도록 자동으로 스크롤합니다.
   const handleSelectPlan = (plan: Plan) => {
-    // 완료한 계획은 메뉴 없이 퀴즈(결과·이어 풀기)로 바로 이동
-    if (plan.status === "done") {
-      openQuiz(plan);
-      return;
-    }
+    if (plan.status !== "pending") return; // 완료·실패(지난 계획 포함)는 메뉴 없음
     const nextId = plan.id === activeId ? null : plan.id;
     setActiveId(nextId);
     if (!nextId) return;

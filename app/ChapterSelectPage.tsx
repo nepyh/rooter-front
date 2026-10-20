@@ -3,7 +3,8 @@ import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } 
 import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text } from "@/components";
+import axios from "axios";
+import { Stack, Row, Text, LoadingView } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
@@ -106,6 +107,8 @@ function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaf
 export default function ChapterSelectPage() {
   const { examDate, textbookIds } = useLocalSearchParams<{ examDate: string; textbookIds: string }>();
   const [textbooks, setTextbooks] = useState<TextbookDetail[]>([]);
+  // 목차를 불러오는 동안 빈 목록 대신 불러오는 중 표시
+  const [loadingChapters, setLoadingChapters] = useState(true);
   // 대단원 토글은 여러 개 동시에 펼칠 수 있음
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   // 구글 폼처럼 [생성]을 눌렀을 때 빠진 교과서에 필수 안내 표시
@@ -125,7 +128,8 @@ export default function ChapterSelectPage() {
   useEffect(() => {
     const ids = (textbookIds ?? "").split(",").filter(Boolean).map(Number);
     Promise.all(ids.map((id) => getTextbookDetail(id).catch(() => null)))
-      .then((details) => setTextbooks(details.filter((d): d is TextbookDetail => d !== null)));
+      .then((details) => setTextbooks(details.filter((d): d is TextbookDetail => d !== null)))
+      .finally(() => setLoadingChapters(false));
   }, [textbookIds]);
 
   const toggleLeaf = (id: number) => {
@@ -178,6 +182,7 @@ export default function ChapterSelectPage() {
           <Text variant="base-medium" color="secondary">시험 범위에 알맞는 교과서의 목차를 선택해주세요</Text>
         </Stack>
 
+        {loadingChapters ? <LoadingView /> : (
         <View style={{ flex: 1 }}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -219,6 +224,7 @@ export default function ChapterSelectPage() {
             style={[{ position: "absolute", left: 0, right: 0, bottom: 0, height: 56 }, overlayStyle]}
           />
         </View>
+        )}
 
         {showRequired && missingIds.size > 0 && (
           <Text variant="base-small" className="text-center pt-m" style={{ color: palette.utility["error-primary"] }}>
