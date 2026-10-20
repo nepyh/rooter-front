@@ -47,7 +47,12 @@ const getQuizErrorMessage = (error: unknown, fallback: string) => {
   return QUIZ_ERROR_MESSAGES[code] ?? fallback;
 };
 
-// 점수 화면 아래 결과 안내, 디자인처럼 마스코트 말풍선으로 표시
+// 맞혔을 때 칭찬, 문제마다 무작위로 하나
+const CORRECT_MESSAGES = ["정답이에요!", "훌륭한걸요?", "좋아요!!", "완벽해요!", "잘했어요!", "정확해요!", "역시 대단해요!", "이대로만 가요!"];
+
+const pickCorrectMessage = () => CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)];
+
+// 점수 화면 아래 결과 안내, 디자인에 없어 한 줄로만 표시
 const getResultNotice = (result: TaskQuizResult) => {
   if (result.passed) return "통과! 할 일이 완료 처리됐어요.";
   if (result.taskInvalidated) return "세 번 모두 통과하지 못해 이번 할 일은 미완료로 확정됐어요.";
@@ -157,8 +162,6 @@ export default function QuizPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // questionId -> selectedChoiceId
   const [graded, setGraded] = useState<Record<number, TaskQuizAnswerResult>>({}); // 문제마다 즉시 채점 결과
-  const gradedRef = useRef(graded);
-  gradedRef.current = graded;
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<TaskQuizResult | null>(null);
   // 해설 말풍선이 보기 위에 떠 있어서, 마지막 보기가 가리지 않게 말풍선 높이만큼 아래 여백
@@ -166,6 +169,12 @@ export default function QuizPage() {
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
+  // 다시 그려질 때마다 문구가 바뀌지 않게 문제별로 처음 뽑은 문구 유지
+  const correctMessagesRef = useRef<Record<number, string>>({});
+  const getCorrectMessage = (questionId: number) => {
+    correctMessagesRef.current[questionId] ??= pickCorrectMessage();
+    return correctMessagesRef.current[questionId];
+  };
   const isLast = currentIndex === questions.length - 1;
   const selectedChoiceId = current ? answers[current.id] : undefined;
   const currentGrade = current ? graded[current.id] : undefined;
@@ -181,7 +190,7 @@ export default function QuizPage() {
       // 풀 때 문항마다 풀이를 이미 봤으면 바로 점수, 아니면 1번부터 풀이 보기
       const sawAllExplanations = questions.length > 0 && questions.every((q) => !!gradedRef.current[q.id]?.explanation);
       setCurrentIndex(0);
-      setPhase(sawAllExplanations ? "score" : "review");
+      setPhase("review");
     } catch (e) {
       setError(getQuizErrorMessage(e, "채점 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."));
     } finally {
@@ -353,11 +362,11 @@ export default function QuizPage() {
   }
 
   // 틀리면 서버가 준 틀린 이유, 맞으면 정답 안내
-  // 풀이 보기에서는 자세한 풀이, 풀 때는 틀린 이유
+  // 풀이 보기에서는 자세한 풀이, 풀 때는 틀린 이유만
   const bubbleText = reviewResult
     ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
     : currentGrade
-      ? currentGrade.explanation || (currentGrade.isCorrect ? "정답이에요!" : currentGrade.reason ?? "아쉽지만 오답이에요.")
+      ? currentGrade.isCorrect ? getCorrectMessage(current?.id ?? currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
       : null;
 
   return (
