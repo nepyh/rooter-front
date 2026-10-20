@@ -4,9 +4,10 @@
     "slug": "rooter",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
+    "icon": "./src/assets/app.icon",
     "userInterfaceStyle": "light",
     "ios": {
+      "icon": "./src/assets/app.icon",
       "supportsTablet": true,
       "bundleIdentifier": "com.hyphen.rooter",
       "infoPlist": {
@@ -22,17 +23,6 @@
           }
         }
       }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./src/assets/android-icon-foreground.png",
-        "backgroundImage": "./src/assets/android-icon-background.png",
-        "monochromeImage": "./src/assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.hyphen.rooter",
-      "usesCleartextTraffic": true
     },
     "scheme": "rooter",
     "web": {
