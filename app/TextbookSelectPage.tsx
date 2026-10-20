@@ -9,6 +9,7 @@ import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
 import { getUserInfo } from "@/api/user";
 import { useUserStore } from "@/store";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
@@ -48,7 +49,7 @@ function TextbookCard({ textbook, onPress }: { textbook: TextbookWithSubject; on
         {textbook.coverImageUrl ? (
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
-          <Icon name="book" size={32} color="#8A919E" />
+          <Icon name="book" size={32} color={palette.neutral["400"]} />
         )}
       </View>
       <Stack gap="xxs" width="full">
@@ -70,7 +71,8 @@ export default function TextbookSelectPage() {
 
   // 과목·교과서를 불러오는 동안 빈 격자 대신 불러오는 중 표시
   const [loadingTextbooks, setLoadingTextbooks] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const userId = useUserStore((state) => state.userId);
+  const [grade, setGrade] = useState<number | null>(null);
 
   useEffect(() => {
     getSubjects()
@@ -171,15 +173,6 @@ export default function TextbookSelectPage() {
         </View>
       </ScrollView>
       )}
-
-      <Pressable
-        onPress={handleSelect}
-        disabled={selectedIds.size === 0}
-        className="h-16 rounded-md items-center justify-center w-full mb-xl"
-        style={{ backgroundColor: selectedIds.size > 0 ? "#F6482D" : "#3F4552" }}
-      >
-        <Text variant="base-medium" weight="medium" className="text-white">선택</Text>
-      </Pressable>
     </Animated.View>
   );
 }
