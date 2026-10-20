@@ -3,7 +3,7 @@ import { View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { Text } from "./Text";
 import { Icon } from "@/assets";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Constants
@@ -37,7 +37,7 @@ export function LoadingView({ text = "불러오는 중...", className = "" }: Pr
   return (
     <View className={`flex-1 items-center justify-center py-xxl ${className}`} style={{ gap: 16 }}>
       <Animated.View style={spinnerStyle}>
-        <Icon name="loading" size={36} color={palette.primary["500"]} />
+        <Icon name="loading" size={36} color={color.primary["500"]} />
       </Animated.View>
       <Text variant="base-medium" color="secondary">{text}</Text>
     </View>

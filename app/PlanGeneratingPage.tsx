@@ -8,7 +8,7 @@ import { Icon } from "@/assets";
 import { generatePlan } from "@/api/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 import { submitStudyStyle } from "@/api/studyStyle";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Helpers
@@ -87,7 +87,7 @@ export default function PlanGeneratingPage() {
         </Pressable>
       </View>
       <View className="flex-1 items-center justify-center" style={{ gap: 28 }}>
-        <ActivityIndicator size="large" color={palette.primary["500"]} />
+        <ActivityIndicator size="large" color={color.primary["500"]} />
         <Text variant="title-small">플랜 생성 중...</Text>
       </View>
     </View>

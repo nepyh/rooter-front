@@ -8,7 +8,7 @@ import { Icon } from "@/assets";
 import { TextbookPicker } from "@/components/TextbookPicker";
 import { ChapterPicker } from "@/components/ChapterPicker";
 import type { TextbookWithSubject } from "@/components/TextbookPicker";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import { WEEKDAYS } from "@/constants/date";
@@ -474,7 +474,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                           {textbook.coverImageUrl ? (
                             <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                           ) : (
-                            <Icon name="book" size={32} color={palette.neutral["400"]} />
+                            <Icon name="book" size={32} color={color.neutral["400"]} />
                           )}
                         </View>
                         <Stack gap="xxs">
@@ -486,7 +486,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                     ))}
                     <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
                       <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
-                        <Icon name="plus" size={24} color={palette.neutral["400"]} />
+                        <Icon name="plus" size={24} color={color.neutral["400"]} />
                       </View>
                       <Text variant="base-small" color="secondary">교과서 {selectedTextbooks.size > 0 ? "변경하기" : "추가하기"}</Text>
                     </Pressable>
@@ -517,7 +517,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
           <View
             pointerEvents="none"
             className="absolute left-0 right-0 bottom-0"
-            style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary}00 0%, ${palette.background.primary} 100%)` }}
+            style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary}00 0%, ${color.background.primary} 100%)` }}
           />
         </View>
       )}

@@ -11,7 +11,7 @@ import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz"
 import type { TaskQuiz, TaskQuizAnswerResult, TaskQuizResult } from "@/api/quiz";
 import { completeTask } from "@/api/planBoard";
 import type { Category } from "@/constants/category";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 import { useUserStore } from "@/store";
 
 // ================================
@@ -72,8 +72,8 @@ const optionStyles: Record<OptionState, string> = {
 };
 
 const optionIcons: Partial<Record<OptionState, { name: IconName; color: string }>> = {
-  "correct": { name: "check", color: palette.utility["success-primary"] },
-  "wrong": { name: "close", color: palette.utility["error-primary"] },
+  "correct": { name: "check", color: color.utility["success-primary"] },
+  "wrong": { name: "close", color: color.utility["error-primary"] },
 };
 
 // ================================
@@ -134,7 +134,7 @@ function ScoreCircle({ correct, total }: { correct: number; total: number }) {
       className="w-[280px] h-[280px] rounded-full border-[10px] border-primary-500 items-center justify-center self-center"
       style={{
         gap: 24,
-        experimental_backgroundImage: `linear-gradient(180deg, ${palette.quiz["score-top"]} 0%, ${palette.quiz["score-bottom"]} 100%)`,
+        experimental_backgroundImage: `linear-gradient(180deg, ${color.quiz["score-top"]} 0%, ${color.quiz["score-bottom"]} 100%)`,
       }}
     >
       <Text variant="base-large">나의 점수</Text>
@@ -314,7 +314,7 @@ export default function QuizPage() {
                 <Row gap="m" className="items-center">
                   {subjectLabel && (
                     <View className="bg-primary-500/20 px-s py-xs rounded-xs">
-                      <Text variant="base-medium" weight="medium" style={{ color: palette.primary["500"] }}>{subjectLabel}</Text>
+                      <Text variant="base-medium" weight="medium" style={{ color: color.primary["500"] }}>{subjectLabel}</Text>
                     </View>
                   )}
                   <Text variant="title-medium">학습 테스트</Text>
@@ -340,7 +340,7 @@ export default function QuizPage() {
         style={{
           marginBottom: -insets.bottom,
           paddingBottom: insets.bottom,
-          experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary} 0%, ${palette.quiz["result-bottom"]} 100%)`,
+          experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary} 0%, ${color.quiz["result-bottom"]} 100%)`,
         }}
       >
         <StatusBar style="light" />

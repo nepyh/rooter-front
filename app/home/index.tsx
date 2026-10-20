@@ -17,7 +17,7 @@ import { useUIStore } from "@/store";
 import { getBusyTimes } from "@/api/busyTime";
 import type { DailyBusyTime } from "@/api/busyTime";
 import { toLocalDateString } from "@/utils/date";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Types
@@ -213,8 +213,8 @@ const STATUS_OVERRIDE: Partial<Record<PlanStatus, { bar: string; bg: string; opa
 // 일정을 넣지 않는 시간 표시용, 누를 수 없음
 // 학교·수면은 서로 구분되게 색을 따로, 불가능 시간은 기본 회색
 const BUSY_COLORS: Record<"sleep" | "school", { bar: string; bg: string }> = {
-  "sleep": { bar: palette.busy["sleep-bar"], bg: palette.busy["sleep-bg"] },
-  "school": { bar: palette.busy["school-bar"], bg: palette.busy["school-bg"] },
+  "sleep": { bar: color.busy["sleep-bar"], bg: color.busy["sleep-bg"] },
+  "school": { bar: color.busy["school-bar"], bg: color.busy["school-bg"] },
 };
 
 function BusyBlockView({ block }: { block: BusyBlock }) {
@@ -315,7 +315,7 @@ function PlanBlock({ plan, column, columns, onPress, onPressHidden }: {
     >
       <Pressable
         onPress={onPress}
-        style={{ flex: 1, backgroundColor: palette.background.primary, opacity }}
+        style={{ flex: 1, backgroundColor: color.background.primary, opacity }}
         className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
       >
         {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
@@ -842,7 +842,7 @@ export default function Home() {
           <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
           {!isToday && (
             <Pressable onPress={goToday} hitSlop={8}>
-              <Text variant="base-small" weight="medium" style={{ color: palette.primary["500"] }}>오늘로</Text>
+              <Text variant="base-small" weight="medium" style={{ color: color.primary["500"] }}>오늘로</Text>
             </Pressable>
           )}
         </Row>

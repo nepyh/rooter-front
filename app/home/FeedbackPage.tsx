@@ -6,7 +6,7 @@ import axios from "axios";
 import { Stack, Row, Text, Input, Button, LoadingView } from "@/components";
 import { getFeedback, submitFeedback } from "@/api/feedback";
 import type { Difficulty, Feedback } from "@/api/feedback";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Types
@@ -63,7 +63,7 @@ const chipStyles: Record<ChipState, string> = {
 
 // 구글 폼의 "필수 질문입니다" 안내
 function RequiredNotice() {
-  return <Text variant="base-small" style={{ color: palette.utility["error-primary"] }}>필수 질문입니다</Text>;
+  return <Text variant="base-small" style={{ color: color.utility["error-primary"] }}>필수 질문입니다</Text>;
 }
 
 function Chip({ label, state, onPress }: { label: string; state: ChipState; onPress: () => void }) {

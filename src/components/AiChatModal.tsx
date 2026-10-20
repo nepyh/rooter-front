@@ -5,7 +5,7 @@ import { Stack, Row } from "@/components/layout";
 import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
 import { getChatHistory, sendChatMessage } from "@/api/chat";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Types
@@ -92,7 +92,7 @@ function TypingDot({ index }: { index: number }) {
     opacity: 0.4 + progress.value * 0.6,
     transform: [{ translateY: -4 * progress.value }],
   }));
-  return <Animated.View className="w-2 h-2 rounded-full" style={[{ backgroundColor: palette.neutral["400"] }, style]} />;
+  return <Animated.View className="w-2 h-2 rounded-full" style={[{ backgroundColor: color.neutral["400"] }, style]} />;
 }
 
 function TypingBubble({ marginTop }: { marginTop: number }) {

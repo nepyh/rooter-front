@@ -9,7 +9,7 @@ import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Helpers
@@ -209,7 +209,7 @@ export default function ChapterSelectPage() {
                   <Text variant="header-medium" weight="semibold" color="secondary" className="pt-s">{textbook.title}</Text>
                 )}
                 {showRequired && missingIds.has(textbook.id) && (
-                  <Text variant="base-small" style={{ color: palette.utility["error-primary"] }}>* 필수 항목이에요. 목차를 하나 이상 선택해주세요</Text>
+                  <Text variant="base-small" style={{ color: color.utility["error-primary"] }}>* 필수 항목이에요. 목차를 하나 이상 선택해주세요</Text>
                 )}
                 {[...textbook.chapters]
                   .sort((a, b) => a.chapterOrder - b.chapterOrder)
@@ -239,7 +239,7 @@ export default function ChapterSelectPage() {
         )}
 
         {showRequired && missingIds.size > 0 && (
-          <Text variant="base-small" className="text-center pt-m" style={{ color: palette.utility["error-primary"] }}>
+          <Text variant="base-small" className="text-center pt-m" style={{ color: color.utility["error-primary"] }}>
             선택하지 않은 필수 항목이 있어요
           </Text>
         )}

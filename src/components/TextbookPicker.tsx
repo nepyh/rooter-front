@@ -7,7 +7,7 @@ import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
 import { getUserInfo } from "@/api/user";
 import { useUserStore } from "@/store";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Types
@@ -50,17 +50,17 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
     <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
       <View
         className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
-        style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: palette.primary["500"] }}
+        style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: color.primary["500"] }}
       >
         {textbook.coverImageUrl ? (
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
-          <Icon name="book" size={32} color={palette.neutral["400"]} />
+          <Icon name="book" size={32} color={color.neutral["400"]} />
         )}
         {selected && <View className="absolute inset-0 bg-primary-500/30" />}
         {selected && (
           <View className="absolute w-5 h-5 rounded-full bg-primary-500 items-center justify-center" style={{ top: 4, right: 4 }}>
-            <Icon name="check" size={12} color={palette.neutral["0"]} />
+            <Icon name="check" size={12} color={color.neutral["0"]} />
           </View>
         )}
       </View>

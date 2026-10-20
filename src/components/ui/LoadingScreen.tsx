@@ -4,7 +4,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import { StatusBar } from "expo-status-bar";
 import { Text } from "./Text";
 import { Icon } from "@/assets";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Constants
@@ -46,7 +46,7 @@ export function LoadingScreen({ text, onBack }: Props) {
       <View className="flex-1 items-center justify-center">
         <View style={{ alignItems: "center", gap: 28 }}>
           <Animated.View style={spinnerStyle}>
-            <Icon name="loading" size={60} color={palette.primary["500"]} />
+            <Icon name="loading" size={60} color={color.primary["500"]} />
           </Animated.View>
           <Text variant="title-small">{text}</Text>
         </View>

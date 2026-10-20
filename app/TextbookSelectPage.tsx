@@ -9,7 +9,7 @@ import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
 import { getUserInfo } from "@/api/user";
 import { useUserStore } from "@/store";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 
 // ================================
 // Types
@@ -49,7 +49,7 @@ function TextbookCard({ textbook, onPress }: { textbook: TextbookWithSubject; on
         {textbook.coverImageUrl ? (
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
-          <Icon name="book" size={32} color={palette.neutral["400"]} />
+          <Icon name="book" size={32} color={color.neutral["400"]} />
         )}
       </View>
       <Stack gap="xxs" width="full">
