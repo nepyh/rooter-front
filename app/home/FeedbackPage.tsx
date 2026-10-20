@@ -6,12 +6,14 @@ import axios from "axios";
 import { Stack, Row, Text, Input, Button, LoadingView } from "@/components";
 import { getFeedback, submitFeedback } from "@/api/feedback";
 import type { Difficulty, Feedback } from "@/api/feedback";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
 // ================================
 
 type ChipState = "default" | "selected";
+type PickerTarget = "start" | "end";
 
 // ================================
 // Constants
@@ -19,6 +21,24 @@ type ChipState = "default" | "selected";
 
 const DIFFICULTIES: Difficulty[] = ["쉬움", "적당", "어려움"];
 const FOCUS_LEVELS = [1, 2, 3, 4, 5];
+// 디자인 문구는 "중간", 서버 값은 "적당"
+const DIFFICULTY_LABELS: Record<Difficulty, string> = { "쉬움": "쉬움", "적당": "중간", "어려움": "어려움" };
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const formatClock = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+// 10분 단위로 내린 지금 시각에서 minutesAgo 전
+const roundedNow = (minutesAgo = 0) => {
+  const date = new Date(Date.now() - minutesAgo * 60000);
+  date.setMinutes(Math.floor(date.getMinutes() / 10) * 10, 0, 0);
+  return date;
+};
+
+// 종료가 시작보다 이르면 자정을 넘긴 것으로 봄
+const diffMinutes = (start: Date, end: Date) => {
+  const diff = (end.getHours() * 60 + end.getMinutes()) - (start.getHours() * 60 + start.getMinutes());
+  return diff < 0 ? diff + 24 * 60 : diff;
+};
 
 // 피드백 제출 실패 시 백엔드 code별 안내 문구
 const SUBMIT_ERROR_MESSAGES: Record<string, string> = {
@@ -41,11 +61,37 @@ const chipStyles: Record<ChipState, string> = {
 // Components
 // ================================
 
+// 구글 폼의 "필수 질문입니다" 안내
+function RequiredNotice() {
+  return <Text variant="base-small" style={{ color: palette.utility["error-primary"] }}>필수 질문입니다</Text>;
+}
+
 function Chip({ label, state, onPress }: { label: string; state: ChipState; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className={`flex-1 items-center justify-center py-xl rounded-md border-2 ${chipStyles[state]}`}>
+    <Pressable onPress={onPress} className={`flex-1 items-center justify-center p-xl rounded-md border-2 ${chipStyles[state]}`}>
       <Text variant="base-large">{label}</Text>
     </Pressable>
+  );
+}
+
+// 누르면 아래로 시간 휠이 펼쳐지는 시각 칸
+function TimeRow({ label, value, active, onPress, onChange }: {
+  label: string;
+  value: Date;
+  active: boolean;
+  onPress: () => void;
+  onChange: (date: Date) => void;
+}) {
+  return (
+    <View className="w-full bg-neutral-700 rounded-md px-xl py-l" style={{ gap: 16 }}>
+      <Pressable onPress={onPress} className="flex-row items-center justify-between w-full" style={{ minHeight: 34 }}>
+        <Text variant="base-large" weight="medium">{label}</Text>
+        <View className={`px-m py-s rounded-full ${active ? "bg-primary-500" : "bg-neutral-600"}`}>
+          <Text variant="base-small">{formatClock(value)}</Text>
+        </View>
+      </Pressable>
+      {active && <TimeWheelPicker value={value} onChange={onChange} />}
+    </View>
   );
 }
 
@@ -57,33 +103,45 @@ export default function FeedbackPage() {
   const planId = Number(dailyPlanId);
   const [loading, setLoading] = useState(true);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
-  const [timeSpent, setTimeSpent] = useState("");
+  const [startTime, setStartTime] = useState(() => roundedNow(60));
+  const [endTime, setEndTime] = useState(() => roundedNow());
+  const [activePicker, setActivePicker] = useState<PickerTarget | null>(null);
+  const timeSpent = diffMinutes(startTime, endTime);
+  const togglePicker = (target: PickerTarget) => setActivePicker((prev) => (prev === target ? null : target));
   const [focusLevel, setFocusLevel] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Feedback | null>(null);
 
-  // 이미 제출한 피드백이 있으면 결과 화면으로 바로 표시
+  // 피드백은 일일 계획당 1번이라, 같은 날 다른 할일 퀴즈 뒤에는 설문 없이 Home으로
   useEffect(() => {
     if (!planId) {
       setLoading(false);
       return;
     }
     getFeedback(planId)
-      .then(setResult)
-      .catch(() => setResult(null))
-      .finally(() => setLoading(false));
+      .then(() => router.replace("/home"))
+      .catch(() => setLoading(false));
   }, [planId]);
 
+  // 난이도·집중도·공부한 시간 모두 필수, 구글 폼처럼 [제출]을 누르면 빠진 항목에 안내
+  const [showRequired, setShowRequired] = useState(false);
+  const missing = { difficulty: !difficulty, focus: focusLevel === null, time: timeSpent <= 0 };
+  const canSubmit = !missing.difficulty && !missing.focus && !missing.time && !submitting;
+
   const handleSubmit = async () => {
-    if (!planId || !difficulty) return;
+    if (!planId || submitting) return;
+    if (!canSubmit || !difficulty || focusLevel === null) {
+      setShowRequired(true);
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
       setResult(await submitFeedback(planId, {
         difficulty,
-        timeSpentMinutes: timeSpent ? Number(timeSpent) : undefined,
-        focusLevel: focusLevel ?? undefined,
+        timeSpentMinutes: timeSpent,
+        focusLevel,
       }));
     } catch (e) {
       const code = axios.isAxiosError(e) ? e.response?.data?.code : undefined;
@@ -123,14 +181,16 @@ export default function FeedbackPage() {
             </Stack>
           ) : result ? (
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <Stack gap="xl" width="full">
+              <Stack gap="xl" width="full" className="pt-[100px]">
+                <Icon name="mascotFace" size={100} />
                 <Stack gap="m" width="full">
-                  <Text variant="title-medium">피드백 완료</Text>
-                  <Text variant="base-large" color="secondary">{`오늘 공부는 '${result.difficulty}'이었어요`}</Text>
+                  <Text variant="title-medium" weight="semibold">피드백을 완료했어요</Text>
+                  <Text variant="base-large">
+                    {`오늘 공부는 '${result.difficulty}'이었어요.\n${adjustmentTasks.length > 0 ? "남은 계획에 보충 학습을 추가했어요." : "추가된 보충 학습은 없어요."}`}
+                  </Text>
                 </Stack>
-                {adjustmentTasks.length > 0 ? (
+                {adjustmentTasks.length > 0 && (
                   <Stack gap="s" width="full">
-                    <Text variant="base-medium" weight="medium">계획에 추가된 보충 학습</Text>
                     {adjustmentTasks.map((task, i) => (
                       <View key={i} className="bg-neutral-700 p-m rounded-xs w-full">
                         <Text variant="base-medium" weight="medium">{task.taskName}</Text>
@@ -138,47 +198,47 @@ export default function FeedbackPage() {
                       </View>
                     ))}
                   </Stack>
-                ) : (
-                  <Text color="secondary">추가된 보충 학습은 없어요.</Text>
                 )}
               </Stack>
             </ScrollView>
           ) : (
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <Stack gap="xxl" width="full">
-                <Stack gap="m" width="full">
-                  <Text variant="title-medium">오늘 공부 어땠나요?</Text>
-                  <Text variant="base-large" color="secondary">
-                    답변을 바탕으로 남은 계획에{"\n"}보충 학습을 추가해 드릴게요
-                  </Text>
-                </Stack>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              <Stack gap="l" width="full">
+                <Icon name="mascotFace" size={76} />
+                <Stack gap="xxl" width="full">
+                  <Stack gap="s" width="full">
+                    <Text variant="title-medium" weight="semibold">오늘 공부 어땠나요?</Text>
+                    <Text variant="base-medium" color="secondary">답변을 바탕으로 남은 계획에 보충 학습을 추가해 드릴게요</Text>
+                  </Stack>
 
-                <Stack gap="s" width="full">
-                  <Text variant="base-medium" weight="medium">난이도</Text>
-                  <Row gap="m" width="full">
-                    {DIFFICULTIES.map((item) => (
-                      <Chip key={item} label={item} state={difficulty === item ? "selected" : "default"} onPress={() => setDifficulty(item)} />
-                    ))}
-                  </Row>
-                </Stack>
+                  <Stack gap="s" width="full">
+                    <Text variant="base-medium">난이도</Text>
+                    {showRequired && missing.difficulty && <RequiredNotice />}
+                    <Row gap="s" width="full">
+                      {DIFFICULTIES.map((item) => (
+                        <Chip key={item} label={DIFFICULTY_LABELS[item]} state={difficulty === item ? "selected" : "default"} onPress={() => setDifficulty(item)} />
+                      ))}
+                    </Row>
+                  </Stack>
 
-                <Stack gap="s" width="full">
-                  <Text variant="base-medium" weight="medium">집중도</Text>
-                  <Row gap="s" width="full">
-                    {FOCUS_LEVELS.map((level) => (
-                      <Chip key={level} label={String(level)} state={focusLevel === level ? "selected" : "default"} onPress={() => setFocusLevel(level)} />
-                    ))}
-                  </Row>
-                </Stack>
+                  <Stack gap="s" width="full">
+                    <Text variant="base-medium">집중도</Text>
+                    {showRequired && missing.focus && <RequiredNotice />}
+                    <Row gap="s" width="full">
+                      {FOCUS_LEVELS.map((level) => (
+                        <Chip key={level} label={String(level)} state={focusLevel === level ? "selected" : "default"} onPress={() => setFocusLevel(level)} />
+                      ))}
+                    </Row>
+                  </Stack>
 
-                <Stack gap="s" width="full">
-                  <Text variant="base-medium" weight="medium">공부한 시간</Text>
-                  <Input
-                    value={timeSpent}
-                    onChangeText={(text) => setTimeSpent(text.replace(/[^0-9]/g, ""))}
-                    placeholder="분 단위로 입력"
-                    keyboardType="number-pad"
-                  />
+                  <Stack gap="s" width="full">
+                    <Text variant="base-medium">공부한 시간</Text>
+                    {showRequired && missing.time && <RequiredNotice />}
+                    <Stack gap="l" width="full">
+                      <TimeRow label="시작 시간" value={startTime} active={activePicker === "start"} onPress={() => togglePicker("start")} onChange={setStartTime} />
+                      <TimeRow label="종료한 시간" value={endTime} active={activePicker === "end"} onPress={() => togglePicker("end")} onChange={setEndTime} />
+                    </Stack>
+                  </Stack>
                 </Stack>
 
                 {error ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
@@ -188,10 +248,10 @@ export default function FeedbackPage() {
         </Stack>
 
         {loading ? null : result || !planId ? (
-          <Button variant="primary" onPress={close}>완료</Button>
+          <Button variant="primary" onPress={close}>학습 테스트 종료</Button>
         ) : (
-          <Button variant={difficulty && !submitting ? "primary" : "disabled"} onPress={handleSubmit}>
-            {submitting ? "제출 중..." : "제출"}
+          <Button variant={submitting ? "disabled" : "primary"} onPress={handleSubmit}>
+            {submitting ? "제출 중..." : "선택"}
           </Button>
         )}
       </Stack>
