@@ -197,7 +197,7 @@ export default function SettingPage() {
         <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4">
           <SettingRow icon="bell" label="알림" onPress={() => router.push("/more/Notification")} />
           <SettingRow icon="lock" label="계정" onPress={() => router.push("/more/AccountSetting")} />
-          <SettingRow icon="calendar" label="불가능 시간" onPress={() => router.push("/UnavailableTimePage")} />
+          <SettingRow icon="calendar" label="불가능 시간" onPress={() => router.push("/more/UnavailableTimePage")} />
         </Stack>
       </Stack>
 

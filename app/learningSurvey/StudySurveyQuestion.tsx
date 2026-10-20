@@ -110,17 +110,17 @@ export default function StudySurveyQuestion() {
     const nextAnswers = [...prevAnswers, String(selected)].join(",");
 
     if (isLast && plan) {
-      router.push({ pathname: "/PlanGeneratingPage", params: { plan, answers: nextAnswers } });
+      router.push({ pathname: "/home/PlanGeneratingPage", params: { plan, answers: nextAnswers } });
       return;
     }
 
     if (isLast) {
-      router.push({ pathname: "/auth/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
+      router.push({ pathname: "/learningSurvey/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
       return;
     }
 
     router.push({
-      pathname: "/auth/StudySurveyQuestion",
+      pathname: "/learningSurvey/StudySurveyQuestion",
       params: { school, schoolId, grade, classNum, plan, step: String(stepIndex + 2), answers: nextAnswers },
     });
   };

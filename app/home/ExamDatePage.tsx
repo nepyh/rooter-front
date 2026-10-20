@@ -89,7 +89,7 @@ export default function ExamDatePage() {
 
   const handleNext = () => {
     if (!selectedDate) return;
-    router.push({ pathname: "/TextbookSelectPage", params: { examDate: toDateString(selectedDate) } });
+    router.push({ pathname: "/home/TextbookSelectPage", params: { examDate: toDateString(selectedDate) } });
   };
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 Home으로

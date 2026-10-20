@@ -124,7 +124,7 @@ export default function QuizTab() {
 
   const openQuiz = (item: QuizItem) => {
     router.push({
-      pathname: "/home/QuizPage",
+      pathname: "/quiz/QuizPage",
       params: { taskId: String(item.task.id), dailyPlanId: String(item.task.dailyPlanId), category: item.category },
     });
   };

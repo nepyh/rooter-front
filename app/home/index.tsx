@@ -756,7 +756,7 @@ export default function Home() {
   const openQuiz = (plan: Plan) => {
     setActiveId(null);
     router.push({
-      pathname: "/home/QuizPage",
+      pathname: "/quiz/QuizPage",
       params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
     });
   };
@@ -857,7 +857,7 @@ export default function Home() {
 
       <View className="flex-1" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
       {plans.length === 0 && !emptyNoticeClosed && (
-        <EmptyPlanNotice onCreate={() => router.push("/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
+        <EmptyPlanNotice onCreate={() => router.push("/home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
       )}
       {pageWidth > 0 && (
       <ScrollView
@@ -969,7 +969,7 @@ export default function Home() {
           setShowAddMenu(false);
         }}
         onCreatePlan={() => {
-          afterAddMenuClosedRef.current = () => router.push("/ExamDatePage");
+          afterAddMenuClosedRef.current = () => router.push("/home/ExamDatePage");
           setShowAddMenu(false);
         }}
       />

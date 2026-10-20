@@ -30,7 +30,7 @@ export default function StudySurveyIntro() {
   };
 
   const handleStart = () => {
-    router.push({ pathname: "/auth/StudySurveyQuestion", params: { school, schoolId, grade, classNum, step: "1", answers: "" } });
+    router.push({ pathname: "/learningSurvey/StudySurveyQuestion", params: { school, schoolId, grade, classNum, step: "1", answers: "" } });
   };
 
   return (
