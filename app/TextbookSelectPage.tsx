@@ -180,6 +180,6 @@ export default function TextbookSelectPage() {
       >
         <Text variant="base-medium" weight="medium" className="text-white">선택</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
