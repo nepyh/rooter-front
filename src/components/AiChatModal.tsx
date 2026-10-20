@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
 import { getChatHistory, sendChatMessage } from "@/api/chat";
+import palette from "@/constants/palette";
 
 // ================================
 // Types
@@ -55,6 +56,45 @@ function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: numb
         <Text variant="base-medium" className="text-white">{message.text}</Text>
       </View>
     </Row>
+  );
+}
+
+// 답변 기다리는 동안 점 세 개가 차례로 튀는 말풍선
+const TYPING_DOT_DELAY_MS = 160;
+// 이 시간이 지나도 답이 없으면 멈춘 게 아니라는 안내 표시
+const SLOW_REPLY_MS = 3_000;
+
+function TypingDot({ index }: { index: number }) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withDelay(
+      index * TYPING_DOT_DELAY_MS,
+      withRepeat(withSequence(withTiming(1, { duration: 300 }), withTiming(0, { duration: 300 }), withTiming(0, { duration: 240 })), -1),
+    );
+  }, [index, progress]);
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.4 + progress.value * 0.6,
+    transform: [{ translateY: -4 * progress.value }],
+  }));
+  return <Animated.View className="w-2 h-2 rounded-full" style={[{ backgroundColor: palette.neutral["400"] }, style]} />;
+}
+
+function TypingBubble({ marginTop }: { marginTop: number }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), SLOW_REPLY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <Stack gap="xs" width="full" style={{ marginTop }}>
+      <Row align="start" width="full">
+        {/* 점 사이 8, Row의 gap은 style을 넘기면 덮여서 style에 직접 */}
+        <Row className="px-l rounded-[24px] bg-neutral-700 items-center" style={{ height: 44, gap: 8 }}>
+          {[0, 1, 2].map((i) => <TypingDot key={i} index={i} />)}
+        </Row>
+      </Row>
+      {slow && <Text variant="base-small" color="disabled" className="pl-s">답변을 만들고 있어요. 조금만 기다려주세요</Text>}
+    </Stack>
   );
 }
 
@@ -158,10 +198,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                     <Bubble key={message.id} message={message} marginTop={bubbleGap(messages, i)} />
                   ))}
                   {sending && (
-                    <Bubble
-                      message={{ id: "typing", role: "assistant", text: "..." }}
-                      marginTop={messages.at(-1)?.role === "assistant" ? 8 : 20}
-                    />
+                    <TypingBubble marginTop={messages.at(-1)?.role === "assistant" ? 8 : 20} />
                   )}
                 </ScrollView>
 

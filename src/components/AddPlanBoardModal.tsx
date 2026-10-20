@@ -3,9 +3,10 @@ import { Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, NativeScrollE
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
-import { Text, Input, Switch } from "@/components/ui";
+import { Text, Input, Switch, Button } from "@/components/ui";
 import { Icon } from "@/assets";
 import { TextbookPicker } from "@/components/TextbookPicker";
+import { ChapterPicker } from "@/components/ChapterPicker";
 import type { TextbookWithSubject } from "@/components/TextbookPicker";
 import palette from "@/constants/palette";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
@@ -276,9 +277,13 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const [end, setEnd] = useState(() => new Date(roundToNextHour(baseDate).getTime() + 60 * 60_000));
   const [activePicker, setActivePicker] = useState<PickerTarget | null>(null);
 
-  // 고른 교과서 (태스크 생성 API에 교과서 필드가 없어 화면 표시용)
+  // 고른 교과서와 목차 (태스크 생성 API에 교과서·목차 필드가 없어 화면 표시용)
+  // 교과서는 하나만, 고르면 바로 목차 선택으로 넘어감
   const [selectedTextbooks, setSelectedTextbooks] = useState<Map<number, TextbookWithSubject>>(new Map());
+  const [selectedChapterIds, setSelectedChapterIds] = useState<Set<number>>(new Set());
   const [showTextbookPicker, setShowTextbookPicker] = useState(false);
+  const [chapterTextbook, setChapterTextbook] = useState<TextbookWithSubject | null>(null);
+  const [pendingChapterIds, setPendingChapterIds] = useState<Set<number>>(new Set());
   const insets = useSafeAreaInsets();
 
   const [error, setError] = useState("");
@@ -295,13 +300,15 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setStart(s);
     setEnd(new Date(s.getTime() + 60 * 60_000));
     setSelectedTextbooks(new Map());
+    setSelectedChapterIds(new Set());
     setShowTextbookPicker(false);
+    setChapterTextbook(null);
     setError("");
     setSubmitting(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const canSubmit = title.trim().length > 0 && selectedTextbooks.size > 0 && !submitting;
+  const canSubmit = title.trim().length > 0 && selectedTextbooks.size > 0 && selectedChapterIds.size > 0 && !submitting;
 
   const applyPicked = (target: PickerTarget, picked: Date) => {
     const setter = target.startsWith("start") ? setStart : setEnd;
@@ -320,12 +327,26 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setTimeout(() => setActivePicker((prev) => (prev === target ? null : prev)), 500);
   };
 
-  const toggleTextbook = (textbook: TextbookWithSubject) => {
-    setSelectedTextbooks((prev) => {
-      const next = new Map(prev);
-      if (next.has(textbook.id)) next.delete(textbook.id); else next.set(textbook.id, textbook);
+  // 같은 교과서를 다시 고르면 고른 목차 유지
+  const openChapters = (textbook: TextbookWithSubject) => {
+    setPendingChapterIds(selectedTextbooks.has(textbook.id) ? new Set(selectedChapterIds) : new Set());
+    setChapterTextbook(textbook);
+  };
+
+  const togglePendingChapter = (id: number) => {
+    setPendingChapterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const confirmChapters = () => {
+    if (!chapterTextbook || pendingChapterIds.size === 0) return;
+    setSelectedTextbooks(new Map([[chapterTextbook.id, chapterTextbook]]));
+    setSelectedChapterIds(pendingChapterIds);
+    setChapterTextbook(null);
+    setShowTextbookPicker(false);
   };
 
   const handleSubmit = async () => {
@@ -457,6 +478,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         <Stack gap="xxs">
                           <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
                           <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.publisherName ?? textbook.subjectName}</Text>
+                          <Text variant="base-small" color="secondary" numberOfLines={1}>{`목차 ${selectedChapterIds.size}개`}</Text>
                         </Stack>
                       </Pressable>
                     ))}
@@ -487,15 +509,31 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Pressable>
               <Text variant="header-medium" weight="semibold">교과서 선택</Text>
             </Row>
-            <Text variant="base-medium" weight="medium">{`${selectedTextbooks.size}개 선택됨`}</Text>
           </Row>
-          <TextbookPicker selectedIds={new Set(selectedTextbooks.keys())} onToggle={toggleTextbook} bottomInset={insets.bottom + 40} />
+          <TextbookPicker selectedIds={new Set(selectedTextbooks.keys())} onToggle={openChapters} bottomInset={insets.bottom + 40} />
           {/* 아래쪽 표지가 배경으로 흐려지는 그라데이션 */}
           <View
             pointerEvents="none"
             className="absolute left-0 right-0 bottom-0"
             style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary}00 0%, ${palette.background.primary} 100%)` }}
           />
+        </View>
+      )}
+
+      {/* 교과서를 고르면 이어지는 목차 선택, 뒤로가기로 교과서 선택에 복귀 */}
+      {chapterTextbook && (
+        <View className="absolute inset-0 bg-background-primary px-6" style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }}>
+          <Row width="full" align="between" className="items-center pb-xl">
+            <Row gap="xs" className="items-center">
+              <Pressable onPress={() => setChapterTextbook(null)} hitSlop={8}>
+                <Icon name="chevronLeft" size={32} />
+              </Pressable>
+              <Text variant="header-medium" weight="semibold">목차 선택</Text>
+            </Row>
+            <Text variant="base-medium" weight="medium">{`${pendingChapterIds.size}개 선택됨`}</Text>
+          </Row>
+          <ChapterPicker textbookId={chapterTextbook.id} selectedIds={pendingChapterIds} onToggle={togglePendingChapter} bottomInset={24} />
+          <Button variant={pendingChapterIds.size > 0 ? "primary" : "disabled"} onPress={confirmChapters}>선택 완료</Button>
         </View>
       )}
     </Modal>
