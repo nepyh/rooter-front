@@ -4,3 +4,4 @@ export { Input } from "./Input";
 export { Toast } from "./Toast";
 export { Switch } from "./Switch";
 export { LoadingView } from "./LoadingView";
+export { LoadingScreen } from "./LoadingScreen";
