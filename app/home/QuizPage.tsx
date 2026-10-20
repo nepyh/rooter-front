@@ -3,6 +3,7 @@ import axios from "axios";
 import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, Row, Text, Button, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
@@ -10,6 +11,7 @@ import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz"
 import type { TaskQuiz, TaskQuizAnswerResult, TaskQuizResult } from "@/api/quiz";
 import type { Category } from "@/constants/category";
 import palette from "@/constants/palette";
+import { useUserStore } from "@/store";
 
 // ================================
 // Types
@@ -44,7 +46,7 @@ const getQuizErrorMessage = (error: unknown, fallback: string) => {
   return QUIZ_ERROR_MESSAGES[code] ?? fallback;
 };
 
-// 점수 화면 아래 결과 안내, 디자인에 없어 한 줄로만 표시
+// 점수 화면 아래 결과 안내, 디자인처럼 마스코트 말풍선으로 표시
 const getResultNotice = (result: TaskQuizResult) => {
   if (result.passed) return "통과! 할 일이 완료 처리됐어요.";
   if (result.taskInvalidated) return "세 번 모두 통과하지 못해 이번 할 일은 미완료로 확정됐어요.";
@@ -126,13 +128,13 @@ function ScoreCircle({ correct, total }: { correct: number; total: number }) {
       className="w-[280px] h-[280px] rounded-full border-[10px] border-primary-500 items-center justify-center self-center"
       style={{
         gap: 24,
-        experimental_backgroundImage: `linear-gradient(180deg, ${palette.quiz["score-top"]} 0%, ${palette.neutral["700"]} 100%)`,
+        experimental_backgroundImage: `linear-gradient(180deg, ${palette.quiz["score-top"]} 0%, ${palette.quiz["score-bottom"]} 100%)`,
       }}
     >
-      <Text variant="header-large">나의 점수</Text>
-      <Stack gap="xs" className="items-center">
+      <Text variant="base-large">나의 점수</Text>
+      <Stack gap="s" className="items-center">
         <Text weight="semibold" style={{ fontSize: 40, lineHeight: 50, letterSpacing: -0.4 }}>{`${score}점`}</Text>
-        <Text variant="header-large">{`${correct}/${total}`}</Text>
+        <Text variant="base-large" color="secondary">{`${correct}/${total}`}</Text>
       </Stack>
     </View>
   );
@@ -145,6 +147,8 @@ export default function QuizPage() {
   const { taskId, dailyPlanId, category } = useLocalSearchParams<{ taskId?: string; dailyPlanId?: string; category?: Category }>();
   const [serverSubject, setServerSubject] = useState<string | null>(null);
   const subjectLabel = serverSubject ?? (category ? SUBJECT_LABELS[category] : undefined);
+  const username = useUserStore((state) => state.user?.username);
+  const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>("intro");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -156,6 +160,8 @@ export default function QuizPage() {
   gradedRef.current = graded;
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<TaskQuizResult | null>(null);
+  // 해설 말풍선이 보기 위에 떠 있어서, 마지막 보기가 가리지 않게 말풍선 높이만큼 아래 여백
+  const [bubbleHeight, setBubbleHeight] = useState(0);
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
@@ -314,18 +320,29 @@ export default function QuizPage() {
 
   if (phase === "score" && result) {
     const notice = getResultNotice(result);
+    // 바탕 그라데이션이 화면 끝까지 닿게 레이아웃 좌우 여백·하단 안전영역만큼 넓혀 깔고 안쪽은 같은 여백
     return (
-      <View className="flex-1">
+      <View
+        className="flex-1 -mx-6 px-6"
+        style={{
+          marginBottom: -insets.bottom,
+          paddingBottom: insets.bottom,
+          experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary} 0%, ${palette.quiz["result-bottom"]} 100%)`,
+        }}
+      >
         <StatusBar style="light" />
         <Stack align="between" width="full" className="flex-1">
-          <Text variant="title-medium" className="pt-xxl">
-            {`${subjectLabel ? `${subjectLabel} ` : ""}학습 테스트를\n완료했어요!`}
-          </Text>
-          <Stack gap="xl" width="full" className="items-center">
-            <ScoreCircle correct={result.correctCount} total={result.totalCount} />
-            {notice && <Text variant="base-medium" color="secondary" className="text-center">{notice}</Text>}
+          <Stack gap="m" width="full" className="pt-[60px]">
+            {!!username && <Text variant="header-large">{`${username}님,`}</Text>}
+            <Text variant="title-large">
+              {`${subjectLabel ? `${subjectLabel} ` : ""}학습 테스트를\n완료했어요!`}
+            </Text>
           </Stack>
-          <Button variant="primary" onPress={goFeedback}>다음</Button>
+          <ScoreCircle correct={result.correctCount} total={result.totalCount} />
+          <Stack gap="xl" width="full">
+            {notice && <ExplanationBubble text={notice} />}
+            <Button variant="primary" onPress={goFeedback}>다음</Button>
+          </Stack>
         </Stack>
       </View>
     );
@@ -360,7 +377,11 @@ export default function QuizPage() {
               <Text color="secondary">아직 준비된 퀴즈가 없어요.</Text>
             </Stack>
           ) : (
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <ScrollView
+              className="flex-1"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: bubbleText ? bubbleHeight : 0 }}
+            >
               <Stack gap="xxl" width="full">
                 <QuestionCard index={currentIndex} text={current.questionText} />
                 <Stack gap="m" width="full">
@@ -376,10 +397,19 @@ export default function QuizPage() {
               </Stack>
             </ScrollView>
           )}
+          {/* 해설은 보기 위에 겹쳐 띄워서 말풍선 밖으로는 뒤 보기가 그대로 보이게 */}
+          {bubbleText && (
+            <View
+              pointerEvents="none"
+              className="absolute left-0 right-0 bottom-0 pt-xl pb-xs"
+              onLayout={(e) => setBubbleHeight(e.nativeEvent.layout.height)}
+            >
+              <ExplanationBubble text={bubbleText} />
+            </View>
+          )}
         </Stack>
 
         <Stack gap="xl" width="full" className="pt-l">
-          {bubbleText && <ExplanationBubble text={bubbleText} />}
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
           {!current && error && phase === "answering" ? (
             <Button variant="primary" onPress={handleStart}>다시 시도</Button>
