@@ -12,6 +12,7 @@
       "bundleIdentifier": "io.github.nepyh.rooter",
       "infoPlist": {
         "NSBonjourServices": [
+          "_expo._tcp",
           "_expo._tcp"
         ],
         "NSAppTransportSecurity": {
@@ -21,7 +22,8 @@
               "NSIncludesSubdomains": false
             }
           }
-        }
+        },
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "scheme": "rooter",
@@ -51,6 +53,12 @@
       ],
       "expo-secure-store"
     ],
-    "backgroundColor": "#33363F"
+    "backgroundColor": "#33363F",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fa2328a7-6753-46ce-b36e-05e9441abd8f"
+      }
+    }
   }
 }
