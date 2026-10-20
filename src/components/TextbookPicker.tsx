@@ -7,7 +7,8 @@ import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
 import type { Subject, Textbook } from "@/api/catalog";
 import { getUserInfo } from "@/api/user";
 import { useUserStore } from "@/store";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -34,8 +35,8 @@ const pillStyles: Record<PillState, string> = {
 
 function SubjectPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className={`px-l py-m rounded-full ${pillStyles[active ? "active" : "inactive"]}`}>
-      <Text variant="base-medium" weight="medium" className="text-white">{label}</Text>
+    <Pressable onPress={onPress} className={`px-spacing-5 py-spacing-4 rounded-radius-full ${pillStyles[active ? "active" : "inactive"]}`}>
+      <Text variant="base-medium" weight="medium" className="text-text-primary">{label}</Text>
     </Pressable>
   );
 }
@@ -47,25 +48,25 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
   const displayTitle = textbook.title.replace(/\s*\([^)]+\)\s*$/, "");
 
   return (
-    <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
+    <Pressable onPress={onPress} className="gap-spacing-3" style={{ width: 104 }}>
       <View
-        className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
-        style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: palette.primary["500"] }}
+        className="rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden"
+        style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: color.primary["500"] }}
       >
         {textbook.coverImageUrl ? (
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
-          <Icon name="book" size={32} color={palette.neutral["400"]} />
+          <Icon name="book" size={32} color={color.neutral["400"]} />
         )}
-        {selected && <View className="absolute inset-0 bg-primary-500/30" />}
+        {selected && <View className="absolute inset-spacing-0 bg-primary-500/30" />}
         {selected && (
-          <View className="absolute w-5 h-5 rounded-full bg-primary-500 items-center justify-center" style={{ top: 4, right: 4 }}>
-            <Icon name="check" size={12} color={palette.neutral["0"]} />
+          <View className="absolute w-spacing-6 h-spacing-6 rounded-radius-full bg-primary-500 items-center justify-center" style={{ top: getSpacing("spacing-2"), right: getSpacing("spacing-2") }}>
+            <Icon name="check" size={12} color={color.neutral["0"]} />
           </View>
         )}
       </View>
       <Stack gap="xxs" width="full">
-        <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{displayTitle}</Text>
+        <Text variant="base-small" weight="medium" className="text-text-primary" numberOfLines={1}>{displayTitle}</Text>
         <Text variant="base-small" color="secondary" numberOfLines={1}>{publisherName}</Text>
       </Stack>
     </Pressable>
@@ -135,7 +136,7 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
 
   return (
     <View className="flex-1">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0 pb-xl">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0 pb-spacing-6">
         <Row gap="s">
           <SubjectPill label="전체" active={selectedSubjectId === null} onPress={() => setSelectedSubjectId(null)} />
           {subjects.map((subject) => (
@@ -151,7 +152,7 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
 
       {loadingTextbooks ? <LoadingView /> : (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset }}>
-        <View className="flex-row flex-wrap" style={{ gap: 20 }}>
+        <View className="flex-row flex-wrap" style={{ gap: getSpacing("spacing-6") }}>
           {visibleTextbooks.map((textbook) => (
             <TextbookCard
               key={textbook.id}

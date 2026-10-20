@@ -33,7 +33,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaView className="flex-1 bg-background-primary">
-      <View className="px-6 flex-1 bg-background-primary">
+      <View className="px-spacing-7 flex-1 bg-background-primary">
         <Slot />
       </View>
       {showNavBar && <NavBar />}

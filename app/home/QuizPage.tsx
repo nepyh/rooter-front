@@ -11,8 +11,9 @@ import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz"
 import type { TaskQuiz, TaskQuizAnswerResult, TaskQuizResult } from "@/api/quiz";
 import { completeTask } from "@/api/planBoard";
 import type { Category } from "@/constants/category";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 import { useUserStore } from "@/store";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -72,8 +73,8 @@ const optionStyles: Record<OptionState, string> = {
 };
 
 const optionIcons: Partial<Record<OptionState, { name: IconName; color: string }>> = {
-  "correct": { name: "check", color: palette.utility["success-primary"] },
-  "wrong": { name: "close", color: palette.utility["error-primary"] },
+  "correct": { name: "check", color: color.utility["success-primary"] },
+  "wrong": { name: "close", color: color.utility["error-primary"] },
 };
 
 // ================================
@@ -86,7 +87,7 @@ function OptionRow({ label, state, onPress }: { label: string; state: OptionStat
     <Pressable
       onPress={onPress}
       disabled={!onPress}
-      className={`flex-row gap-s items-center justify-center p-xl rounded-md border-2 w-full ${optionStyles[state]}`}
+      className={`flex-row gap-spacing-3 items-center justify-center p-spacing-6 rounded-radius-4 border-2 w-full ${optionStyles[state]}`}
     >
       {icon && <Icon name={icon.name} size={20} color={icon.color} />}
       <Text variant="base-large" className="text-center">{label}</Text>
@@ -98,7 +99,7 @@ function ProgressBar({ total, current }: { total: number; current: number }) {
   return (
     <Row gap="xs" className="flex-1 h-[6px] items-center">
       {Array.from({ length: total }, (_, i) => (
-        <View key={i} className={`flex-1 h-full rounded-full ${i <= current ? "bg-primary-500" : "bg-neutral-600"}`} />
+        <View key={i} className={`flex-1 h-full rounded-radius-full ${i <= current ? "bg-primary-500" : "bg-neutral-600"}`} />
       ))}
     </Row>
   );
@@ -106,8 +107,8 @@ function ProgressBar({ total, current }: { total: number; current: number }) {
 
 function QuestionCard({ index, text }: { index: number; text: string }) {
   return (
-    <View className="bg-neutral-700 rounded-md p-xl w-full" style={{ minHeight: 200, gap: 40 }}>
-      <View className="self-start bg-neutral-600 px-m py-xs rounded-xs">
+    <View className="bg-neutral-700 rounded-radius-4 p-spacing-6 w-full" style={{ minHeight: 200, gap: getSpacing("spacing-11") }}>
+      <View className="self-start bg-neutral-600 px-spacing-4 py-spacing-2 rounded-radius-2">
         <Text variant="header-small">{`Q${index + 1}`}</Text>
       </View>
       <Text variant="title-medium" className="text-center">{text}</Text>
@@ -119,7 +120,7 @@ function QuestionCard({ index, text }: { index: number; text: string }) {
 function ExplanationBubble({ text }: { text: string }) {
   return (
     <Row gap="m" width="full" className="items-end">
-      <View className="flex-1 bg-neutral-700 px-xl py-l rounded-tl-[24px] rounded-tr-[24px] rounded-bl-[24px]">
+      <View className="flex-1 bg-neutral-700 px-spacing-6 py-spacing-5 rounded-tl-radius-5 rounded-tr-radius-5 rounded-bl-radius-5">
         <Text variant="base-large">{text}</Text>
       </View>
       <Icon name="mascotFace" size={52} />
@@ -131,10 +132,10 @@ function ScoreCircle({ correct, total }: { correct: number; total: number }) {
   const score = total > 0 ? Math.round((correct / total) * 100) : 0;
   return (
     <View
-      className="w-[280px] h-[280px] rounded-full border-[10px] border-primary-500 items-center justify-center self-center"
+      className="w-[280px] h-[280px] rounded-radius-full border-[10px] border-primary-500 items-center justify-center self-center"
       style={{
-        gap: 24,
-        experimental_backgroundImage: `linear-gradient(180deg, ${palette.quiz["score-top"]} 0%, ${palette.quiz["score-bottom"]} 100%)`,
+        gap: getSpacing("spacing-7"),
+        experimental_backgroundImage: `linear-gradient(180deg, ${color.quiz["score-top"]} 0%, ${color.quiz["score-bottom"]} 100%)`,
       }}
     >
       <Text variant="base-large">나의 점수</Text>
@@ -313,8 +314,8 @@ export default function QuizPage() {
               <Stack gap="m" width="full">
                 <Row gap="m" className="items-center">
                   {subjectLabel && (
-                    <View className="bg-primary-500/20 px-s py-xs rounded-xs">
-                      <Text variant="base-medium" weight="medium" style={{ color: palette.primary["500"] }}>{subjectLabel}</Text>
+                    <View className="bg-primary-500/20 px-spacing-3 py-spacing-2 rounded-radius-2">
+                      <Text variant="base-medium" weight="medium" style={{ color: color.primary["500"] }}>{subjectLabel}</Text>
                     </View>
                   )}
                   <Text variant="title-medium">학습 테스트</Text>
@@ -336,11 +337,11 @@ export default function QuizPage() {
     // 바탕 그라데이션이 화면 끝까지 닿게 레이아웃 좌우 여백·하단 안전영역만큼 넓혀 깔고 안쪽은 같은 여백
     return (
       <View
-        className="flex-1 -mx-6 px-6"
+        className="flex-1 -mx-spacing-7 px-spacing-7"
         style={{
           marginBottom: -insets.bottom,
           paddingBottom: insets.bottom,
-          experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary} 0%, ${palette.quiz["result-bottom"]} 100%)`,
+          experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary} 0%, ${color.quiz["result-bottom"]} 100%)`,
         }}
       >
         <StatusBar style="light" />
@@ -414,7 +415,7 @@ export default function QuizPage() {
           {bubbleText && (
             <View
               pointerEvents="none"
-              className="absolute left-0 right-0 bottom-0 pt-xl pb-xs"
+              className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0 pt-spacing-6 pb-spacing-2"
               onLayout={(e) => setBubbleHeight(e.nativeEvent.layout.height)}
             >
               <ExplanationBubble text={bubbleText} />
@@ -422,7 +423,7 @@ export default function QuizPage() {
           )}
         </Stack>
 
-        <Stack gap="xl" width="full" className="pt-l">
+        <Stack gap="xl" width="full" className="pt-spacing-5">
           {error && current ? <Text variant="base-small" className="text-utility-error-primary">{error}</Text> : null}
           {!current && error && phase === "answering" ? (
             <Button variant="primary" onPress={handleStart}>다시 시도</Button>

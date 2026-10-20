@@ -6,7 +6,8 @@ import axios from "axios";
 import { Stack, Row, Text, Input, Button, LoadingView } from "@/components";
 import { getFeedback, submitFeedback } from "@/api/feedback";
 import type { Difficulty, Feedback } from "@/api/feedback";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -63,12 +64,12 @@ const chipStyles: Record<ChipState, string> = {
 
 // 구글 폼의 "필수 질문입니다" 안내
 function RequiredNotice() {
-  return <Text variant="base-small" style={{ color: palette.utility["error-primary"] }}>필수 질문입니다</Text>;
+  return <Text variant="base-small" style={{ color: color.utility["error-primary"] }}>필수 질문입니다</Text>;
 }
 
 function Chip({ label, state, onPress }: { label: string; state: ChipState; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className={`flex-1 items-center justify-center p-xl rounded-md border-2 ${chipStyles[state]}`}>
+    <Pressable onPress={onPress} className={`flex-1 items-center justify-center p-spacing-6 rounded-radius-4 border-2 ${chipStyles[state]}`}>
       <Text variant="base-large">{label}</Text>
     </Pressable>
   );
@@ -83,10 +84,10 @@ function TimeRow({ label, value, active, onPress, onChange }: {
   onChange: (date: Date) => void;
 }) {
   return (
-    <View className="w-full bg-neutral-700 rounded-md px-xl py-l" style={{ gap: 16 }}>
+    <View className="w-full bg-neutral-700 rounded-radius-4 px-spacing-6 py-spacing-5" style={{ gap: getSpacing("spacing-5") }}>
       <Pressable onPress={onPress} className="flex-row items-center justify-between w-full" style={{ minHeight: 34 }}>
         <Text variant="base-large" weight="medium">{label}</Text>
-        <View className={`px-m py-s rounded-full ${active ? "bg-primary-500" : "bg-neutral-600"}`}>
+        <View className={`px-spacing-4 py-spacing-3 rounded-radius-full ${active ? "bg-primary-500" : "bg-neutral-600"}`}>
           <Text variant="base-small">{formatClock(value)}</Text>
         </View>
       </Pressable>
@@ -192,7 +193,7 @@ export default function FeedbackPage() {
                 {adjustmentTasks.length > 0 && (
                   <Stack gap="s" width="full">
                     {adjustmentTasks.map((task, i) => (
-                      <View key={i} className="bg-neutral-700 p-m rounded-xs w-full">
+                      <View key={i} className="bg-neutral-700 p-spacing-4 rounded-radius-2 w-full">
                         <Text variant="base-medium" weight="medium">{task.taskName}</Text>
                         <Text variant="base-small" color="secondary">{task.planDate}</Text>
                       </View>
@@ -202,7 +203,7 @@ export default function FeedbackPage() {
               </Stack>
             </ScrollView>
           ) : (
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-7") }}>
               <Stack gap="l" width="full">
                 <Icon name="mascotFace" size={76} />
                 <Stack gap="xxl" width="full">

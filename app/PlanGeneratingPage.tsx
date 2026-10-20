@@ -8,7 +8,8 @@ import { Icon } from "@/assets";
 import { generatePlan } from "@/api/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 import { submitStudyStyle } from "@/api/studyStyle";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Helpers
@@ -81,13 +82,13 @@ export default function PlanGeneratingPage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <View className="flex-row items-center pb-l">
+      <View className="flex-row items-center pb-spacing-5">
         <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
       </View>
-      <View className="flex-1 items-center justify-center" style={{ gap: 28 }}>
-        <ActivityIndicator size="large" color={palette.primary["500"]} />
+      <View className="flex-1 items-center justify-center" style={{ gap: getSpacing("spacing-8") }}>
+        <ActivityIndicator size="large" color={color.primary["500"]} />
         <Text variant="title-small">플랜 생성 중...</Text>
       </View>
     </View>

@@ -85,8 +85,8 @@ export default function ChangePasswordPage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <Stack gap="xl" className="flex-1 pb-10">
-        <View className="py-4">
+      <Stack gap="xl" className="flex-1 pb-spacing-11">
+        <View className="py-spacing-5">
           <Pressable onPress={() => router.back()}>
             <Icon name="chevronLeft" size={32} />
           </Pressable>

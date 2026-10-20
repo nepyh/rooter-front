@@ -8,10 +8,11 @@ import { Icon } from "@/assets";
 import { TextbookPicker } from "@/components/TextbookPicker";
 import { ChapterPicker } from "@/components/ChapterPicker";
 import type { TextbookWithSubject } from "@/components/TextbookPicker";
-import palette from "@/constants/palette";
+import { color } from "@/constants/token/color";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
 import { buildMonthWeeks, isSameDay } from "@/utils/date";
 import { WEEKDAYS } from "@/constants/date";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -74,7 +75,7 @@ const WHEEL_HEIGHT = WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_ROWS;
 
 function DatePill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className="bg-neutral-600 px-m py-s rounded-full">
+    <Pressable onPress={onPress} className="bg-neutral-600 px-spacing-4 py-spacing-3 rounded-radius-full">
       <Text variant="base-small" weight={active ? "medium" : "regular"} style={{ color: active ? "#F6482D" : "#FFFFFF" }}>{label}</Text>
     </Pressable>
   );
@@ -95,11 +96,11 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
   return (
     <Stack gap="m" width="full">
       <Row width="full" align="between" className="items-center">
-        <Pressable onPress={goPrevMonth} className="w-6 h-6 items-center justify-center">
+        <Pressable onPress={goPrevMonth} className="w-spacing-7 h-spacing-7 items-center justify-center">
           <Icon name="chevronLeft" size={20} />
         </Pressable>
-        <Text variant="base-large" weight="medium" className="text-white">{viewMonth + 1}월</Text>
-        <Pressable onPress={goNextMonth} className="w-6 h-6 items-center justify-center">
+        <Text variant="base-large" weight="medium" className="text-text-primary">{viewMonth + 1}월</Text>
+        <Pressable onPress={goNextMonth} className="w-spacing-7 h-spacing-7 items-center justify-center">
           <Icon name="chevronRight" size={20} />
         </Pressable>
       </Row>
@@ -119,7 +120,7 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
                 <Pressable
                   key={j}
                   onPress={() => onSelect(cell.date)}
-                  className="w-[32px] h-[32px] rounded-full items-center justify-center"
+                  className="w-[32px] h-[32px] rounded-radius-full items-center justify-center"
                   style={isSelected ? { backgroundColor: "#F6482D" } : undefined}
                 >
                   <Text variant="base-medium" weight="medium" color={cell.inMonth || isSelected ? "primary" : "disabled"}>
@@ -226,10 +227,10 @@ export function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (d
   };
 
   return (
-    <View className="bg-neutral-800 rounded-md flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
+    <View className="bg-neutral-800 rounded-radius-4 flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
       <View
         pointerEvents="none"
-        className="absolute left-0 right-0 rounded-sm"
+        className="absolute left-spacing-0 right-spacing-0 rounded-radius-3"
         style={{ top: WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ROWS / 2), height: WHEEL_ITEM_HEIGHT, backgroundColor: "rgba(107,114,128,0.3)" }}
       />
       <WheelColumn data={HOUR_LABELS} selectedIndex={hour12 - 1} onChange={(i) => applyChange(i + 1, minute, meridiemIndex)} loop />
@@ -389,16 +390,16 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
       {/* 시트를 Pressable로 감싸면 터치를 가로채 안쪽 스크롤이 멈춰서, 닫기용 배경을 시트 뒤에 따로 배치 */}
       <View className="flex-1 justify-end">
-        <Pressable className="absolute inset-0 bg-black/40" onPress={onClose} />
+        <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
             <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <Stack gap="xxl" width="full" className="bg-background-primary p-6 rounded-t-[32px] flex-1">
+            <Stack gap="xxl" width="full" className="bg-background-primary p-spacing-7 rounded-t-radius-6 flex-1">
               <Row width="full" align="between" className="items-center">
-              <Pressable onPress={onClose} className="w-8 h-8 items-center justify-center">
+              <Pressable onPress={onClose} className="w-spacing-9 h-spacing-9 items-center justify-center">
                 <Icon name="close" size={24} />
               </Pressable>
               <Text variant="header-medium" weight="semibold">새로운 일정</Text>
-              <Pressable onPress={handleSubmit} disabled={!canSubmit} className="w-8 h-8 items-center justify-center">
+              <Pressable onPress={handleSubmit} disabled={!canSubmit} className="w-spacing-9 h-spacing-9 items-center justify-center">
                 <Icon name="check" size={24} color={canSubmit ? "#FFFFFF" : "#525866"} />
               </Pressable>
             </Row>
@@ -408,7 +409,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
-              contentContainerStyle={{ paddingBottom: 40 }}
+              contentContainerStyle={{ paddingBottom: getSpacing("spacing-11") }}
               {...({ delaysContentTouches: false } as object)}
             >
               <Stack gap="xl" width="full">
@@ -419,16 +420,16 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
                 <Stack gap="s" width="full">
                   <Text variant="base-medium">일시</Text>
-                  <View className="w-full rounded-md overflow-hidden">
-                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-xl py-[18px] ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
-                      <Text variant="base-large" weight="medium" className="text-white">하루종일</Text>
+                  <View className="w-full rounded-radius-4 overflow-hidden">
+                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-spacing-6 py-spacing-5 ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
+                      <Text variant="base-large" weight="medium" className="text-text-primary">하루종일</Text>
                       <Switch value={allDay} onToggle={() => setAllDay((prev) => !prev)} />
                     </Row>
 
                     {!allDay && (
-                      <View className="w-full bg-neutral-700 px-xl py-[16px] border-b-2 border-neutral-600" style={{ gap: 24 }}>
+                      <View className="w-full bg-neutral-700 px-spacing-6 py-spacing-5 border-b-2 border-neutral-600" style={{ gap: getSpacing("spacing-7") }}>
                         <Row width="full" align="between" className="items-center">
-                          <Text variant="base-large" weight="medium" className="text-white">시작</Text>
+                          <Text variant="base-large" weight="medium" className="text-text-primary">시작</Text>
                           <Row gap="xs">
                             <DatePill label={formatDatePill(start)} active={activePicker === "start-date"} onPress={() => togglePicker("start-date")} />
                             <DatePill label={formatTimePill(start)} active={activePicker === "start-time"} onPress={() => togglePicker("start-time")} />
@@ -445,9 +446,9 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                     )}
 
                     {!allDay && (
-                      <View className="w-full bg-neutral-700 px-xl py-[16px]" style={{ gap: 24 }}>
+                      <View className="w-full bg-neutral-700 px-spacing-6 py-spacing-5" style={{ gap: getSpacing("spacing-7") }}>
                         <Row width="full" align="between" className="items-center">
-                          <Text variant="base-large" weight="medium" className="text-white">종료</Text>
+                          <Text variant="base-large" weight="medium" className="text-text-primary">종료</Text>
                           <Row gap="xs">
                             <DatePill label={formatDatePill(end)} active={activePicker === "end-date"} onPress={() => togglePicker("end-date")} />
                             <DatePill label={formatTimePill(end)} active={activePicker === "end-time"} onPress={() => togglePicker("end-time")} />
@@ -469,24 +470,24 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                   <Text variant="base-medium">교과서</Text>
                   <Row gap="xl" className="flex-wrap">
                     {[...selectedTextbooks.values()].map((textbook) => (
-                      <Pressable key={textbook.id} onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
-                        <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden">
+                      <Pressable key={textbook.id} onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
+                        <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden">
                           {textbook.coverImageUrl ? (
                             <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                           ) : (
-                            <Icon name="book" size={32} color={palette.neutral["400"]} />
+                            <Icon name="book" size={32} color={color.neutral["400"]} />
                           )}
                         </View>
                         <Stack gap="xxs">
-                          <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
+                          <Text variant="base-small" weight="medium" className="text-text-primary" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
                           <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.publisherName ?? textbook.subjectName}</Text>
                           <Text variant="base-small" color="secondary" numberOfLines={1}>{`목차 ${selectedChapterIds.size}개`}</Text>
                         </Stack>
                       </Pressable>
                     ))}
-                    <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-s w-[104px]">
-                      <View className="w-[104px] h-[134px] rounded-xxs bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
-                        <Icon name="plus" size={24} color={palette.neutral["400"]} />
+                    <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
+                      <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
+                        <Icon name="plus" size={24} color={color.neutral["400"]} />
                       </View>
                       <Text variant="base-small" color="secondary">교과서 {selectedTextbooks.size > 0 ? "변경하기" : "추가하기"}</Text>
                     </Pressable>
@@ -503,8 +504,8 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
       {/* 교과서 선택 전체 화면 (Figma Add 2:1191), 뒤로가기로 시트에 복귀 */}
       {showTextbookPicker && (
-        <View className="absolute inset-0 bg-background-primary px-6" style={{ paddingTop: insets.top + 16 }}>
-          <Row width="full" align="between" className="items-center pb-xl">
+        <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5") }}>
+          <Row width="full" align="between" className="items-center pb-spacing-6">
             <Row gap="xs" className="items-center">
               <Pressable onPress={() => setShowTextbookPicker(false)} hitSlop={8}>
                 <Icon name="chevronLeft" size={32} />
@@ -516,16 +517,16 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
           {/* 아래쪽 표지가 배경으로 흐려지는 그라데이션 */}
           <View
             pointerEvents="none"
-            className="absolute left-0 right-0 bottom-0"
-            style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${palette.background.primary}00 0%, ${palette.background.primary} 100%)` }}
+            className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0"
+            style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary}00 0%, ${color.background.primary} 100%)` }}
           />
         </View>
       )}
 
       {/* 교과서를 고르면 이어지는 목차 선택, 뒤로가기로 교과서 선택에 복귀 */}
       {chapterTextbook && (
-        <View className="absolute inset-0 bg-background-primary px-6" style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }}>
-          <Row width="full" align="between" className="items-center pb-xl">
+        <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5"), paddingBottom: insets.bottom + getSpacing("spacing-5") }}>
+          <Row width="full" align="between" className="items-center pb-spacing-6">
             <Row gap="xs" className="items-center">
               <Pressable onPress={() => setChapterTextbook(null)} hitSlop={8}>
                 <Icon name="chevronLeft" size={32} />

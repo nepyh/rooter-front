@@ -1,5 +1,4 @@
-// 색상 토큰 정본, tailwind.config.js와 코드(그라데이션 등)가 함께 사용
-module.exports = {
+export const color = {
   primary: {
     50: "#FEEDEA",
     100: "#FCC6BE",
@@ -11,9 +10,6 @@ module.exports = {
     700: "#AF3320",
     800: "#872819",
     900: "#671E13",
-  },
-  brand: {
-    500: "#0ED9FD",
   },
   secondary: {
     50: "#EAF0FE",
@@ -59,8 +55,27 @@ module.exports = {
   },
   background: {
     primary: "#33363F",
+    secondary: "#33363F",
+    disabled: "#33363F",
   },
-  // 홈 타임라인 학교·수면 블록, 같은 회색 계열에서 수면은 푸른빛·학교는 누런빛
+  label: {
+    "grey-primary": "#6C6C6C",
+    "grey-overlay": "#6C6C6C26",
+    "red-primary": "#FF5252",
+    "red-overlay": "#FF525226",
+    "orange-primary": "#FF9452",
+    "orange-overlay": "#FF945226",
+    "yellow-primary": "#FFE252",
+    "yellow-overlay": "#FFE25226",
+    "green-primary": "#81E468",
+    "green-overlay": "#81E46826",
+    "deepblue-primary": "#5283FF",
+    "deepblue-overlay": "#5283FF26",
+    "lightblue-primary": "#ADD3FF",
+    "lightblue-overlay": "#ADD3FF26",
+    "pink-primary": "#FF81C4",
+    "pink-overlay": "#FF81C426",
+  },
   busy: {
     "sleep-bar": "#6B7A99",
     "sleep-bg": "#6B7A9926",
