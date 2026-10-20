@@ -567,6 +567,7 @@ export default function Home() {
   const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
+  const [showNoPlanChatNotice, setShowNoPlanChatNotice] = useState(false);
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
@@ -789,9 +790,10 @@ export default function Home() {
   };
 
   // 계획 없는 날은 AI 채팅 안내 대신 같은 플랜 생성 말풍선 하나만 표시
+  // AI 채팅은 일일 계획 단위라 계획 없는 날은 채팅 대신 안내 토스트만 표시
   const handleOpenAiChat = () => {
     if (plans.length === 0) {
-      setEmptyNoticeClosed(false);
+      setShowNoPlanChatNotice(true);
       return;
     }
     setShowAiChat(true);
@@ -952,6 +954,7 @@ export default function Home() {
       )}
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
+      {showNoPlanChatNotice && <Toast text="계획이 있어야 AI와 대화할 수 있어요" onClose={() => setShowNoPlanChatNotice(false)} />}
 
       <AddMenu
         visible={showAddMenu}

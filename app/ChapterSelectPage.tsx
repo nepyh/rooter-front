@@ -4,7 +4,7 @@ import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withTiming } 
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
-import { Stack, Row, Text, LoadingView } from "@/components";
+import { Stack, Row, Text, LoadingView, LoadingScreen } from "@/components";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
@@ -115,6 +115,9 @@ export default function ChapterSelectPage() {
   const [showRequired, setShowRequired] = useState(false);
   // 누른 소단원만 체크
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
+  // 로딩 중 뒤로가기를 누르면 늦게 온 생성 결과는 무시
+  const submitIdRef = useRef(0);
   const overlayOpacity = useSharedValue(1);
 
   const leavesByTextbook = useMemo(
@@ -161,6 +164,15 @@ export default function ChapterSelectPage() {
   };
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
+
+  // AI가 시험일까지 계획을 만드는 동안 전체 화면 로딩
+  if (submitting) {
+    const cancelSubmit = () => {
+      submitIdRef.current += 1;
+      setSubmitting(false);
+    };
+    return <LoadingScreen text="플랜 생성 중..." onBack={cancelSubmit} />;
+  }
 
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>

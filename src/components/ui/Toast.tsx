@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View } from "react-native";
 import { Text } from "./Text";
-import Animated, { FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 // ================================
 // Components
@@ -26,16 +26,18 @@ export function Toast({ text, onClose, className = "" }: Props) {
     return () => clearTimeout(timer);
   }, [onClose]);
 
+  // 디자인처럼 홈 +/AI 버튼 바 위에 겹쳐 가운데 (바 bottom 96 + 바 높이 54 / 2 - 토스트 높이 44 / 2)
   return (
     <Animated.View
+      entering={FadeIn.duration(300)}
       exiting={FadeOut.duration(300)}
-      className="absolute bottom-[80px] w-full items-center z-10"
+      className="absolute bottom-[101px] w-full items-center z-10"
     >
       <Animated.View
         className={`
           py-m px-l
           rounded-xs
-          bg-neutral-1000
+          bg-neutral-1000/75
           ${className}
         `}
       >
