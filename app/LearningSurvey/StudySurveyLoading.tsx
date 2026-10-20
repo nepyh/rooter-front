@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { LoadingScreen } from "@/components";
-import { createStudentProfile } from "@/api/user";
-import { submitStudyStyle } from "@/api/studyStyle";
+import { saveStudentProfile, saveStudyStyleAnswers } from "@/api/learningSurvey/common";
 import { useUserStore } from "@/store";
 
 // ================================
@@ -28,16 +27,8 @@ export default function StudySurveyLoading() {
   const userId = useUserStore((state) => state.userId);
 
   useEffect(() => {
-    if (userId !== null) {
-      createStudentProfile(userId, { schoolId, grade: Number(grade), classNumber: Number(classNum) }).catch(() => {});
-    }
-    if (answers) {
-      const studyStyleAnswers = answers.split(",").map((selectedIndex, i) => ({
-        questionNumber: i + 1,
-        answerOption: Number(selectedIndex) + 1,
-      }));
-      submitStudyStyle(studyStyleAnswers).catch(() => {});
-    }
+    if (userId !== null) saveStudentProfile(userId, schoolId, grade, classNum);
+    if (answers) saveStudyStyleAnswers(answers);
     const timer = setTimeout(() => {
       router.replace("/LearningSurvey/StudySurveyComplete");
     }, ANALYZE_MS);
@@ -45,6 +36,5 @@ export default function StudySurveyLoading() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 마지막 문항으로 돌아가 답을 바꿀 수 있음
   return <LoadingScreen text="공부 스타일 분석 중..." onBack={() => router.back()} />;
 }
