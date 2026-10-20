@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Text } from "./Text";
 import { Icon } from "@/assets";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants

@@ -1,0 +1,4 @@
+export const WHEEL_ITEM_HEIGHT = 40;
+export const WHEEL_VISIBLE_ROWS = 5;
+export const WHEEL_HEIGHT = WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_ROWS;
+export const WHEEL_PADDING_ROWS = Math.floor(WHEEL_VISIBLE_ROWS / 2);

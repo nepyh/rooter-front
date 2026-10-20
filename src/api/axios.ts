@@ -37,7 +37,7 @@ api.interceptors.response.use(
     if (isUnauthorized && now - lastSessionRedirectAt > REDIRECT_COOLDOWN_MS) {
       lastSessionRedirectAt = now;
       useUserStore.getState().logout();
-      router.replace({ pathname: '/', params: { toast: 'session-expired' } });
+      router.replace({ pathname: '/Auth/Onboarding', params: { toast: 'session-expired' } });
     }
     return Promise.reject(error);
   },
