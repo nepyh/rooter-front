@@ -4,5 +4,6 @@ export const radius = {
   "radius-3": "12px",
   "radius-4": "16px",
   "radius-5": "20px",
+  "radius-6": "32px",
   "radius-full": "9999px",
 };

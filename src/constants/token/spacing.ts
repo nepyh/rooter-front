@@ -11,4 +11,6 @@ export const spacing = {
   "spacing-9": "32px",
   "spacing-10": "36px",
   "spacing-11": "40px",
+  "spacing-12": "64px",
+  "spacing-divider": "1px",
 };
