@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import Animated, { SlideInRight, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Row, Text } from "@/components";
+import { Stack, Row, Text, LoadingView } from "@/components";
 import { Icon } from "@/assets";
 import { WEEKDAYS } from "@/constants/date";
 import { isSameDay } from "@/utils/date";
@@ -99,6 +99,8 @@ export default function TodoPage() {
   const { date } = useLocalSearchParams<{ date?: string }>();
   const [selectedDate, setSelectedDate] = useState(() => (date ? parseDateString(date) : now));
   const [week, setWeek] = useState<WeeklyPlan>(EMPTY_WEEK);
+  // 처음 불러올 때만 불러오는 중 표시, 탭을 다시 열 때는 이전 목록을 둔 채 갱신
+  const [loaded, setLoaded] = useState(false);
   const weekDates = getWeekDates(date ? parseDateString(date) : now);
 
   useEffect(() => {
@@ -109,7 +111,8 @@ export default function TodoPage() {
   const loadWeek = useCallback(() => {
     getWeeklyTasks(selectedKey)
       .then(setWeek)
-      .catch(() => setWeek(EMPTY_WEEK));
+      .catch(() => setWeek(EMPTY_WEEK))
+      .finally(() => setLoaded(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
@@ -119,6 +122,10 @@ export default function TodoPage() {
 
   // 완료는 퀴즈 통과 시 서버가 처리, 체크는 퀴즈만 열어 Home 완료 버튼과 같게
   const handleToggle = (task: PlanTask) => {
+    if (task.isCompleted) return; // 완료한 할일은 반응 없음
+    // 끝나는 시각이 지난 할일은 실패로 보고 퀴즈 안 열기 (Home과 같은 규칙)
+    const endTime = task.endTime === "24:00" ? "23:59" : task.endTime;
+    if (new Date(`${selectedKey}T${endTime}:00`).getTime() <= Date.now()) return;
     router.push({ pathname: "/home/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
@@ -146,6 +153,7 @@ export default function TodoPage() {
         })}
       </Row>
 
+      {!loaded ? <LoadingView className="pb-[140px]" /> : (
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
         <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
           <View className="w-1 rounded-full bg-primary-500" />
@@ -157,6 +165,7 @@ export default function TodoPage() {
           </Stack>
         </Row>
       </ScrollView>
+      )}
 
     </Animated.View>
   );

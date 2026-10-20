@@ -1,0 +1,25 @@
+name: ⚙️ Setting
+description: 설정 관련 기능을 추가·수정합니다.
+labels: '⚙️ Setting'
+title: '[Setting]: '
+body:
+  - type: input
+    attributes:
+      label: ✨ 개요
+      description: 추가·수정이 필요한 점 한줄 설명
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 할 일
+      description: 추가·수정할 부분
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 💬 기타
+      description: 추가로 하고 싶은 말이 있다면 작성
+    validations:
+      required: false

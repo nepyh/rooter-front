@@ -1,5 +1,5 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from "react";
-import { View, TextInput, TextInputProps, Pressable} from "react-native";
+import { View, TextInput, TextInputProps, Pressable, Platform } from "react-native";
 import { Text } from "./Text";
 import { Row, Stack } from "../layout";
 import { Icon } from "@/assets";
@@ -21,12 +21,39 @@ interface Props extends TextInputProps{
  * @param label Input label을 추가합니다.
  */
 export const Input = forwardRef<TextInput, Props>(
-  ({ label, errorMessage, className = "", onChangeText, value, secureTextEntry, ...props }, ref) => {
+  ({ label, errorMessage, className = "", onChangeText, onKeyPress, value, secureTextEntry, ...props }, ref) => {
     const [focused, setFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const inputRef = useRef<TextInput>(null);
+    // 다시 포커스한 뒤 첫 입력인지, iOS 비밀번호 칸은 이때 기존 글자를 전부 지움
+    const refocusedRef = useRef(false);
 
     useImperativeHandle(ref, () => inputRef.current as TextInput);
+
+    // 마지막으로 누른 키, onChangeText보다 먼저 들어옴
+    const lastKeyRef = useRef("");
+
+    // iOS 가려진 비밀번호 칸은 다시 포커스한 뒤 첫 키에 기존 글자를 통째로 지움
+    // 지우는 호출("")은 무시하고, 다음 글자나 지우기 키를 기존 글자에 이어 붙임
+    const handleChangeText = (text: string) => {
+      const prev = value ?? "";
+      const isSecure = secureTextEntry && !showPassword;
+      if (Platform.OS === "ios" && isSecure && refocusedRef.current && prev.length > 0) {
+        if (text === "") {
+          if (lastKeyRef.current !== "Backspace") return;
+          refocusedRef.current = false;
+          onChangeText?.(prev.slice(0, -1));
+          return;
+        }
+        refocusedRef.current = false;
+        if (text.length === 1) {
+          onChangeText?.(prev + text);
+          return;
+        }
+      }
+      refocusedRef.current = false;
+      onChangeText?.(text);
+    };
 
     const handleClear = () => {
       onChangeText?.("");
@@ -45,8 +72,15 @@ export const Input = forwardRef<TextInput, Props>(
             <TextInput
               ref={inputRef}
               value={value}
-              onChangeText={onChangeText}
-              onFocus={() => setFocused(true)}
+              onChangeText={handleChangeText}
+              onKeyPress={(e) => {
+                lastKeyRef.current = e.nativeEvent.key;
+                onKeyPress?.(e);
+              }}
+              onFocus={() => {
+                refocusedRef.current = true;
+                setFocused(true);
+              }}
               onBlur={() => setFocused(false)}
               placeholderTextColor="#C9CDD6"
               secureTextEntry={secureTextEntry && !showPassword}

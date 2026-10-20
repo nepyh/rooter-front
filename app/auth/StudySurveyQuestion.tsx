@@ -88,13 +88,15 @@ function OptionRow({ label, selected, onPress }: { label: string; selected: bool
  * 공부 스타일 설문 문항 화면
  */
 export default function StudySurveyQuestion() {
-  const { school, schoolId, grade, classNum, step, answers } = useLocalSearchParams<{
+  // plan: 플랜 생성 중 설문이면 시험일·목차·수면 시간을 담아 그대로 넘김
+  const { school, schoolId, grade, classNum, step, answers, plan } = useLocalSearchParams<{
     school: string;
     schoolId: string;
     grade: string;
     classNum: string;
     step: string;
     answers?: string;
+    plan?: string;
   }>();
   const stepIndex = Math.min(Math.max(Number(step) || 1, 1), SURVEY_QUESTIONS.length) - 1;
   const question = SURVEY_QUESTIONS[stepIndex];
@@ -107,6 +109,11 @@ export default function StudySurveyQuestion() {
     const prevAnswers = answers ? answers.split(",") : [];
     const nextAnswers = [...prevAnswers, String(selected)].join(",");
 
+    if (isLast && plan) {
+      router.push({ pathname: "/PlanGeneratingPage", params: { plan, answers: nextAnswers } });
+      return;
+    }
+
     if (isLast) {
       router.push({ pathname: "/auth/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
       return;
@@ -114,7 +121,7 @@ export default function StudySurveyQuestion() {
 
     router.push({
       pathname: "/auth/StudySurveyQuestion",
-      params: { school, schoolId, grade, classNum, step: String(stepIndex + 2), answers: nextAnswers },
+      params: { school, schoolId, grade, classNum, plan, step: String(stepIndex + 2), answers: nextAnswers },
     });
   };
 
