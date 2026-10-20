@@ -8,6 +8,7 @@ import { Icon } from "@/assets";
 import type { IconName } from "@/assets";
 import { answerTaskQuizQuestion, getTaskQuiz, submitTaskQuiz } from "@/api/quiz";
 import type { TaskQuiz, TaskQuizAnswerResult, TaskQuizResult } from "@/api/quiz";
+import { completeTask } from "@/api/planBoard";
 import type { Category } from "@/constants/category";
 import palette from "@/constants/palette";
 
@@ -167,7 +168,10 @@ export default function QuizPage() {
     setChecking(true);
     setError("");
     try {
-      setResult(await submitTaskQuiz(id));
+      const quizResult = await submitTaskQuiz(id);
+      // 통과하면 서버가 할일을 자동 완료하지만, 완료 API로도 한 번 더 맞춤 (이미 완료면 그대로 성공, 실패해도 결과 화면은 보여줌)
+      if (quizResult.passed) await completeTask(id, true).catch(() => {});
+      setResult(quizResult);
       // 풀 때 문항마다 풀이를 이미 봤으면 바로 점수, 아니면 1번부터 풀이 보기
       const sawAllExplanations = questions.length > 0 && questions.every((q) => !!gradedRef.current[q.id]?.explanation);
       setCurrentIndex(0);
