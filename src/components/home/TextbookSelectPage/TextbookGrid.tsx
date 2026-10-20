@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import { TextbookCard } from "./TextbookCard";
 import type { TextbookWithSubject } from "@/api/home/TextbookSelectPage";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Components

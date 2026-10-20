@@ -1,5 +1,5 @@
-import { getTextbooksBySubject } from '../../catalog';
-import type { Subject, Textbook } from '../../catalog';
+import { getTextbooksBySubject } from '../common/catalog';
+import type { Subject, Textbook } from '../common/catalog';
 
 // ================================
 // Types

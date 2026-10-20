@@ -5,7 +5,7 @@ import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Text } from "../../ui/Text";
 import type { CalendarItem } from "@/api/calendar/Calendar";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants

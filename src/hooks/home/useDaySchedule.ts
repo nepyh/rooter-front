@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { getBusyTimes } from "@/api/busyTime";
-import type { DailyBusyTime } from "@/api/busyTime";
+import { getBusyTimes } from "@/api/home/Home/busyTime";
+import type { DailyBusyTime } from "@/api/home/Home/busyTime";
 import { getNextExamDate } from "@/api/home/Home";
 import { buildBusyBlocks, getDDay } from "@/utils/home/timeline";
 

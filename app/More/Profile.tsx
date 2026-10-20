@@ -5,7 +5,7 @@ import { Stack, Text, Input, Button, MorePageHeader, MenuGroup, MenuRow, Profile
 import { useProfile } from "@/hooks/more/useProfile";
 import { useLogout } from "@/hooks/more/useLogout";
 import { formatGradeClass } from "@/utils/more/profile";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 /**
  * 프로필 화면

@@ -1,4 +1,4 @@
-import { createStudentProfile } from '../../user';
+import { createStudentProfile } from '../../common/user';
 
 /**
  * 회원가입 때 고른 학교·학년·반으로 학생 프로필 저장. 실패해도 다음 화면으로 넘어갈 수 있도록 에러를 던지지 않음

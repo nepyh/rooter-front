@@ -1,8 +1,8 @@
 import { Pressable, View } from "react-native";
 import { Text } from "../../ui/Text";
-import { TimeWheelPicker } from "../../AddPlanBoardModal";
+import { TimeWheelPicker } from "../../common/TimeWheelPicker";
 import { formatClock } from "@/utils/common/time";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Types

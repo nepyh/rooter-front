@@ -2,7 +2,7 @@ import { Modal, Pressable } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Text } from "../../ui/Text";
-import { getRadius } from "@/utils/token";
+import { getRadius } from "@/utils/common/token";
 
 // ================================
 // Styles

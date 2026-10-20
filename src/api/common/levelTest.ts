@@ -1,4 +1,4 @@
-import api, { AI_TIMEOUT_MS } from './axios';
+import api, { AI_TIMEOUT_MS } from '../axios';
 
 // ================================
 // Types

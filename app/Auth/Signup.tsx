@@ -4,8 +4,8 @@ import { AuthScreen, EmailInput, PasswordInput, Input, Button, Toast } from '@/c
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth/common';
 import { signup, getSignupError } from '@/api/auth/Signup';
-import { useFormField } from '@/hooks/useFormField';
-import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/password';
+import { useFormField } from '@/hooks/common/useFormField';
+import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/common/password';
 
 export default function Signup() {
   const username = useFormField();

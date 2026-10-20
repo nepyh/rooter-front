@@ -1,16 +1,15 @@
-import api from './axios';
+import api from '../../axios';
 
 // ================================
 // Types
 // ================================
 
-// SLEEP 수면 · SCHOOL 등교일 00:00~하교 · UNAVAILABLE 요일별 불가능 시간 · TASK 모든 플랜보드 할일
 export type BusyTimeType = 'SLEEP' | 'SCHOOL' | 'UNAVAILABLE' | 'TASK';
 
 export interface BusyTimeItem {
   type: BusyTimeType;
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm, 하루 끝은 24:00
+  startTime: string;
+  endTime: string;
   taskId: number | null;
   taskName: string | null;
   planBoardId: number | null;
@@ -18,13 +17,13 @@ export interface BusyTimeItem {
 }
 
 export interface TimeRange {
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  startTime: string;
+  endTime: string;
 }
 
 export interface DailyBusyTime {
-  date: string; // yyyy-MM-dd
-  isSchoolDay: boolean; // 공휴일·방학이면 false
+  date: string;
+  isSchoolDay: boolean;
   busyTimes: BusyTimeItem[];
   freeTimes: TimeRange[];
 }

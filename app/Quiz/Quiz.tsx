@@ -3,9 +3,9 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, QuizTabHeader, QuizSection } from "@/components";
 import type { QuizItem } from "@/api/quiz/Quiz";
-import { useNow } from "@/hooks/useNow";
+import { useNow } from "@/hooks/common/useNow";
 import { useQuizItems } from "@/hooks/quiz/useQuizItems";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 /**
  * 오늘 퀴즈를 진행 중·예정·완료로 나눠 보여주는 퀴즈 탭

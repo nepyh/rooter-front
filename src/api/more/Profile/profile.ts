@@ -1,4 +1,4 @@
-import type { UserInfo } from '../../user';
+import type { UserInfo } from '../../common/user';
 import { getSchoolName } from './school';
 
 /**

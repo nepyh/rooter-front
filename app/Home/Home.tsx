@@ -15,13 +15,13 @@ import {
   AddMenu,
   ConfirmDeleteModal,
 } from "@/components";
-import { useNow } from "@/hooks/useNow";
+import { useNow } from "@/hooks/common/useNow";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { useUIStore } from "@/store";
-import { toLocalDateString } from "@/utils/date";
+import { toLocalDateString } from "@/utils/common/date";
 import type { Plan } from "@/utils/home/timeline";
 
 /**

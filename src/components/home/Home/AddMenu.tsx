@@ -3,7 +3,7 @@ import { Modal, Pressable, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Stack } from "../../layout";
 import { AddMenuButton } from "./AddMenuButton";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants

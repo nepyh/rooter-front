@@ -1,5 +1,5 @@
 import api from '../../axios';
-import type { PlanTask } from '../../planBoard';
+import type { PlanTask } from '../../common/planBoard';
 
 // ================================
 // Types

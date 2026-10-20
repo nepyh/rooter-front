@@ -2,7 +2,7 @@ import { Pressable } from "react-native";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
-import type { ChapterTree } from "@/api/catalog";
+import type { ChapterTree } from "@/api/home/common/catalog";
 import { sortByChapterOrder } from "@/utils/home/chapter";
 
 // ================================

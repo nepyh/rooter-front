@@ -1,7 +1,7 @@
-import { getBoardDaily, getPlanBoards, getPlanBoardSubjects } from '../../planBoard';
+import { getBoardDaily, getPlanBoards, getPlanBoardSubjects } from '../../common/planBoard';
 import { SUBJECT_CATEGORIES } from '@/constants/category';
 import type { Category } from '@/constants/category';
-import { toLocalDateString } from '@/utils/date';
+import { toLocalDateString } from '@/utils/common/date';
 
 // ================================
 // Types

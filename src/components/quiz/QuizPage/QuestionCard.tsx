@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Text } from "../../ui/Text";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Components

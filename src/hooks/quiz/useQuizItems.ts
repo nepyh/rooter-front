@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { getQuizItems, type QuizItem } from "@/api/quiz/Quiz";
-import { toLocalDateString } from "@/utils/date";
+import { toLocalDateString } from "@/utils/common/date";
 import { parseHHmm } from "@/utils/common/time";
 
 // ================================

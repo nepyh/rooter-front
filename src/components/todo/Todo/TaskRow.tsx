@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } 
 import { Row, Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
-import type { PlanTask } from "@/api/planBoard";
+import type { PlanTask } from "@/api/common/planBoard";
 import { color } from "@/constants/token/color";
 
 // ================================

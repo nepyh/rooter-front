@@ -1,5 +1,5 @@
-import { getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects } from '../../planBoard';
-import type { PlanTask } from '../../planBoard';
+import { getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects } from '../../common/planBoard';
+import type { PlanTask } from '../../common/planBoard';
 import { SUBJECT_CATEGORIES } from '@/constants/category';
 import type { Category } from '@/constants/category';
 

@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "expo-router";
 import type { Category } from "@/constants/category";
-import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/planBoard";
+import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
 import { getBoardInfo, getEditErrorMessage } from "@/api/home/Home";
 import { DAY_MIN } from "@/utils/common/time";
 import {

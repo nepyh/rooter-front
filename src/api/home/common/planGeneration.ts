@@ -1,4 +1,4 @@
-import api, { AI_TIMEOUT_MS } from './axios';
+import api, { AI_TIMEOUT_MS } from '../../axios';
 
 // ================================
 // Types
@@ -14,8 +14,8 @@ export interface PlanGenerationSubjectInput {
 export interface GeneratePlanInput {
   title: string;
   subjects: PlanGenerationSubjectInput[];
-  startDate?: string; // yyyy-MM-dd
-  examDate?: string; // yyyy-MM-dd
+  startDate?: string;
+  examDate?: string;
   daysRemaining?: number;
   targetScore?: number;
   isCramMode?: boolean;
@@ -24,13 +24,13 @@ export interface GeneratePlanInput {
 export interface PlanGenerationTask {
   taskName: string;
   estimatedMinutes: number;
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  startTime: string;
+  endTime: string;
 }
 
 export interface PlanGenerationDaily {
   dailyPlanId: number;
-  date: string; // yyyy-MM-dd
+  date: string;
   topics: string[];
   goal: string;
   tasks: PlanGenerationTask[];
@@ -39,8 +39,8 @@ export interface PlanGenerationDaily {
 export interface GeneratedPlan {
   planBoardId: number;
   title: string;
-  startDate: string; // yyyy-MM-dd
-  endDate: string; // yyyy-MM-dd
+  startDate: string;
+  endDate: string;
   examDate?: string | null;
   isCramMode: boolean;
   dailyPlans: PlanGenerationDaily[];

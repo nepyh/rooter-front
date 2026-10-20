@@ -2,7 +2,7 @@ import { View } from "react-native";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Styles

@@ -3,7 +3,7 @@ import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { CalendarItemChip } from "./CalendarItemChip";
 import type { CalendarItem } from "@/api/calendar/Calendar";
-import type { CalendarCellData } from "@/utils/date";
+import type { CalendarCellData } from "@/utils/common/date";
 
 // ================================
 // Components

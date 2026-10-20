@@ -4,9 +4,9 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRep
 import { Stack, Row } from "@/components/layout";
 import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
-import { getChatHistory, sendChatMessage } from "@/api/chat";
+import { getChatHistory, sendChatMessage } from "@/api/home/Home/chat";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Types
@@ -29,11 +29,8 @@ interface Props {
 // Constants
 // ================================
 
-// AddPlanBoardModal과 동일하게, 배경(Pressable)에 명확한 높이가 없어 퍼센트 높이가 먹지 않으므로
-// 화면 실측 높이로 고정 픽셀 값을 계산합니다.
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 
-// 서버 대화 이력과 상관없이 항상 맨 위에 보이는 시작 안내
 const GREETING: Message = { id: "greeting", role: "assistant", text: "일정 변경이 필요하거나 궁금한 점이 있다면\n저에게 물어봐주세요." };
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
@@ -42,13 +39,11 @@ const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도�
 // Components
 // ================================
 
-// 같은 사람이 이어서 보내면 8, 말한 사람이 바뀌면 20
 const bubbleGap = (messages: Message[], index: number) => {
   if (index === 0) return 0;
   return messages[index - 1].role === messages[index].role ? 8 : 20;
 };
 
-// AI 답변은 한 덩어리로 오면 읽기 어려워 문장이 끝날 때마다 줄을 나눔, "1.5"처럼 뒤에 띄어쓰기 없는 점은 유지
 const splitSentences = (text: string) =>
   text
     .replace(/([.!?])\s+/g, "$1\n")
@@ -56,7 +51,6 @@ const splitSentences = (text: string) =>
     .map((line) => line.trim())
     .filter(Boolean);
 
-// 채팅 글자는 19px, 줄 간격을 넓혀 여러 줄도 읽기 쉽게
 const BUBBLE_LINE_HEIGHT = 28;
 
 function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: number }) {
@@ -76,9 +70,7 @@ function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: numb
   );
 }
 
-// 답변 기다리는 동안 점 세 개가 차례로 튀는 말풍선
 const TYPING_DOT_DELAY_MS = 160;
-// 이 시간이 지나도 답이 없으면 멈춘 게 아니라는 안내 표시
 const SLOW_REPLY_MS = 3_000;
 
 function TypingDot({ index }: { index: number }) {
@@ -105,7 +97,6 @@ function TypingBubble({ marginTop }: { marginTop: number }) {
   return (
     <Stack gap="xs" width="full" style={{ marginTop }}>
       <Row align="start" width="full">
-        {/* 점 사이 8, Row의 gap은 style을 넘기면 덮여서 style에 직접 */}
         <Row className="px-spacing-5 rounded-radius-5 bg-neutral-700 items-center" style={{ height: 44, gap: getSpacing("spacing-3") }}>
           {[0, 1, 2].map((i) => <TypingDot key={i} index={i} />)}
         </Row>
@@ -129,7 +120,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  // 입력칸이 메시지 위에 떠 있어서, 마지막 메시지가 가리지 않게 입력칸 높이만큼 아래 여백
   const [inputHeight, setInputHeight] = useState(52);
 
   useEffect(() => {
@@ -143,7 +133,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     }
   }, [visible, translateY]);
 
-  // 모달 열 때마다 서버 대화 이력으로 초기화
   useEffect(() => {
     if (!visible) return;
     setMessages([GREETING]);
@@ -193,7 +182,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      {/* 시트를 Pressable로 감싸면 터치를 가로채 스크롤이 멈춰서, 닫기용 배경을 시트 뒤에 따로 배치 */}
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
@@ -219,7 +207,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                   )}
                 </ScrollView>
 
-                {/* 글이 길어지면 위로 늘어나며 메시지 위에 겹쳐 그려짐, 최대 5줄 */}
                 <Row
                   align="between"
                   className="absolute left-spacing-7 right-spacing-7 bottom-spacing-9 z-10 items-end bg-neutral-700 pl-spacing-6 pr-spacing-2 py-spacing-2 rounded-radius-full"

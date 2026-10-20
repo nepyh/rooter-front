@@ -1,4 +1,4 @@
-import { getStreak } from '../../user';
+import { getStreak } from '../../common/user';
 
 // ================================
 // Functions

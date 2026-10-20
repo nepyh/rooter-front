@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Text } from "../../ui/Text";
-import { buildMonthWeeks, toLocalDateString } from "@/utils/date";
+import { buildMonthWeeks, toLocalDateString } from "@/utils/common/date";
 import { WEEKDAYS } from "@/constants/date";
 import { color } from "@/constants/token/color";
 

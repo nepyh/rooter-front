@@ -1,18 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch, Button } from "@/components/ui";
 import { Icon } from "@/assets";
-import { TextbookPicker } from "@/components/TextbookPicker";
-import { ChapterPicker } from "@/components/ChapterPicker";
-import type { TextbookWithSubject } from "@/components/TextbookPicker";
+import { TextbookPicker } from "./TextbookPicker";
+import { ChapterPicker } from "./ChapterPicker";
+import { TimeWheelPicker } from "../../common/TimeWheelPicker";
+import type { TextbookWithSubject } from "./TextbookPicker";
 import { color } from "@/constants/token/color";
-import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/planBoard";
-import { buildMonthWeeks, isSameDay } from "@/utils/date";
+import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/common/planBoard";
+import { buildMonthWeeks, isSameDay } from "@/utils/common/date";
 import { WEEKDAYS } from "@/constants/date";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Types
@@ -36,10 +37,6 @@ const formatDatePill = (date: Date) => `${date.getMonth() + 1}월 ${date.getDate
 const formatTimePill = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 const toDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
-const HOUR_LABELS = Array.from({ length: 12 }, (_, i) => String(i + 1));
-const MINUTE_LABELS = Array.from({ length: 60 }, (_, i) => pad(i));
-const MERIDIEM_LABELS = ["AM", "PM"];
-
 const roundToNextHour = (base: Date) => {
   const date = new Date(base);
   date.setMinutes(0, 0, 0);
@@ -59,15 +56,7 @@ const mergeTimePart = (base: Date, timePart: Date) => {
   return next;
 };
 
-// "90%" 같은 퍼센트 값은 부모 체인에 명확한 높이가 없으면(여기서는 배경을 감싸는 Pressable이
-// 그 경우) 제대로 해석되지 않아 시트가 내용물 크기로만 줄어들고 스크롤도 먹통이 됩니다.
-// 화면 실측 높이로 직접 계산해 고정 픽셀 값을 써야 확실하게 동작합니다.
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
-
-// 커스텀 시간 휠피커의 한 행 높이와, 화면에 동시에 보이는 행 수(가운데 1개 + 위아래 2개씩)입니다.
-const WHEEL_ITEM_HEIGHT = 40;
-const WHEEL_VISIBLE_ROWS = 5;
-const WHEEL_HEIGHT = WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE_ROWS;
 
 // ================================
 // Components
@@ -136,110 +125,6 @@ function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date)
   );
 }
 
-// 다이얼처럼 끝과 처음이 이어지게 같은 값을 여러 바퀴 이어 붙이고, 멈추면 가운데 바퀴로 몰래 되돌림
-const WHEEL_LOOP_CYCLES = 7;
-
-function WheelColumn({ data, selectedIndex, onChange, loop = false }: {
-  data: string[];
-  selectedIndex: number;
-  onChange: (index: number) => void;
-  loop?: boolean;
-}) {
-  const scrollRef = useRef<ScrollView>(null);
-  const paddingRows = Math.floor(WHEEL_VISIBLE_ROWS / 2);
-  const cycles = loop ? WHEEL_LOOP_CYCLES : 1;
-  const middleCycle = Math.floor(cycles / 2);
-  const rowCount = data.length * cycles;
-
-  // 값 index → 가운데 바퀴의 실제 행 위치
-  const toRow = (index: number) => index + middleCycle * data.length;
-
-  const scrollToRow = (row: number, animated = true) => {
-    scrollRef.current?.scrollTo({ y: row * WHEEL_ITEM_HEIGHT, animated });
-  };
-
-  // 이 컬럼은 시트가 슬라이드업되는 동안(400ms) 이미 레이아웃되어 있어서, onLayout 시점에
-  // scrollTo를 불러도 그 애니메이션과 겹쳐 씹히는 경우가 있습니다. 시트 애니메이션이
-  // 끝난 뒤 한 번 더 위치를 맞춰서 확실히 보정합니다.
-  useEffect(() => {
-    const timer = setTimeout(() => scrollToRow(toRow(selectedIndex), false), 450);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const selectRow = (row: number) => {
-    const clamped = Math.max(0, Math.min(rowCount - 1, row));
-    const index = clamped % data.length;
-    // 가장자리 바퀴로 가면 같은 값의 가운데 바퀴로 옮겨 계속 돌릴 수 있게 함
-    if (loop && Math.floor(clamped / data.length) !== middleCycle) scrollToRow(toRow(index), false);
-    else scrollToRow(clamped);
-    onChange(index);
-  };
-
-  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    selectRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
-  };
-
-  return (
-    <ScrollView
-      ref={scrollRef}
-      style={{ height: WHEEL_HEIGHT, width: 64 }}
-      nestedScrollEnabled
-      showsVerticalScrollIndicator={false}
-      snapToInterval={WHEEL_ITEM_HEIGHT}
-      decelerationRate="fast"
-      onScrollEndDrag={handleMomentumEnd}
-      onMomentumScrollEnd={handleMomentumEnd}
-      onLayout={() => scrollToRow(toRow(selectedIndex), false)}
-      contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * paddingRows }}
-    >
-      {Array.from({ length: rowCount }, (_, row) => {
-        const index = row % data.length;
-        const isSelected = index === selectedIndex;
-        return (
-          <Pressable
-            key={row}
-            onPress={() => selectRow(row)}
-            style={{ height: WHEEL_ITEM_HEIGHT }}
-            className="items-center justify-center"
-          >
-            <Text variant="base-large" weight={isSelected ? "medium" : "regular"} color={isSelected ? "primary" : "disabled"}>
-              {data[index]}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-export function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
-  const hour24 = value.getHours();
-  const meridiemIndex = hour24 >= 12 ? 1 : 0;
-  const hour12 = ((hour24 + 11) % 12) + 1;
-  const minute = value.getMinutes();
-
-  const applyChange = (nextHour12: number, nextMinute: number, nextMeridiemIndex: number) => {
-    const next = new Date(value);
-    const hour = (nextHour12 % 12) + (nextMeridiemIndex === 1 ? 12 : 0);
-    next.setHours(hour, nextMinute, 0, 0);
-    onChange(next);
-  };
-
-  return (
-    <View className="bg-neutral-800 rounded-radius-4 flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
-      <View
-        pointerEvents="none"
-        className="absolute left-spacing-0 right-spacing-0 rounded-radius-3"
-        style={{ top: WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ROWS / 2), height: WHEEL_ITEM_HEIGHT, backgroundColor: "rgba(107,114,128,0.3)" }}
-      />
-      <WheelColumn data={HOUR_LABELS} selectedIndex={hour12 - 1} onChange={(i) => applyChange(i + 1, minute, meridiemIndex)} loop />
-      <WheelColumn data={MINUTE_LABELS} selectedIndex={minute} onChange={(i) => applyChange(hour12, i, meridiemIndex)} loop />
-      <WheelColumn data={MERIDIEM_LABELS} selectedIndex={meridiemIndex} onChange={(i) => applyChange(hour12, minute, i)} />
-    </View>
-  );
-}
-
 /**
  * 플랜보드 추가 모달
  * @param visible 모달 표시 여부를 설정합니다.
@@ -249,14 +134,8 @@ export function TimeWheelPicker({ value, onChange }: { value: Date; onChange: (d
  */
 export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
-  // Modal의 animationType이 "none"이라 visible이 false가 되는 즉시 네이티브 모달이 사라져서,
-  // 우리 슬라이드다운 애니메이션이 재생될 틈이 없습니다. 그래서 닫힐 때는 애니메이션이 끝난
-  // 뒤에야 실제로 Modal을 내려주기 위해 별도의 렌더링 상태를 둡니다.
   const [isRendered, setIsRendered] = useState(visible);
 
-  // 배경(Backdrop)은 페이드 없이 즉시 덮고, 시트만 따로 아래에서 위로 슬라이드시킵니다.
-  // (Modal 자체를 fade/slide로 움직이면 NavBar가 사라지는 시점과 배경이 그 자리를 덮는
-  // 시점 사이에 화면이 잠깐 비어 보이는 틈이 생겨서 이렇게 분리했습니다.)
   useEffect(() => {
     if (visible) {
       setIsRendered(true);
@@ -278,8 +157,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const [end, setEnd] = useState(() => new Date(roundToNextHour(baseDate).getTime() + 60 * 60_000));
   const [activePicker, setActivePicker] = useState<PickerTarget | null>(null);
 
-  // 고른 교과서와 목차 (태스크 생성 API에 교과서·목차 필드가 없어 화면 표시용)
-  // 교과서는 하나만, 고르면 바로 목차 선택으로 넘어감
   const [selectedTextbooks, setSelectedTextbooks] = useState<Map<number, TextbookWithSubject>>(new Map());
   const [selectedChapterIds, setSelectedChapterIds] = useState<Set<number>>(new Set());
   const [showTextbookPicker, setShowTextbookPicker] = useState(false);
@@ -290,9 +167,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // 모달을 새로 열 때마다 이전 입력을 초기화합니다. baseDate(현재 시각)는 여기서 스냅샷으로만
-  // 쓰고 싶어서 의도적으로 의존성 배열에서 뺐습니다 — 안 그러면 홈 화면의 시계가 갱신될 때마다
-  // (30초 간격) 모달이 열려있는 동안 입력 중이던 내용이 계속 초기화되어 버립니다.
   useEffect(() => {
     if (!visible) return;
     const s = roundToNextHour(baseDate);
@@ -318,17 +192,15 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   };
 
   const togglePicker = (target: PickerTarget) => {
-    Keyboard.dismiss(); // 입력칸 포커스가 남아 있으면 iOS가 스크롤을 입력칸 쪽으로 되돌림
+    Keyboard.dismiss();
     setActivePicker((prev) => (prev === target ? null : target));
   };
 
-  // 선택한 날짜에 주황색 원이 들어오는 걸 잠깐 보여준 뒤 달력을 접습니다.
   const selectDate = (target: PickerTarget, date: Date) => {
     applyPicked(target, date);
     setTimeout(() => setActivePicker((prev) => (prev === target ? null : prev)), 500);
   };
 
-  // 같은 교과서를 다시 고르면 고른 목차 유지
   const openChapters = (textbook: TextbookWithSubject) => {
     setPendingChapterIds(selectedTextbooks.has(textbook.id) ? new Set(selectedChapterIds) : new Set());
     setChapterTextbook(textbook);
@@ -367,7 +239,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
     setError("");
     setSubmitting(true);
     try {
-      // 태스크 생성 API에 교과서 필드 없음, 선택값은 화면 표시만 하고 미전송
       const board = await getOrCreateCurrentPlanBoard();
       const estimatedMinutes = Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000));
       await createPlanTask({
@@ -388,7 +259,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      {/* 시트를 Pressable로 감싸면 터치를 가로채 안쪽 스크롤이 멈춰서, 닫기용 배경을 시트 뒤에 따로 배치 */}
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
@@ -438,7 +308,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "start-date" && (
                           <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
                         )}
-                        {/* 휠은 열 때만 그림, 숨겨 두면 숫자 칸 수백 개가 늘 깔려 시트 스크롤이 무거워짐 */}
                         {activePicker === "start-time" && (
                           <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
                         )}
@@ -457,7 +326,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         {activePicker === "end-date" && (
                           <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
                         )}
-                        {/* 휠은 열 때만 그림, 숨겨 두면 숫자 칸 수백 개가 늘 깔려 시트 스크롤이 무거워짐 */}
                         {activePicker === "end-time" && (
                           <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
                         )}
@@ -502,7 +370,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
         </Animated.View>
       </View>
 
-      {/* 교과서 선택 전체 화면 (Figma Add 2:1191), 뒤로가기로 시트에 복귀 */}
       {showTextbookPicker && (
         <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5") }}>
           <Row width="full" align="between" className="items-center pb-spacing-6">
@@ -514,7 +381,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
             </Row>
           </Row>
           <TextbookPicker selectedIds={new Set(selectedTextbooks.keys())} onToggle={openChapters} bottomInset={insets.bottom + 40} />
-          {/* 아래쪽 표지가 배경으로 흐려지는 그라데이션 */}
           <View
             pointerEvents="none"
             className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0"
@@ -523,7 +389,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
         </View>
       )}
 
-      {/* 교과서를 고르면 이어지는 목차 선택, 뒤로가기로 교과서 선택에 복귀 */}
       {chapterTextbook && (
         <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5"), paddingBottom: insets.bottom + getSpacing("spacing-5") }}>
           <Row width="full" align="between" className="items-center pb-spacing-6">

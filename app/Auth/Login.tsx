@@ -4,7 +4,7 @@ import { AuthScreen, EmailInput, PasswordInput, Button, Toast } from '@/componen
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth/common';
 import { getLoginError } from '@/api/auth/Login';
-import { useFormField } from '@/hooks/useFormField';
+import { useFormField } from '@/hooks/common/useFormField';
 
 export default function Login() {
   const email = useFormField();

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useUserStore } from "@/store";
-import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
-import type { UserInfo } from "@/api/user";
+import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/common/user";
+import type { UserInfo } from "@/api/common/user";
 import { resolveSchoolName } from "@/api/more/Profile";
 
 // ================================

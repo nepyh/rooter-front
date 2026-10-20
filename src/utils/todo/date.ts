@@ -1,4 +1,4 @@
-import type { PlanTask } from "@/api/planBoard";
+import type { PlanTask } from "@/api/common/planBoard";
 
 /**
  * yyyy-MM-dd 를 그날 0시(기기 시간)로 변환

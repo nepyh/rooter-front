@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { CalendarHeader, WeekdayHeader, MonthGrid, PlanDetailModal, EventFormModal } from "@/components";
 import type { CalendarItem } from "@/api/calendar/Calendar";
-import { useNow } from "@/hooks/useNow";
+import { useNow } from "@/hooks/common/useNow";
 import { useCalendarMonth } from "@/hooks/calendar/useCalendarMonth";
 import { useCalendarEvents } from "@/hooks/calendar/useCalendarEvents";
 

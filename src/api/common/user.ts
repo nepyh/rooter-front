@@ -1,4 +1,4 @@
-import api from './axios';
+import api from '../axios';
 
 // ================================
 // Types
@@ -25,7 +25,6 @@ export interface UserInfo {
   username: string;
   email: string;
   schoolId: string | null;
-  // 백엔드 미제공 필드, 추가되면 바로 표시
   schoolName?: string | null;
   grade: number | null;
   classNumber: number | null;
@@ -35,8 +34,8 @@ export interface UserInfo {
 }
 
 export interface StreakDay {
-  date: string; // yyyy-MM-dd
-  completionRate: number; // 0~100
+  date: string;
+  completionRate: number;
 }
 
 export interface Streak {
@@ -72,16 +71,16 @@ export const DAY_OF_WEEK_LABELS = ["월", "화", "수", "목", "금", "토", "�
 export const DAY_OF_WEEK_NAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 
 export interface AddUnavailableTimeInput {
-  dayOfWeek: number; // 1(월)~7(일)
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
 }
 
 export interface UnavailableTime {
   id: number;
   dayOfWeek: typeof DAY_OF_WEEK_NAMES[number];
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  startTime: string;
+  endTime: string;
 }
 
 /**

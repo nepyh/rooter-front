@@ -4,7 +4,7 @@ import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, LoadingView, BackHeader, PageTitle, NextButton, ChapterList } from "@/components";
-import type { ChapterTree, TextbookDetail } from "@/api/catalog";
+import type { ChapterTree, TextbookDetail } from "@/api/home/common/catalog";
 import { getTextbookDetails } from "@/api/home/ChapterSelectPage";
 import { flattenLeaves, toSubjectEntries } from "@/utils/home/chapter";
 import { color } from "@/constants/token/color";

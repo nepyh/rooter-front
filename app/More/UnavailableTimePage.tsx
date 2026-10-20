@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { Stack, Button, Text, MorePageHeader, DayOfWeekPicker, TimeRangeInputs, UnavailableTimeRow } from "@/components";
 import { useUnavailableTimes } from "@/hooks/more/useUnavailableTimes";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 /**
  * 불가능 시간 화면

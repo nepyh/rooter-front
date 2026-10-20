@@ -1,4 +1,4 @@
-import { completeTask } from '../../planBoard';
+import { completeTask } from '../../common/planBoard';
 import { submitTaskQuiz } from './quiz';
 import type { TaskQuizResult } from './quiz';
 

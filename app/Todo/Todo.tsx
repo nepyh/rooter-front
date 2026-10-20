@@ -4,12 +4,12 @@ import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Row, Text, LoadingView, WeekDateStrip, TaskList } from "@/components";
-import type { PlanTask } from "@/api/planBoard";
-import { useNow } from "@/hooks/useNow";
+import type { PlanTask } from "@/api/common/planBoard";
+import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
-import { toLocalDateString } from "@/utils/date";
+import { toLocalDateString } from "@/utils/common/date";
 import { getWeekDates, isTaskEnded, parseDateString } from "@/utils/todo/date";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 /**
  * 할 일 화면

@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Components

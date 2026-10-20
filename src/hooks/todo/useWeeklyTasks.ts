@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { getWeeklyTasks } from "@/api/planBoard";
-import type { WeeklyPlan } from "@/api/planBoard";
+import { getWeeklyTasks } from "@/api/common/planBoard";
+import type { WeeklyPlan } from "@/api/common/planBoard";
 
 // ================================
 // Constants

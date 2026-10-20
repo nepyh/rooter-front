@@ -3,10 +3,10 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { TopLevelAccordion } from "./TopLevelAccordion";
-import type { TextbookDetail } from "@/api/catalog";
+import type { TextbookDetail } from "@/api/home/common/catalog";
 import { sortByChapterOrder } from "@/utils/home/chapter";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants

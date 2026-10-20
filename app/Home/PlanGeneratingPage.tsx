@@ -3,12 +3,12 @@ import { ActivityIndicator, Alert, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, BackHeader } from "@/components";
-import { generatePlan } from "@/api/planGeneration";
-import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
+import { generatePlan } from "@/api/home/common/planGeneration";
+import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
 import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
 import { saveStudyStyleAnswers } from "@/api/common";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 /**
  * 플랜 생성 중 화면, 설문 답변 저장 뒤 AI 계획 생성

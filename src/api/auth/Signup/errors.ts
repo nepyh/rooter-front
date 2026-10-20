@@ -1,5 +1,5 @@
 import { getStatus, SERVER_ERROR, type AuthError } from '../common';
-import { PASSWORD_ERROR_MESSAGE } from '@/utils/password';
+import { PASSWORD_ERROR_MESSAGE } from '@/utils/common/password';
 
 // ================================
 // Types

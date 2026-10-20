@@ -2,7 +2,7 @@ import { View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { TaskRow } from "./TaskRow";
 import { AddTaskRow } from "./AddTaskRow";
-import type { PlanTask } from "@/api/planBoard";
+import type { PlanTask } from "@/api/common/planBoard";
 
 // ================================
 // Components

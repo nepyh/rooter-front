@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, BackHeader, PageTitle, NextButton, MonthNavigator, DateGrid } from "@/components";
-import { toLocalDateString } from "@/utils/date";
+import { toLocalDateString } from "@/utils/common/date";
 
 /**
  * 시험 날짜 선택 화면

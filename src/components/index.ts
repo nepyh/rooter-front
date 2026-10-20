@@ -8,6 +8,3 @@ export * from "./learningSurvey";
 export * from "./more";
 export * from "./quiz";
 export * from "./todo";
-export { AddPlanBoardModal } from "./AddPlanBoardModal";
-export { AiChatModal } from "./AiChatModal";
-export { TextbookPicker } from "./TextbookPicker";

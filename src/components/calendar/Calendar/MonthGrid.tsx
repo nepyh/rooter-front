@@ -3,7 +3,7 @@ import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { Row, Stack } from "../../layout";
 import { CalendarCell } from "./CalendarCell";
 import type { CalendarItem, CalendarItemsByDate } from "@/api/calendar/Calendar";
-import { isSameDay, toLocalDateString, type CalendarCellData } from "@/utils/date";
+import { isSameDay, toLocalDateString, type CalendarCellData } from "@/utils/common/date";
 
 // ================================
 // Constants

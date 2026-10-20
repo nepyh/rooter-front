@@ -1,7 +1,7 @@
 import { Pressable } from "react-native";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
-import { DAY_OF_WEEK_LABELS } from "@/api/user";
+import { DAY_OF_WEEK_LABELS } from "@/api/common/user";
 import { color } from "@/constants/token/color";
 
 // ================================

@@ -16,7 +16,7 @@ import {
 import { Icon } from "@/assets";
 import type { Difficulty } from "@/api/quiz/FeedbackPage";
 import { useFeedback } from "@/hooks/quiz/useFeedback";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants

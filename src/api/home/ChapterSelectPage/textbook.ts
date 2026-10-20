@@ -1,5 +1,5 @@
-import { getTextbookDetail } from '../../catalog';
-import type { TextbookDetail } from '../../catalog';
+import { getTextbookDetail } from '../common/catalog';
+import type { TextbookDetail } from '../common/catalog';
 
 /**
  * 여러 교과서의 목차를 한 번에 조회 (실패한 교과서는 빠짐)

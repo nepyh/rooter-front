@@ -1,5 +1,5 @@
-import type { ChapterTree } from "@/api/catalog";
-import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
+import type { ChapterTree } from "@/api/home/common/catalog";
+import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
 
 /**
  * 목차를 chapterOrder 오름차순으로 정렬한 새 배열

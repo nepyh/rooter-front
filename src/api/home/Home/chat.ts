@@ -1,5 +1,5 @@
-import api, { AI_TIMEOUT_MS } from './axios';
-import type { PlanTask } from './planBoard';
+import api, { AI_TIMEOUT_MS } from '../../axios';
+import type { PlanTask } from '../../common/planBoard';
 
 // ================================
 // Types
@@ -8,9 +8,7 @@ import type { PlanTask } from './planBoard';
 export interface ChatReply {
   reply: string;
   planChanged: boolean;
-  // 대화한 날에 남은 할일
   updatedTasks: PlanTask[] | null;
-  // "내일로 미뤄줘"처럼 다른 날로 옮긴 할일 (옮겨간 날의 dailyPlanId·시각)
   movedTasks: PlanTask[] | null;
 }
 

@@ -1,6 +1,6 @@
 import api from '../../axios';
 import { useUserStore } from '@/store';
-import { decodeJwtPayload } from '@/utils/jwt';
+import { decodeJwtPayload } from '@/utils/auth/jwt';
 
 /**
  * 로그인 API 함수

@@ -3,12 +3,12 @@ import { Image, Pressable, ScrollView, View } from "react-native";
 import { Stack, Row } from "@/components/layout";
 import { Text, LoadingView } from "@/components/ui";
 import { Icon } from "@/assets";
-import { getSubjects, getTextbooksBySubject } from "@/api/catalog";
-import type { Subject, Textbook } from "@/api/catalog";
-import { getUserInfo } from "@/api/user";
+import { getSubjects, getTextbooksBySubject } from "@/api/home/common/catalog";
+import type { Subject, Textbook } from "@/api/home/common/catalog";
+import { getUserInfo } from "@/api/common/user";
 import { useUserStore } from "@/store";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Types
@@ -42,9 +42,7 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
 }
 
 function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithSubject; selected: boolean; onPress: () => void }) {
-  // 서버 출판사 이름, 없으면 제목 괄호 안 출판사
   const publisherName = textbook.publisherName ?? textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? textbook.subjectName;
-  // 출판사는 아랫줄에 따로 보여서 제목에서 제외
   const displayTitle = textbook.title.replace(/\s*\([^)]+\)\s*$/, "");
 
   return (
@@ -89,7 +87,6 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
-  // 과목·교과서를 불러오는 동안 빈 격자 대신 불러오는 중 표시
   const [loadingTextbooks, setLoadingTextbooks] = useState(true);
   const userId = useUserStore((state) => state.userId);
   const [grade, setGrade] = useState<number | null>(null);
@@ -103,7 +100,6 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
       .catch(() => setLoadingTextbooks(false));
   }, []);
 
-  // 회원가입 때 입력한 학년, 못 불러오면 전체 표시
   useEffect(() => {
     if (userId === null) return;
     getUserInfo(userId).then((info) => setGrade(info.grade)).catch(() => setGrade(null));
@@ -126,7 +122,6 @@ export function TextbookPicker({ selectedIds, onToggle, bottomInset = 96 }: Prop
     });
   }, [subjects, selectedSubjectId]);
 
-  // 제목이 "N학년 ..."으로 시작해서 학년 기준으로 거름, 학년 표기 없는 교과서는 유지
   const visibleTextbooks = grade === null
     ? textbooks
     : textbooks.filter((textbook) => {

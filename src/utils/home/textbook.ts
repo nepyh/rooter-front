@@ -1,4 +1,4 @@
-import type { Textbook } from "@/api/catalog";
+import type { Textbook } from "@/api/home/common/catalog";
 
 /**
  * 제목이 "N학년 ..." 으로 시작하는 교과서를 학년 기준으로 거름. 학년 표기 없는 교과서는 유지

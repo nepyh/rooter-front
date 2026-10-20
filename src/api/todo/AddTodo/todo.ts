@@ -1,4 +1,4 @@
-import { createPlanTask, getOrCreateCurrentPlanBoard } from '../../planBoard';
+import { createPlanTask, getOrCreateCurrentPlanBoard } from '../../common/planBoard';
 import { DAY_MIN, parseHHmm } from '@/utils/common/time';
 
 // ================================

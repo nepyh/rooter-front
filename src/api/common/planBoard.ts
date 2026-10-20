@@ -1,5 +1,5 @@
-import api from './axios';
-import { toLocalDateString } from '@/utils/date';
+import api from '../axios';
+import { toLocalDateString } from '@/utils/common/date';
 
 // ================================
 // Types
@@ -8,17 +8,17 @@ import { toLocalDateString } from '@/utils/date';
 export interface PlanBoard {
   id: number;
   title: string;
-  startDate: string; // yyyy-MM-dd
-  endDate: string; // yyyy-MM-dd
-  examDate: string | null; // yyyy-MM-dd
+  startDate: string;
+  endDate: string;
+  examDate: string | null;
   createdAt: string;
 }
 
 export interface CreatePlanBoardInput {
   title: string;
-  startDate: string; // yyyy-MM-dd
-  endDate: string; // yyyy-MM-dd
-  examDate?: string; // yyyy-MM-dd
+  startDate: string;
+  endDate: string;
+  examDate?: string;
 }
 
 export interface CreatePlanBoardResult {
@@ -30,31 +30,31 @@ export interface PlanTask {
   id: number;
   dailyPlanId: number;
   taskName: string;
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  startTime: string;
+  endTime: string;
   estimatedMinutes: number;
   isCompleted: boolean;
 }
 
 export interface DailyPlan {
   dailyPlanId?: number | null;
-  planDate: string; // yyyy-MM-dd
+  planDate: string;
   tasks: PlanTask[];
 }
 
 export interface CreatePlanTaskInput {
   planBoardId: number;
-  planDate: string; // yyyy-MM-dd
+  planDate: string;
   taskName: string;
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  startTime: string;
+  endTime: string;
   estimatedMinutes: number;
 }
 
 export interface UpdatePlanTaskInput {
   taskName?: string;
-  startTime?: string; // HH:mm
-  endTime?: string; // HH:mm
+  startTime?: string;
+  endTime?: string;
   estimatedMinutes?: number;
 }
 
@@ -71,8 +71,8 @@ export interface PlanBoardSubject {
 }
 
 export interface WeeklyPlan {
-  weekStart: string; // yyyy-MM-dd
-  weekEnd: string; // yyyy-MM-dd
+  weekStart: string;
+  weekEnd: string;
   days: DailyPlan[];
 }
 
@@ -102,7 +102,6 @@ export const createPlanBoard = async (input: CreatePlanBoardInput): Promise<Crea
 export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
   const today = toLocalDateString(new Date());
   const boards = await getPlanBoards();
-  // AI 계획 보드(시험일 있음)와 섞이지 않게 시험일 없는 기본 보드만 사용
   const current = boards.find((board) => board.examDate === null && board.startDate <= today && today <= board.endDate);
   if (current) return current;
 
@@ -138,7 +137,6 @@ export const getPlanBoardSubjects = async (boardId: number): Promise<PlanBoardSu
  * @returns 해당 날짜의 태스크 목록
  */
 export const getDailyTasks = async (date?: string): Promise<DailyPlan> => {
-  // 서버의 오늘이 UTC 기준이라 날짜 생략 시 기기 기준 오늘 날짜 전달
   const response = await api.get('/plan-tasks', { params: { date: date ?? toLocalDateString(new Date()) } });
   return response.data;
 };

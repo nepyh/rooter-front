@@ -1,7 +1,7 @@
 import type { Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
-import type { DailyBusyTime } from "@/api/busyTime";
-import type { PlanTask } from "@/api/planBoard";
+import type { DailyBusyTime } from "@/api/home/Home/busyTime";
+import type { PlanTask } from "@/api/common/planBoard";
 import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
 // ================================

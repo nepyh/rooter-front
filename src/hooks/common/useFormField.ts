@@ -11,13 +11,11 @@ export function useFormField(initialValue = "") {
   const [error, setError] = useState("");
   const ref = useRef<TextInput>(null);
 
-  // 다시 입력하기 시작하면 에러 문구를 지움
   const onChangeText = (text: string) => {
     setValue(text);
     setError("");
   };
 
-  // moveCursorToEnd: 포커스하면서 커서를 입력된 글자 끝으로 옮김
   const focus = (moveCursorToEnd = false) => {
     ref.current?.focus();
     if (moveCursorToEnd) {

@@ -2,7 +2,7 @@ import { Pressable } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { WEEKDAYS } from "@/constants/date";
-import { isSameDay } from "@/utils/date";
+import { isSameDay } from "@/utils/common/date";
 
 // ================================
 // Components

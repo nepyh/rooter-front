@@ -3,9 +3,9 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Stack } from "@/components/layout";
 import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
-import { getTextbookDetail } from "@/api/catalog";
-import type { ChapterTree } from "@/api/catalog";
-import { getSpacing } from "@/utils/token";
+import { getTextbookDetail } from "@/api/home/common/catalog";
+import type { ChapterTree } from "@/api/home/common/catalog";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Helpers
@@ -17,7 +17,6 @@ const sortByOrder = (nodes: ChapterTree[]) => [...nodes].sort((a, b) => a.chapte
 // Components
 // ================================
 
-// 자식이 없는 노드만 고를 수 있는 소단원, 자식이 있으면 대단원·중단원 라벨
 function ChapterNode({ node, depth, selectedIds, onToggleLeaf }: {
   node: ChapterTree;
   depth: number;
@@ -67,7 +66,6 @@ interface Props {
  */
 export function ChapterPicker({ textbookId, selectedIds, onToggle, bottomInset = 96 }: Props) {
   const [chapters, setChapters] = useState<ChapterTree[]>([]);
-  // 대단원은 여러 개 동시에 펼칠 수 있음
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { Row } from "../../layout";
 import { SubjectPill } from "./SubjectPill";
-import type { Subject } from "@/api/catalog";
+import type { Subject } from "@/api/home/common/catalog";
 
 // ================================
 // Components

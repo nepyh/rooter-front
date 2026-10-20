@@ -3,7 +3,7 @@ import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { CATEGORY_COLORS } from "@/constants/category";
 import type { QuizItem } from "@/api/quiz/Quiz";
-import { getSpacing } from "@/utils/token";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Styles

@@ -1,8 +1,8 @@
 import { View } from "react-native";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
-import { DAY_OF_WEEK_LABELS, DAY_OF_WEEK_NAMES } from "@/api/user";
-import type { UnavailableTime } from "@/api/user";
+import { DAY_OF_WEEK_LABELS, DAY_OF_WEEK_NAMES } from "@/api/common/user";
+import type { UnavailableTime } from "@/api/common/user";
 
 // ================================
 // Components

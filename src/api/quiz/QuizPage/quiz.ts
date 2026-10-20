@@ -1,6 +1,6 @@
 import api, { AI_TIMEOUT_MS } from '../../axios';
-import { toLocalDateString } from '@/utils/date';
-import type { PlanTask } from '../../planBoard';
+import { toLocalDateString } from '@/utils/common/date';
+import type { PlanTask } from '../../common/planBoard';
 
 // ================================
 // Types

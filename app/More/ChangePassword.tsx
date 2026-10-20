@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Button, Toast, PasswordInput, ChangePasswordScreen } from "@/components";
-import { changePassword } from "@/api/user";
+import { changePassword } from "@/api/common/user";
 import { isWrongCurrentPassword } from "@/api/more/ChangePassword";
-import { useFormField } from "@/hooks/useFormField";
+import { useFormField } from "@/hooks/common/useFormField";
 import { useUserStore } from "@/store";
-import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/password";
+import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/common/password";
 
 // ================================
 // Types
