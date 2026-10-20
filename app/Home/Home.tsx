@@ -756,7 +756,7 @@ export default function Home() {
   const openQuiz = (plan: Plan) => {
     setActiveId(null);
     router.push({
-      pathname: "/quiz/QuizPage",
+      pathname: "/Quiz/QuizPage",
       params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
     });
   };
@@ -857,7 +857,7 @@ export default function Home() {
 
       <View className="flex-1" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
       {plans.length === 0 && !emptyNoticeClosed && (
-        <EmptyPlanNotice onCreate={() => router.push("/home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
+        <EmptyPlanNotice onCreate={() => router.push("/Home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
       )}
       {pageWidth > 0 && (
       <ScrollView
@@ -904,7 +904,7 @@ export default function Home() {
                   column={column}
                   columns={columns}
                   onPress={() => handleSelectPlan(plan)}
-                  onPressHidden={() => router.push({ pathname: "/todo", params: { date: selectedKey } })}
+                  onPressHidden={() => router.push({ pathname: "/Todo/Todo", params: { date: selectedKey } })}
                 />
               );
             })}
@@ -969,7 +969,7 @@ export default function Home() {
           setShowAddMenu(false);
         }}
         onCreatePlan={() => {
-          afterAddMenuClosedRef.current = () => router.push("/home/ExamDatePage");
+          afterAddMenuClosedRef.current = () => router.push("/Home/ExamDatePage");
           setShowAddMenu(false);
         }}
       />

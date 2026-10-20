@@ -279,7 +279,7 @@ export default function QuizPage() {
       router.back();
       return;
     }
-    router.replace({ pathname: "/quiz/FeedbackPage", params: { dailyPlanId } });
+    router.replace({ pathname: "/Quiz/FeedbackPage", params: { dailyPlanId } });
   };
 
   const getOptionState = (choiceId: number): OptionState => {

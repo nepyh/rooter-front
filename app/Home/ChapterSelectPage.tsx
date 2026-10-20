@@ -152,11 +152,11 @@ export default function ChapterSelectPage() {
     }
     const subjects = textbooks.flatMap((tb) => toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], selectedIds));
     // 플랜 생성은 수면 시간·공부 스타일 설문을 마친 뒤
-    router.push({ pathname: "/home/SleepTimePage", params: { examDate, subjects: JSON.stringify(subjects) } });
+    router.push({ pathname: "/Home/SleepTimePage", params: { examDate, subjects: JSON.stringify(subjects) } });
   };
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 교과서 선택으로
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/home/TextbookSelectPage", params: { examDate } }));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/Home/TextbookSelectPage", params: { examDate } }));
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;

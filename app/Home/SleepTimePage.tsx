@@ -131,7 +131,7 @@ export default function SleepTimePage() {
   // 수면 시간 저장 API가 아직 없어 설문 뒤 플랜 생성까지 값만 넘김
   const handleNext = () => {
     router.push({
-      pathname: "/learningSurvey/StudySurveyQuestion",
+      pathname: "/LearningSurvey/StudySurveyQuestion",
       params: {
         step: "1",
         answers: "",
@@ -141,7 +141,7 @@ export default function SleepTimePage() {
   };
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 시험 날짜 선택으로
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home/ExamDatePage"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamDatePage"));
 
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>

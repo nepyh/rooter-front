@@ -82,7 +82,7 @@ function TaskRow({ task, onToggle }: { task: PlanTask; onToggle: () => void }) {
 
 function AddTaskRow({ date }: { date: Date }) {
   return (
-    <Pressable onPress={() => router.push({ pathname: "/todo/AddTodo", params: { date: toDateString(date) } })}>
+    <Pressable onPress={() => router.push({ pathname: "/Todo/AddTodo", params: { date: toDateString(date) } })}>
       <Row gap="s" className="items-center">
         <View className="w-[14px] h-[14px] rounded-radius-1 border border-neutral-400" />
         <Text variant="base-medium" color="disabled" style={{ textDecorationLine: "underline" }}>눌러서 추가하기</Text>
@@ -127,7 +127,7 @@ export default function TodoPage() {
     // 끝나는 시각이 지난 할일은 실패로 보고 퀴즈 안 열기 (Home과 같은 규칙)
     const endTime = task.endTime === "24:00" ? "23:59" : task.endTime;
     if (new Date(`${selectedKey}T${endTime}:00`).getTime() <= Date.now()) return;
-    router.push({ pathname: "/quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
+    router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
   return (

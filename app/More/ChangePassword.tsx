@@ -70,7 +70,7 @@ export default function ChangePasswordPage() {
       await changePassword(userId, { currentPassword, newPassword });
       // 비밀번호 변경 시 백엔드가 기존 토큰 무효화, 다시 로그인 필요
       logout();
-      router.replace({ pathname: "/", params: { toast: "password-changed" } });
+      router.replace({ pathname: "/Auth/Onboarding", params: { toast: "password-changed" } });
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data?.code === "WRONG_CURRENT_PASSWORD") {
         setStep("verify");

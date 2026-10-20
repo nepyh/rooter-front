@@ -89,11 +89,11 @@ export default function ExamDatePage() {
 
   const handleNext = () => {
     if (!selectedDate) return;
-    router.push({ pathname: "/home/TextbookSelectPage", params: { examDate: toDateString(selectedDate) } });
+    router.push({ pathname: "/Home/TextbookSelectPage", params: { examDate: toDateString(selectedDate) } });
   };
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 Home으로
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/Home"));
 
   return (
     <View className="flex-1">

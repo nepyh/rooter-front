@@ -11,7 +11,7 @@ import "../global.css";
 // Constants
 // ================================
 
-const TAB_PATHS = ["/home", "/todo", "/quiz", "/calendar", "/more"];
+const TAB_PATHS = ["/Home/Home", "/Todo/Todo", "/Quiz/Quiz", "/Calendar/Calendar", "/More/More"];
 
 export default function RootLayout() {
   const pathname = usePathname();

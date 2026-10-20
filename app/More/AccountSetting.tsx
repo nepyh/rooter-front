@@ -16,7 +16,7 @@ export default function AccountSettingPage() {
     } catch {
       // 로컬 상태는 이미 정리됐으므로 무시하고 화면만 이동합니다.
     }
-    router.replace("/");
+    router.replace("/Auth/Onboarding");
   };
 
   return (

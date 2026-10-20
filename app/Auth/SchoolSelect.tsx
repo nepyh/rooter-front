@@ -54,7 +54,7 @@ export default function SchoolSelect() {
 
   const handleComplete = () => {
     router.push({
-      pathname: "/learningSurvey/StudySurveyIntro",
+      pathname: "/LearningSurvey/StudySurveyIntro",
       params: { school: query, schoolId: selectedSchool?.schoolId ?? "", grade, classNum },
     });
   };

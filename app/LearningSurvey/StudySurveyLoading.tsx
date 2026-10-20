@@ -39,7 +39,7 @@ export default function StudySurveyLoading() {
       submitStudyStyle(studyStyleAnswers).catch(() => {});
     }
     const timer = setTimeout(() => {
-      router.replace("/learningSurvey/StudySurveyComplete");
+      router.replace("/LearningSurvey/StudySurveyComplete");
     }, ANALYZE_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

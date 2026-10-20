@@ -179,7 +179,7 @@ export default function SettingPage() {
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
-      <Pressable onPress={() => router.push("/more/Profile")} className="bg-neutral-700 flex-row items-center justify-between p-spacing-5 rounded-radius-4 w-full">
+      <Pressable onPress={() => router.push("/More/Profile")} className="bg-neutral-700 flex-row items-center justify-between p-spacing-5 rounded-radius-4 w-full">
         <Row gap="m" className="items-center">
           <View className="w-[48px] h-[48px] rounded-radius-full bg-primary-500 items-center justify-center">
             <Text variant="base-large" weight="medium" className="text-text-primary">{username.slice(0, 1)}</Text>
@@ -195,9 +195,9 @@ export default function SettingPage() {
       <Stack gap="l" width="full" className="pt-spacing-9">
         <Text variant="base-medium" weight="medium" color="secondary">일반</Text>
         <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4">
-          <SettingRow icon="bell" label="알림" onPress={() => router.push("/more/Notification")} />
-          <SettingRow icon="lock" label="계정" onPress={() => router.push("/more/AccountSetting")} />
-          <SettingRow icon="calendar" label="불가능 시간" onPress={() => router.push("/more/UnavailableTimePage")} />
+          <SettingRow icon="bell" label="알림" onPress={() => router.push("/More/Notification")} />
+          <SettingRow icon="lock" label="계정" onPress={() => router.push("/More/AccountSetting")} />
+          <SettingRow icon="calendar" label="불가능 시간" onPress={() => router.push("/More/UnavailableTimePage")} />
         </Stack>
       </Stack>
 

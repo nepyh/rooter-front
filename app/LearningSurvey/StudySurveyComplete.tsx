@@ -13,7 +13,7 @@ import { Icon } from "@/assets";
  */
 export default function StudySurveyComplete() {
   const handleNext = () => {
-    router.replace({ pathname: "/home", params: { toast: "success" } });
+    router.replace({ pathname: "/Home/Home", params: { toast: "success" } });
   };
 
   return (

@@ -109,7 +109,7 @@ export default function ProfilePage() {
     try {
       await updateUserProfile(userId, { bio });
       updateProfile({ bio, profileImageUri });
-      router.replace("/more");
+      router.replace("/More/More");
     } catch {
       Alert.alert("저장 실패", "소개 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
@@ -122,7 +122,7 @@ export default function ProfilePage() {
     } catch {
       // 로컬 상태는 이미 정리됐으므로 무시하고 화면만 이동합니다.
     }
-    router.replace("/");
+    router.replace("/Auth/Onboarding");
   };
 
   return (
@@ -173,7 +173,7 @@ export default function ProfilePage() {
         </Stack>
 
         <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4 mt-spacing-9">
-          <MenuRow label="비밀번호 변경" onPress={() => router.push("/more/ChangePassword")} />
+          <MenuRow label="비밀번호 변경" onPress={() => router.push("/More/ChangePassword")} />
           <MenuRow label="로그아웃" onPress={handleLogout} />
         </Stack>
       </ScrollView>

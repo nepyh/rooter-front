@@ -63,7 +63,7 @@ export default function PlanGeneratingPage() {
           subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
           examDate: examDate || undefined,
         });
-        if (!leftRef.current) router.replace("/home");
+        if (!leftRef.current) router.replace("/Home/Home");
       } catch (error) {
         if (leftRef.current) return;
         Alert.alert("계획 생성 실패", getGenerateErrorMessage(error), [{ text: "확인", onPress: () => router.back() }]);
@@ -76,7 +76,7 @@ export default function PlanGeneratingPage() {
   // 설문 마지막 문항으로 돌아감
   const goBack = () => {
     leftRef.current = true;
-    if (router.canGoBack()) router.back(); else router.replace("/home");
+    if (router.canGoBack()) router.back(); else router.replace("/Home/Home");
   };
 
   return (

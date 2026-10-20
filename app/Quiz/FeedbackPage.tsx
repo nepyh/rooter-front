@@ -121,7 +121,7 @@ export default function FeedbackPage() {
       return;
     }
     getFeedback(planId)
-      .then(() => router.replace("/home"))
+      .then(() => router.replace("/Home/Home"))
       .catch(() => setLoading(false));
   }, [planId]);
 
@@ -167,7 +167,7 @@ export default function FeedbackPage() {
   const adjustmentTasks = result?.insertedAdjustmentTasks ?? [];
 
   // 링크로 바로 열린 경우 돌아갈 화면이 없어 Home으로 이동
-  const close = () => (router.canGoBack() ? router.back() : router.replace("/home"));
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/Home/Home"));
 
   return (
     <View className="flex-1">

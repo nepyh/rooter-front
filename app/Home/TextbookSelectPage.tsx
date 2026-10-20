@@ -123,7 +123,7 @@ export default function TextbookSelectPage() {
   useEffect(() => {
     if (nextTextbookId === null) return;
     router.push({
-      pathname: "/home/ChapterSelectPage",
+      pathname: "/Home/ChapterSelectPage",
       params: { examDate, textbookIds: String(nextTextbookId) },
     });
   }, [nextTextbookId, examDate]);
@@ -132,7 +132,7 @@ export default function TextbookSelectPage() {
   useFocusEffect(useCallback(() => setNextTextbookId(null), []));
 
   // 새로고침·링크로 바로 열려 돌아갈 화면이 없으면 시험 날짜 선택으로
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home/ExamDatePage"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamDatePage"));
 
   return (
     <Animated.View exiting={nextTextbookId !== null ? SlideOutLeft.duration(300) : undefined} className="flex-1">
