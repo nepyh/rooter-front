@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Stack, Row, Button, Text } from "@/components";
 import { Icon } from "@/assets";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -82,10 +83,10 @@ function WheelColumn({ data, selectedIndex, onChange, width = 64 }: {
 // 가운데 선택 줄 표시 + 휠 컬럼들
 function WheelBox({ children }: { children: React.ReactNode }) {
   return (
-    <View className="bg-neutral-800 rounded-md flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
+    <View className="bg-neutral-800 rounded-radius-4 flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
       <View
         pointerEvents="none"
-        className="absolute left-0 right-0 rounded-sm bg-neutral-500/30"
+        className="absolute left-spacing-0 right-spacing-0 rounded-radius-3 bg-neutral-500/30"
         style={{ top: WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ROWS / 2), height: WHEEL_ITEM_HEIGHT }}
       />
       {children}
@@ -101,10 +102,10 @@ function TimeRow({ label, value, active, onPress, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <View className="w-full bg-neutral-700 rounded-md px-xl py-l" style={{ gap: 16 }}>
+    <View className="w-full bg-neutral-700 rounded-radius-4 px-spacing-6 py-spacing-5" style={{ gap: getSpacing("spacing-5") }}>
       <Pressable onPress={onPress} className="flex-row items-center justify-between w-full" style={{ minHeight: 34 }}>
         <Text variant="base-large" weight="medium">{label}</Text>
-        <View className={`px-m py-s rounded-full ${active ? "bg-primary-500" : "bg-neutral-600"}`}>
+        <View className={`px-spacing-4 py-spacing-3 rounded-radius-full ${active ? "bg-primary-500" : "bg-neutral-600"}`}>
           <Text variant="base-small">{value}</Text>
         </View>
       </Pressable>
@@ -146,18 +147,18 @@ export default function SleepTimePage() {
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>
       <StatusBar style="light" />
 
-      <Row width="full" className="items-center pb-l">
+      <Row width="full" className="items-center pb-spacing-5">
         <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
       </Row>
 
-      <Stack gap="s" width="full" className="pb-xxl">
+      <Stack gap="s" width="full" className="pb-spacing-9">
         <Text variant="title-medium" weight="semibold">수면 시간 선택</Text>
         <Text variant="base-medium" color="secondary">기상 시간과 목표 취침 시간을 입력해주세요</Text>
       </Stack>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 32 }}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: getSpacing("spacing-5"), paddingBottom: getSpacing("spacing-9") }}>
         <TimeRow label="기상 시간" value={wakeTime} active={activePicker === "wake"} onPress={() => togglePicker("wake")}>
           <WheelBox>
             <WheelColumn data={HOUR_LABELS} selectedIndex={wakeHour} onChange={setWakeHour} />
@@ -176,7 +177,7 @@ export default function SleepTimePage() {
         </TimeRow>
       </ScrollView>
 
-      <View className="pt-l pb-xl">
+      <View className="pt-spacing-5 pb-spacing-6">
         <Button variant="primary" onPress={handleNext}>다음</Button>
       </View>
     </Animated.View>

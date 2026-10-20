@@ -10,6 +10,7 @@ import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree, TextbookDetail } from "@/api/catalog";
 import type { PlanGenerationSubjectInput } from "@/api/planGeneration";
 import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Helpers
@@ -48,7 +49,7 @@ function ChapterNode({ node, depth, selectedIds, onToggleLeaf }: {
     return (
       <Pressable
         onPress={() => onToggleLeaf(node.id)}
-        className={`flex-row items-center gap-m px-l py-m rounded-xs w-full ${selected ? "bg-neutral-600" : ""}`}
+        className={`flex-row items-center gap-spacing-4 px-spacing-5 py-spacing-4 rounded-radius-2 w-full ${selected ? "bg-neutral-600" : ""}`}
       >
         {selected && <Icon name="check" size={20} />}
         <Text variant="base-large" numberOfLines={1} style={{ flex: 1 }}>{node.chapterName}</Text>
@@ -58,7 +59,7 @@ function ChapterNode({ node, depth, selectedIds, onToggleLeaf }: {
 
   return (
     <Stack gap="xs" width="full">
-      <Text variant={depth === 0 ? "header-large" : "base-large"} weight={depth === 0 ? "semibold" : "medium"} className="text-white">
+      <Text variant={depth === 0 ? "header-large" : "base-large"} weight={depth === 0 ? "semibold" : "medium"} className="text-text-primary">
         {node.chapterName}
       </Text>
       <Stack gap="xxs" width="full">
@@ -81,15 +82,15 @@ function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaf
   onToggleLeaf: (id: number) => void;
 }) {
   return (
-    <Stack width="full" className={expanded ? "bg-neutral-700 rounded-sm overflow-hidden" : ""}>
-      <Pressable onPress={onToggle} className={`flex-row items-center justify-between px-xl py-l w-full ${expanded ? "bg-neutral-700" : "rounded-sm"}`}>
+    <Stack width="full" className={expanded ? "bg-neutral-700 rounded-radius-3 overflow-hidden" : ""}>
+      <Pressable onPress={onToggle} className={`flex-row items-center justify-between px-spacing-6 py-spacing-5 w-full ${expanded ? "bg-neutral-700" : "rounded-radius-3"}`}>
         <Text variant="header-large" weight="semibold" numberOfLines={1} style={{ flex: 1 }}>{node.chapterName}</Text>
         <View style={{ transform: [{ rotate: expanded ? "90deg" : "0deg" }] }}>
           <Icon name="chevronRight" size={28} />
         </View>
       </Pressable>
       {expanded && (
-        <Stack gap="m" width="full" className="px-xl pt-l pb-m">
+        <Stack gap="m" width="full" className="px-spacing-6 pt-spacing-5 pb-spacing-4">
           {[...node.children]
             .sort((a, b) => a.chapterOrder - b.chapterOrder)
             .map((child) => (
@@ -179,7 +180,7 @@ export default function ChapterSelectPage() {
       <View className="flex-1">
         <StatusBar style="light" />
 
-        <Row width="full" align="between" className="items-center pb-l">
+        <Row width="full" align="between" className="items-center pb-spacing-5">
           <Row gap="s" className="items-center">
             <Pressable onPress={goBack}>
               <Icon name="chevronLeft" size={28} />
@@ -189,7 +190,7 @@ export default function ChapterSelectPage() {
           <Text variant="base-large" color="disabled">{`${selectedIds.size}개 선택됨`}</Text>
         </Row>
 
-        <Stack gap="s" width="full" className="pb-xl">
+        <Stack gap="s" width="full" className="pb-spacing-6">
           <Text variant="title-medium" weight="semibold">목차 선택</Text>
           <Text variant="base-medium" color="secondary">시험 범위에 알맞는 교과서의 목차를 선택해주세요</Text>
         </Stack>
@@ -200,13 +201,13 @@ export default function ChapterSelectPage() {
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScroll={handleScroll}
-            contentContainerStyle={{ paddingBottom: 32, gap: 24 }}
+            contentContainerStyle={{ paddingBottom: getSpacing("spacing-9"), gap: getSpacing("spacing-7") }}
           >
             {textbooks.map((textbook) => (
               <Stack key={textbook.id} gap="m" width="full">
                 {/* 교과서 여러 권이면 구역 제목, 디자인에 없어 "교과서 선택" 글자 스타일 재사용 */}
                 {textbooks.length > 1 && (
-                  <Text variant="header-medium" weight="semibold" color="secondary" className="pt-s">{textbook.title}</Text>
+                  <Text variant="header-medium" weight="semibold" color="secondary" className="pt-spacing-3">{textbook.title}</Text>
                 )}
                 {showRequired && missingIds.has(textbook.id) && (
                   <Text variant="base-small" style={{ color: color.utility["error-primary"] }}>* 필수 항목이에요. 목차를 하나 이상 선택해주세요</Text>
@@ -239,15 +240,15 @@ export default function ChapterSelectPage() {
         )}
 
         {showRequired && missingIds.size > 0 && (
-          <Text variant="base-small" className="text-center pt-m" style={{ color: color.utility["error-primary"] }}>
+          <Text variant="base-small" className="text-center pt-spacing-4" style={{ color: color.utility["error-primary"] }}>
             선택하지 않은 필수 항목이 있어요
           </Text>
         )}
         <Pressable
           onPress={handleSubmit}
-          className="h-16 rounded-md items-center justify-center w-full mt-l mb-xl bg-primary-500"
+          className="h-spacing-12 rounded-radius-4 items-center justify-center w-full mt-spacing-5 mb-spacing-6 bg-primary-500"
         >
-          <Text variant="base-medium" weight="medium" className="text-white">다음</Text>
+          <Text variant="base-medium" weight="medium" className="text-text-primary">다음</Text>
         </Pressable>
       </View>
     </Animated.View>

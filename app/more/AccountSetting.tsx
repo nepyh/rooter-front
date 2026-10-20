@@ -23,18 +23,18 @@ export default function AccountSettingPage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row gap="s" className="items-center pb-l">
+      <Row gap="s" className="items-center pb-spacing-5">
         <Pressable onPress={() => router.back()}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
         <Text variant="header-large">계정 설정</Text>
       </Row>
 
-      <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
-        <Pressable onPress={handleLogout} className="flex-row items-center justify-between p-m rounded-sm w-full">
+      <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4">
+        <Pressable onPress={handleLogout} className="flex-row items-center justify-between p-spacing-4 rounded-radius-3 w-full">
           <Row gap="s" className="items-center">
             <Icon name="logout" size={20} />
-            <Text variant="base-medium" weight="medium" className="text-white">로그아웃</Text>
+            <Text variant="base-medium" weight="medium" className="text-text-primary">로그아웃</Text>
           </Row>
         </Pressable>
       </Stack>

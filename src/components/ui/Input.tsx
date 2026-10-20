@@ -62,7 +62,7 @@ export const Input = forwardRef<TextInput, Props>(
 
     return (
       <Stack gap="s">
-        <View className={`p-xl w-full gap-xxs rounded-md bg-neutral-700 ${focused ? "border-2 border-primary-500" : "p-xl border-2 border-transparent"} ${errorMessage && "border-2 border-utility-error-primary"}`}>
+        <View className={`p-spacing-6 w-full gap-spacing-1 rounded-radius-4 bg-neutral-700 ${focused ? "border-2 border-primary-500" : "p-spacing-6 border-2 border-transparent"} ${errorMessage && "border-2 border-utility-error-primary"}`}>
           {label && (
             <Text variant="base-caption" weight="medium" color="secondary">
               {label}
@@ -85,7 +85,7 @@ export const Input = forwardRef<TextInput, Props>(
               placeholderTextColor="#C9CDD6"
               secureTextEntry={secureTextEntry && !showPassword}
               className={`
-                flex-1 text-lg text-white
+                flex-1 text-lg text-text-primary
                 ${className}
               `}
               {...props}

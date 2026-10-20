@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Text } from "./Text";
 import { Icon } from "@/assets";
 import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Constants
@@ -38,13 +39,13 @@ export function LoadingScreen({ text, onBack }: Props) {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <View className="flex-row items-center pb-l">
+      <View className="flex-row items-center pb-spacing-5">
         <Pressable onPress={onBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
       </View>
       <View className="flex-1 items-center justify-center">
-        <View style={{ alignItems: "center", gap: 28 }}>
+        <View style={{ alignItems: "center", gap: getSpacing("spacing-8") }}>
           <Animated.View style={spinnerStyle}>
             <Icon name="loading" size={60} color={color.primary["500"]} />
           </Animated.View>

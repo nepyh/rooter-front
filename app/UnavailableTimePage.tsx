@@ -7,6 +7,7 @@ import { Icon } from "@/assets";
 import { addUnavailableTime, getUnavailableTimes, DAY_OF_WEEK_LABELS, DAY_OF_WEEK_NAMES } from "@/api/user";
 import type { UnavailableTime } from "@/api/user";
 import { useUserStore } from "@/store";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Helpers
@@ -28,8 +29,8 @@ const parseClock = (value: string) => {
 function UnavailableTimeRow({ item }: { item: UnavailableTime }) {
   const dayLabel = DAY_OF_WEEK_LABELS[DAY_OF_WEEK_NAMES.indexOf(item.dayOfWeek)];
   return (
-    <Row gap="m" className="items-center bg-neutral-700 p-l rounded-md w-full">
-      <View className="px-m py-xs rounded-xs bg-neutral-600">
+    <Row gap="m" className="items-center bg-neutral-700 p-spacing-5 rounded-radius-4 w-full">
+      <View className="px-spacing-4 py-spacing-2 rounded-radius-2 bg-neutral-600">
         <Text variant="base-medium" weight="medium">{dayLabel}</Text>
       </View>
       <Text variant="base-medium">{`${item.startTime} - ${item.endTime}`}</Text>
@@ -82,14 +83,14 @@ export default function UnavailableTimePage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row gap="s" className="items-center pb-l">
+      <Row gap="s" className="items-center pb-spacing-5">
         <Pressable onPress={() => router.back()}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
         <Text variant="header-large">불가능 시간</Text>
       </Row>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-9") }}>
         <Stack gap="xl" width="full">
           <Stack gap="m" width="full">
             <Text variant="base-medium" weight="medium">요일</Text>
@@ -101,7 +102,7 @@ export default function UnavailableTimePage() {
                   <Pressable
                     key={label}
                     onPress={() => setDayOfWeek(value)}
-                    className="px-l py-s rounded-full border-2"
+                    className="px-spacing-5 py-spacing-3 rounded-radius-full border-2"
                     style={{
                       borderColor: isSelected ? "#F6482D" : "#525866",
                       backgroundColor: isSelected ? "rgba(246,72,45,0.15)" : "transparent",
@@ -128,7 +129,7 @@ export default function UnavailableTimePage() {
           <Button variant={submitting ? "disabled" : "primary"} onPress={handleAdd}>추가</Button>
         </Stack>
 
-        <Stack gap="s" width="full" className="pt-xxl">
+        <Stack gap="s" width="full" className="pt-spacing-9">
           {items.map((item) => (
             <UnavailableTimeRow key={item.id} item={item} />
           ))}

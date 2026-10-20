@@ -9,6 +9,7 @@ import { useNow } from "@/hooks/useNow";
 import { toLocalDateString } from "@/utils/date";
 import { getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects } from "@/api/planBoard";
 import type { PlanTask } from "@/api/planBoard";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -66,9 +67,9 @@ function QuizCard({ item, onPress }: { item: QuizItem; onPress: () => void }) {
   const meta = [subjectName, `${task.startTime} - ${task.endTime}`].filter(Boolean).join(" | ");
 
   return (
-    <Pressable onPress={onPress} className="flex-row bg-neutral-700 rounded-xs p-xs w-full" style={{ gap: 8, minHeight: 80 }}>
-      <View className="w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[category].bar }} />
-      <Stack gap="xs" className="flex-1 p-m">
+    <Pressable onPress={onPress} className="flex-row bg-neutral-700 rounded-radius-2 p-spacing-2 w-full" style={{ gap: getSpacing("spacing-3"), minHeight: 80 }}>
+      <View className="w-spacing-2 rounded-radius-full" style={{ backgroundColor: CATEGORY_COLORS[category].bar }} />
+      <Stack gap="xs" className="flex-1 p-spacing-4">
         <Text
           variant="base-large"
           weight="medium"
@@ -134,7 +135,7 @@ export default function QuizTab() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <View className="-mx-6 px-6 pt-xxl pb-l border-b border-neutral-600">
+      <View className="-mx-spacing-7 px-spacing-7 pt-spacing-9 pb-spacing-5 border-b border-neutral-600">
         <Text variant="header-large" weight="semibold">퀴즈</Text>
       </View>
 
@@ -143,7 +144,7 @@ export default function QuizTab() {
           <Text color="secondary">오늘 풀 수 있는 퀴즈가 없어요</Text>
         </View>
       ) : (
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 28, paddingBottom: 140, gap: 40 }}>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: getSpacing("spacing-8"), paddingBottom: 140, gap: getSpacing("spacing-11") }}>
           <QuizSection title="현재 진행 가능한 퀴즈" items={current} onPressItem={openQuiz} />
           <QuizSection title="예정된 퀴즈" items={upcoming} onPressItem={openQuiz} />
           <QuizSection title="완료한 퀴즈" items={completed} onPressItem={openQuiz} />

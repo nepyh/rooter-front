@@ -73,7 +73,7 @@ function OptionRow({ label, selected, onPress }: { label: string; selected: bool
   return (
     <Pressable
       onPress={onPress}
-      className="border-2 rounded-md p-xl w-full"
+      className="border-2 rounded-radius-4 p-spacing-6 w-full"
       style={{
         borderColor: selected ? "#F6482D" : "#525866",
         backgroundColor: selected ? "rgba(246,72,45,0.3)" : "transparent",
@@ -133,7 +133,7 @@ export default function StudySurveyQuestion() {
           {SURVEY_QUESTIONS.map((q, i) => (
             <View
               key={q.title}
-              className="flex-1 h-full rounded-full"
+              className="flex-1 h-full rounded-radius-full"
               style={{ backgroundColor: i <= stepIndex ? "#F6482D" : "#525866" }}
             />
           ))}

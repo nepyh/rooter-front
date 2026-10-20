@@ -6,6 +6,7 @@ import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
 import { getChatHistory, sendChatMessage } from "@/api/chat";
 import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -64,11 +65,11 @@ function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: numb
   return (
     <Row align={isUser ? "end" : "start"} width="full" style={{ marginTop }}>
       <View
-        className={`px-l py-m rounded-[24px] ${isUser ? "bg-primary-500" : "bg-neutral-700"}`}
-        style={{ maxWidth: "85%", gap: 6 }}
+        className={`px-spacing-5 py-spacing-4 rounded-radius-5 ${isUser ? "bg-primary-500" : "bg-neutral-700"}`}
+        style={{ maxWidth: "85%", gap: getSpacing("spacing-2") }}
       >
         {lines.map((line, i) => (
-          <Text key={i} variant="base-large" className="text-white" style={{ lineHeight: BUBBLE_LINE_HEIGHT }}>{line}</Text>
+          <Text key={i} variant="base-large" className="text-text-primary" style={{ lineHeight: BUBBLE_LINE_HEIGHT }}>{line}</Text>
         ))}
       </View>
     </Row>
@@ -92,7 +93,7 @@ function TypingDot({ index }: { index: number }) {
     opacity: 0.4 + progress.value * 0.6,
     transform: [{ translateY: -4 * progress.value }],
   }));
-  return <Animated.View className="w-2 h-2 rounded-full" style={[{ backgroundColor: color.neutral["400"] }, style]} />;
+  return <Animated.View className="w-spacing-3 h-spacing-3 rounded-radius-full" style={[{ backgroundColor: color.neutral["400"] }, style]} />;
 }
 
 function TypingBubble({ marginTop }: { marginTop: number }) {
@@ -105,11 +106,11 @@ function TypingBubble({ marginTop }: { marginTop: number }) {
     <Stack gap="xs" width="full" style={{ marginTop }}>
       <Row align="start" width="full">
         {/* 점 사이 8, Row의 gap은 style을 넘기면 덮여서 style에 직접 */}
-        <Row className="px-l rounded-[24px] bg-neutral-700 items-center" style={{ height: 44, gap: 8 }}>
+        <Row className="px-spacing-5 rounded-radius-5 bg-neutral-700 items-center" style={{ height: 44, gap: getSpacing("spacing-3") }}>
           {[0, 1, 2].map((i) => <TypingDot key={i} index={i} />)}
         </Row>
       </Row>
-      {slow && <Text variant="base-small" color="disabled" className="pl-s">답변을 만들고 있어요. 조금만 기다려주세요</Text>}
+      {slow && <Text variant="base-small" color="disabled" className="pl-spacing-3">답변을 만들고 있어요. 조금만 기다려주세요</Text>}
     </Stack>
   );
 }
@@ -194,20 +195,20 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
       {/* 시트를 Pressable로 감싸면 터치를 가로채 스크롤이 멈춰서, 닫기용 배경을 시트 뒤에 따로 배치 */}
       <View className="flex-1 justify-end">
-        <Pressable className="absolute inset-0 bg-black/40" onPress={onClose} />
+        <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
             <KeyboardAvoidingView
               className="flex-1"
               behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
-              <Stack gap="xl" width="full" align="center" className="bg-background-primary pt-s pb-xxl px-6 rounded-t-[32px] flex-1">
-                <View className="self-center bg-neutral-600 rounded-full" style={{ width: 104, height: 4 }} />
+              <Stack gap="xl" width="full" align="center" className="bg-background-primary pt-spacing-3 pb-spacing-9 px-spacing-7 rounded-t-radius-6 flex-1">
+                <View className="self-center bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
 
                 <ScrollView
                   ref={scrollRef}
                   className="flex-1 w-full"
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-start", paddingBottom: inputHeight + 20 }}
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-start", paddingBottom: inputHeight + getSpacing("spacing-6") }}
                   onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
                 >
                   {messages.map((message, i) => (
@@ -221,7 +222,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                 {/* 글이 길어지면 위로 늘어나며 메시지 위에 겹쳐 그려짐, 최대 5줄 */}
                 <Row
                   align="between"
-                  className="absolute left-6 right-6 bottom-xxl z-10 items-end bg-neutral-700 pl-xl pr-xs py-xs rounded-full"
+                  className="absolute left-spacing-7 right-spacing-7 bottom-spacing-9 z-10 items-end bg-neutral-700 pl-spacing-6 pr-spacing-2 py-spacing-2 rounded-radius-full"
                   onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
                 >
                   <TextInput
@@ -233,13 +234,13 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                     submitBehavior="submit"
                     onSubmitEditing={handleSend}
                     returnKeyType="send"
-                    className="flex-1 text-base font-medium text-white py-m pr-s"
+                    className="flex-1 text-base font-medium text-text-primary py-spacing-4 pr-spacing-3"
                     style={{ maxHeight: 124 }}
                   />
                   <Pressable
                     onPress={handleSend}
                     disabled={!input.trim() || sending}
-                    className={`items-center justify-center rounded-full ${input.trim() && !sending ? "bg-primary-500" : "bg-neutral-600"}`}
+                    className={`items-center justify-center rounded-radius-full ${input.trim() && !sending ? "bg-primary-500" : "bg-neutral-600"}`}
                     style={{ width: 44, height: 44 }}
                   >
                     <Icon name="arrowUp" size={24} color="#FFFFFF" />

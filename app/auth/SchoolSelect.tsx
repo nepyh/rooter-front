@@ -101,10 +101,10 @@ export default function SchoolSelect() {
                 placeholder="학교 이름을 입력해주세요."
               />
               {showSuggestions && (
-                <View className="absolute top-full mt-s w-full z-20 shadow-lg" style={{ elevation: 8 }}>
-                  <Stack width="full" className="bg-neutral-700 rounded-md overflow-hidden">
+                <View className="absolute top-full mt-spacing-3 w-full z-20 shadow-lg" style={{ elevation: 8 }}>
+                  <Stack width="full" className="bg-neutral-700 rounded-radius-4 overflow-hidden">
                     {schools.map((school) => (
-                      <Pressable key={school.schoolId} className="p-xl w-full" onPress={() => handleSelect(school)}>
+                      <Pressable key={school.schoolId} className="p-spacing-6 w-full" onPress={() => handleSelect(school)}>
                         <Text variant="base-large" weight="medium">
                           {school.name} ({school.region})
                         </Text>

@@ -11,6 +11,7 @@ import { logout } from "@/api/auth";
 import { getUserInfo, updateUserProfile, uploadAvatar } from "@/api/user";
 import type { UserInfo } from "@/api/user";
 import { getSchoolName } from "@/api/school";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Utils
@@ -30,7 +31,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <Stack gap="s" width="full">
       <Text variant="base-medium">{label}</Text>
-      <View className="bg-neutral-700 rounded-md p-xl w-full">
+      <View className="bg-neutral-700 rounded-radius-4 p-spacing-6 w-full">
         <Text variant="base-large" weight="medium">{value}</Text>
       </View>
     </Stack>
@@ -39,8 +40,8 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 
 function MenuRow({ icon, label, onPress }: { icon?: IconName; label: string; onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress} className="flex-row items-center justify-between p-m rounded-sm w-full">
-      <Text variant="base-medium" weight="medium" className="text-white">{label}</Text>
+    <Pressable onPress={onPress} className="flex-row items-center justify-between p-spacing-4 rounded-radius-3 w-full">
+      <Text variant="base-medium" weight="medium" className="text-text-primary">{label}</Text>
       <Icon name={icon ?? "chevronRight"} size={24} />
     </Pressable>
   );
@@ -128,17 +129,17 @@ export default function ProfilePage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row gap="s" className="items-center pb-l">
+      <Row gap="s" className="items-center pb-spacing-5">
         <Pressable onPress={() => router.back()}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
         <Text variant="header-large">프로필</Text>
       </Row>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        <Stack width="full" className="items-center pt-l">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-9") }}>
+        <Stack width="full" className="items-center pt-spacing-5">
           <View className="w-[100px] h-[100px]">
-            <View className="w-[100px] h-[100px] rounded-full overflow-hidden bg-neutral-700 items-center justify-center">
+            <View className="w-[100px] h-[100px] rounded-radius-full overflow-hidden bg-neutral-700 items-center justify-center">
               {profileImageUri ? (
                 <Image source={{ uri: profileImageUri }} style={{ width: 100, height: 100 }} />
               ) : (
@@ -147,14 +148,14 @@ export default function ProfilePage() {
             </View>
             <Pressable
               onPress={handlePickImage}
-              className="absolute bottom-0 right-0 w-[28px] h-[28px] rounded-full bg-background-primary items-center justify-center"
+              className="absolute bottom-spacing-0 right-spacing-0 w-[28px] h-[28px] rounded-radius-full bg-background-primary items-center justify-center"
             >
               <Icon name="camera" size={16} />
             </Pressable>
           </View>
         </Stack>
 
-        <Stack gap="xl" width="full" className="pt-xxl">
+        <Stack gap="xl" width="full" className="pt-spacing-9">
           <ReadOnlyField label="이름" value={user?.username ?? ""} />
           <ReadOnlyField label="이메일" value={user?.email ?? ""} />
           <ReadOnlyField label="학교" value={schoolName ?? "-"} />
@@ -171,13 +172,13 @@ export default function ProfilePage() {
           </Stack>
         </Stack>
 
-        <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md mt-xxl">
+        <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4 mt-spacing-9">
           <MenuRow label="비밀번호 변경" onPress={() => router.push("/more/ChangePassword")} />
           <MenuRow label="로그아웃" onPress={handleLogout} />
         </Stack>
       </ScrollView>
 
-      <Button variant="primary" onPress={handleSave} className="mt-l">수정하기</Button>
+      <Button variant="primary" onPress={handleSave} className="mt-spacing-5">수정하기</Button>
     </View>
   );
 }

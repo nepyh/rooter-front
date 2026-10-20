@@ -13,6 +13,7 @@ import type { CalendarCellData } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
 import { getCalendarRange, createCalendarEvent, deleteCalendarEvent, updateCalendarEvent } from "@/api/calendar";
 import type { CalendarRange } from "@/api/calendar";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -77,10 +78,10 @@ function CalendarCell({ cell, items, isToday, onSelectItem, onSelectDay }: {
   const dimmed = !cell.inMonth || isWeekend;
 
   return (
-    <Pressable onPress={() => onSelectDay(cell.date)} style={{ flex: 1, minHeight: 72 }} className="items-center px-xs py-m">
+    <Pressable onPress={() => onSelectDay(cell.date)} style={{ flex: 1, minHeight: 72 }} className="items-center px-spacing-2 py-spacing-4">
       <View style={{ height: 28 }} className="items-center justify-center">
         {isToday ? (
-          <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-full">
+          <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-radius-full">
             <Text variant="base-medium" color="primary">{cell.date.getDate()}</Text>
           </View>
         ) : (
@@ -88,11 +89,11 @@ function CalendarCell({ cell, items, isToday, onSelectItem, onSelectDay }: {
         )}
       </View>
       {items.length > 0 && (
-        <Stack gap="xxs" width="full" className="mt-s">
+        <Stack gap="xxs" width="full" className="mt-spacing-3">
           {items.map((item, i) => (
             <Pressable key={i} onPress={() => onSelectItem(cell.date, item)}>
-              <Row gap="xs" className="items-center rounded-xxs p-xs w-full" style={{ backgroundColor: CATEGORY_COLORS[item.category].bg }}>
-                <View className="w-[2px] self-stretch rounded-full" style={{ backgroundColor: CATEGORY_COLORS[item.category].bar }} />
+              <Row gap="xs" className="items-center rounded-radius-1 p-spacing-2 w-full" style={{ backgroundColor: CATEGORY_COLORS[item.category].bg }}>
+                <View className="w-[2px] self-stretch rounded-radius-full" style={{ backgroundColor: CATEGORY_COLORS[item.category].bar }} />
                 <Text variant="base-caption" color="primary" numberOfLines={1} style={{ flexShrink: 1 }}>{item.label}</Text>
               </Row>
             </Pressable>
@@ -136,12 +137,12 @@ function PlanDetailModal({ visible, date, item, onClose, onHidden, onEdit, onDel
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
+      <Pressable className="flex-1 bg-neutral-1000/40 justify-end" onPress={onClose}>
         <Pressable>
           <Animated.View style={sheetStyle}>
-            <Stack width="full" align="center" className="items-center bg-background-primary pt-s px-[28px] pb-[28px] rounded-t-[32px]" style={{ gap: 24 }}>
-              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" style={{ alignSelf: "center" }} />
-              <Stack gap="xxl" width="full" className="pb-xxl">
+            <Stack width="full" align="center" className="items-center bg-background-primary pt-spacing-3 px-spacing-8 pb-spacing-8 rounded-t-radius-6" style={{ gap: getSpacing("spacing-7") }}>
+              <View className="w-[104px] h-[4px] rounded-radius-full bg-neutral-600" style={{ alignSelf: "center" }} />
+              <Stack gap="xxl" width="full" className="pb-spacing-9">
                 <Stack gap="xs" width="full">
                   <Row gap="s">
                     <Text variant="base-medium" color="secondary">{`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}</Text>
@@ -152,7 +153,7 @@ function PlanDetailModal({ visible, date, item, onClose, onHidden, onEdit, onDel
                 </Stack>
                 <Stack gap="s" width="full">
                   <Text variant="base-medium" weight="medium">메모</Text>
-                  <View className="bg-neutral-700 p-m rounded-xs w-full" style={{ minHeight: 119 }}>
+                  <View className="bg-neutral-700 p-spacing-4 rounded-radius-2 w-full" style={{ minHeight: 119 }}>
                     <Text variant="base-medium">{item.memo}</Text>
                   </View>
                 </Stack>
@@ -198,8 +199,8 @@ function EventFormModal({ visible, date, initial, submitLabel, onClose, onSubmit
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
-      <View className="flex-1 bg-black/50 justify-end">
-        <Stack gap="l" className="bg-background-primary p-xl rounded-t-md">
+      <View className="flex-1 bg-neutral-1000/50 justify-end">
+        <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
           <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${submitLabel}`}</Text>
           <Input label="제목" value={title} onChangeText={setTitle} />
           <Input label="메모" value={memo} onChangeText={setMemo} multiline style={{ height: 80, textAlignVertical: "top" }} />
@@ -314,21 +315,21 @@ export default function CalendarPage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row width="full" align="between" className="items-center pb-l">
+      <Row width="full" align="between" className="items-center pb-spacing-5">
         <Text variant="header-large">{headerText}</Text>
         <Row gap="xs" className="items-center">
-          <Pressable onPress={goPrevMonth} className="p-xs rounded-full">
+          <Pressable onPress={goPrevMonth} className="p-spacing-2 rounded-radius-full">
             <Icon name="chevronLeft" size={24} />
           </Pressable>
-          <Pressable onPress={goNextMonth} className="p-xs rounded-full">
+          <Pressable onPress={goNextMonth} className="p-spacing-2 rounded-radius-full">
             <Icon name="chevronRight" size={24} />
           </Pressable>
         </Row>
       </Row>
 
-      <Row width="full" className="border-b border-neutral-600 pb-s">
+      <Row width="full" className="border-b border-neutral-600 pb-spacing-3">
         {WEEKDAYS.map((weekday, i) => (
-          <View key={weekday} className="flex-1 items-center px-m py-s">
+          <View key={weekday} className="flex-1 items-center px-spacing-4 py-spacing-3">
             <Text variant="base-medium" color={i === 0 || i === 6 ? "disabled" : "primary"}>{weekday}</Text>
           </View>
         ))}

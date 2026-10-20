@@ -4,6 +4,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import { Text } from "./Text";
 import { Icon } from "@/assets";
 import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Constants
@@ -35,7 +36,7 @@ export function LoadingView({ text = "불러오는 중...", className = "" }: Pr
   }, [rotation]);
 
   return (
-    <View className={`flex-1 items-center justify-center py-xxl ${className}`} style={{ gap: 16 }}>
+    <View className={`flex-1 items-center justify-center py-spacing-9 ${className}`} style={{ gap: getSpacing("spacing-5") }}>
       <Animated.View style={spinnerStyle}>
         <Icon name="loading" size={36} color={color.primary["500"]} />
       </Animated.View>

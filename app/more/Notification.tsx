@@ -19,7 +19,7 @@ const NOTIFICATION_ROWS = [
 function NotificationRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: () => void }) {
   return (
     <Row width="full" align="between" className="items-center">
-      <Text variant="base-large" className="text-white">{label}</Text>
+      <Text variant="base-large" className="text-text-primary">{label}</Text>
       <Switch value={value} onToggle={onToggle} />
     </Row>
   );
@@ -39,14 +39,14 @@ export default function NotificationPage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row gap="s" className="items-center pb-l">
+      <Row gap="s" className="items-center pb-spacing-5">
         <Pressable onPress={() => router.back()}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
         <Text variant="header-large">알림</Text>
       </Row>
 
-      <Stack gap="xl" width="full" className="pt-l">
+      <Stack gap="xl" width="full" className="pt-spacing-5">
         {NOTIFICATION_ROWS.map((row, i) => (
           <NotificationRow key={row.id} label={row.label} value={enabled[i]} onToggle={() => toggle(i)} />
         ))}

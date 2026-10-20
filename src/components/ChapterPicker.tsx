@@ -5,6 +5,7 @@ import { Text } from "@/components/ui";
 import { Icon } from "@/assets";
 import { getTextbookDetail } from "@/api/catalog";
 import type { ChapterTree } from "@/api/catalog";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Helpers
@@ -28,7 +29,7 @@ function ChapterNode({ node, depth, selectedIds, onToggleLeaf }: {
     return (
       <Pressable
         onPress={() => onToggleLeaf(node.id)}
-        className={`flex-row items-center gap-m px-l py-m rounded-xs w-full ${selected ? "bg-neutral-600" : ""}`}
+        className={`flex-row items-center gap-spacing-4 px-spacing-5 py-spacing-4 rounded-radius-2 w-full ${selected ? "bg-neutral-600" : ""}`}
       >
         {selected && <Icon name="check" size={20} />}
         <Text variant="base-large" numberOfLines={1} style={{ flex: 1 }}>{node.chapterName}</Text>
@@ -82,19 +83,19 @@ export function ChapterPicker({ textbookId, selectedIds, onToggle, bottomInset =
   };
 
   return (
-    <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset, gap: 12 }}>
+    <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset, gap: getSpacing("spacing-4") }}>
       {sortByOrder(chapters).map((node) => {
         const expanded = expandedIds.has(node.id);
         return (
-          <Stack key={node.id} width="full" className={expanded ? "bg-neutral-700 rounded-sm overflow-hidden" : ""}>
-            <Pressable onPress={() => toggleExpanded(node.id)} className="flex-row items-center justify-between px-xl py-l w-full">
+          <Stack key={node.id} width="full" className={expanded ? "bg-neutral-700 rounded-radius-3 overflow-hidden" : ""}>
+            <Pressable onPress={() => toggleExpanded(node.id)} className="flex-row items-center justify-between px-spacing-6 py-spacing-5 w-full">
               <Text variant="header-large" weight="semibold" numberOfLines={1} style={{ flex: 1 }}>{node.chapterName}</Text>
               <View style={{ transform: [{ rotate: expanded ? "90deg" : "0deg" }] }}>
                 <Icon name="chevronRight" size={28} />
               </View>
             </Pressable>
             {expanded && (
-              <Stack gap="m" width="full" className="px-xl pt-l pb-m">
+              <Stack gap="m" width="full" className="px-spacing-6 pt-spacing-5 pb-spacing-4">
                 {sortByOrder(node.children).map((child) => (
                   <ChapterNode key={child.id} node={child} depth={1} selectedIds={selectedIds} onToggleLeaf={onToggle} />
                 ))}

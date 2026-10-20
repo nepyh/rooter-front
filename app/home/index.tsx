@@ -18,6 +18,7 @@ import { getBusyTimes } from "@/api/busyTime";
 import type { DailyBusyTime } from "@/api/busyTime";
 import { toLocalDateString } from "@/utils/date";
 import { color } from "@/constants/token/color";
+import { getRadius, getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -224,10 +225,10 @@ function BusyBlockView({ block }: { block: BusyBlock }) {
     <View
       pointerEvents="none"
       style={{ position: "absolute", top: block.start, left: TIMELINE_LEFT, right: 0, height: block.duration, backgroundColor: colors.bg }}
-      className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+      className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
     >
-      <View className="w-1 h-full rounded-full" style={{ backgroundColor: colors.bar }} />
-      <Stack gap="xs" className="flex-1 py-xxs">
+      <View className="w-spacing-2 h-full rounded-radius-full" style={{ backgroundColor: colors.bar }} />
+      <Stack gap="xs" className="flex-1 py-spacing-1">
         <Text variant="base-small" weight="medium">{block.title}</Text>
         {block.duration >= 40 && (
           <Row gap="xs" className="items-center">
@@ -240,7 +241,7 @@ function BusyBlockView({ block }: { block: BusyBlock }) {
   );
 }
 
-// 블록 안 글자 영역 위아래 여백 (p-xs 4 + py-xxs 2) × 2
+// 블록 안 글자 영역 위아래 여백 (p-spacing-2 4 + py-spacing-1 2) × 2
 const PLAN_TEXT_PADDING = 12;
 // 블록 왼쪽 여백 4 + 색 막대 4 + 간격 8, 오른쪽 여백 4
 const PLAN_TEXT_LEFT = 16;
@@ -316,12 +317,12 @@ function PlanBlock({ plan, column, columns, onPress, onPressHidden }: {
       <Pressable
         onPress={onPress}
         style={{ flex: 1, backgroundColor: color.background.primary, opacity }}
-        className="flex-row gap-s p-xs rounded-xxs overflow-hidden"
+        className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
       >
         {/* 학교·수면 블록과 겹쳐도 뒤 글자가 비치지 않게 배경을 깔고 과목 색을 덮음 */}
-        <View className="absolute inset-0" style={{ backgroundColor: bg }} />
-        <View className="w-1 h-full rounded-full" style={{ backgroundColor: bar }} />
-        <View className="flex-1 py-xxs" style={{ opacity: measured ? 1 : 0 }}>
+        <View className="absolute inset-spacing-0" style={{ backgroundColor: bg }} />
+        <View className="w-spacing-2 h-full rounded-radius-full" style={{ backgroundColor: bar }} />
+        <View className="flex-1 py-spacing-1" style={{ opacity: measured ? 1 : 0 }}>
           {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
         </View>
         {/* 높이 제한 없이 그려 원래 높이 측정, 화면엔 안 보임 */}
@@ -336,10 +337,10 @@ function PlanBlock({ plan, column, columns, onPress, onPressHidden }: {
 // 계획이 없을 때 타임라인 위에 뜨는 안내 말풍선, 마스코트 쪽 위 모서리만 각지게
 function EmptyPlanNotice({ onCreate, onClose }: { onCreate: () => void; onClose: () => void }) {
   return (
-    <View className="absolute z-10" style={{ top: 16, left: -12, right: -12 }}>
+    <View className="absolute z-10" style={{ top: getSpacing("spacing-5"), left: -getSpacing("spacing-4"), right: -getSpacing("spacing-4") }}>
       <Row gap="m" width="full" className="items-start">
         <Icon name="mascotFace" size={52} />
-        <Stack gap="xs" className="flex-1 bg-neutral-700 px-[18px] py-[14px] rounded-tr-[24px] rounded-br-[24px] rounded-bl-[24px]">
+        <Stack gap="xs" className="flex-1 bg-neutral-700 px-spacing-5 py-spacing-4 rounded-tr-radius-5 rounded-br-radius-5 rounded-bl-radius-5">
           <Text variant="base-medium">생성된 플랜이 없어요. 플랜을 만들어 하루 계획을 생성해보세요!</Text>
           <Pressable onPress={onCreate}>
             <Text variant="base-medium" className="text-primary-500" style={{ textDecorationLine: "underline" }}>새 플랜 생성하기</Text>
@@ -349,8 +350,8 @@ function EmptyPlanNotice({ onCreate, onClose }: { onCreate: () => void; onClose:
       <Pressable
         onPress={onClose}
         hitSlop={10}
-        className="absolute w-[20px] h-[20px] rounded-full bg-neutral-600 items-center justify-center"
-        style={{ top: -4, right: -4 }}
+        className="absolute w-[20px] h-[20px] rounded-radius-full bg-neutral-600 items-center justify-center"
+        style={{ top: -getSpacing("spacing-2"), right: -getSpacing("spacing-2") }}
       >
         <Icon name="close" size={12} />
       </Pressable>
@@ -365,8 +366,8 @@ function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: {
 
   return (
     <View style={{ position: "absolute", top, left: TIMELINE_LEFT }} className="items-center">
-      {showBelow && <View className="w-3 h-3 -mb-1.5 bg-neutral-700 border-l border-t border-neutral-600 rotate-45" />}
-      <Stack gap="s" className="bg-neutral-700 border border-neutral-600 rounded-md p-xs" onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}>
+      {showBelow && <View className="w-spacing-4 h-spacing-4 -mb-spacing-2 bg-neutral-700 border-l border-t border-neutral-600 rotate-45" />}
+      <Stack gap="s" className="bg-neutral-700 border border-neutral-600 rounded-radius-4 p-spacing-2" onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}>
         <Row gap="none" className="items-center">
           <ActionButton icon="check" label="완료" onPress={onComplete} />
           <ActionButton icon="close" label="실패" onPress={onFail} />
@@ -375,16 +376,16 @@ function ActionMenu({ plan, canDelete, onComplete, onFail, onEdit, onDelete }: {
           {canDelete && <ActionButton icon="trash" label="삭제" onPress={onDelete} />}
         </Row>
       </Stack>
-      {!showBelow && <View className="w-3 h-3 -mt-1.5 bg-neutral-700 border-r border-b border-neutral-600 rotate-45" />}
+      {!showBelow && <View className="w-spacing-4 h-spacing-4 -mt-spacing-2 bg-neutral-700 border-r border-b border-neutral-600 rotate-45" />}
     </View>
   );
 }
 
 function ActionButton({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className="w-[54px] items-center justify-center gap-xs p-s rounded-sm">
+    <Pressable onPress={onPress} className="w-[54px] items-center justify-center gap-spacing-2 p-spacing-3 rounded-radius-3">
       <Icon name={icon} size={20} color="#FFFFFF" />
-      <Text variant="base-caption" className="text-white">{label}</Text>
+      <Text variant="base-caption" className="text-text-primary">{label}</Text>
     </Pressable>
   );
 }
@@ -392,10 +393,10 @@ function ActionButton({ icon, label, onPress }: { icon: IconName; label: string;
 function CurrentTimeLine({ top, label }: { top: number; label: string }) {
   return (
     <Row style={{ position: "absolute", top: top - 9, left: 0, right: 0 }} className="items-center">
-      <View className="bg-primary-500 rounded-xs px-xs py-xxs">
-        <Text variant="base-caption" weight="medium" className="text-white">{label}</Text>
+      <View className="bg-primary-500 rounded-radius-2 px-spacing-2 py-spacing-1">
+        <Text variant="base-caption" weight="medium" className="text-text-primary">{label}</Text>
       </View>
-      <View className="flex-1 h-[2px] bg-primary-500 rounded-r-full" />
+      <View className="flex-1 h-[2px] bg-primary-500 rounded-r-radius-full" />
     </Row>
   );
 }
@@ -423,8 +424,8 @@ function EditModal({ plan, onSave, onClose }: { plan: Plan; onSave: (title: stri
 
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/50 justify-end">
-        <Stack gap="l" className="bg-background-primary p-xl rounded-t-md">
+      <View className="flex-1 bg-neutral-1000/50 justify-end">
+        <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
           <Text variant="header-medium">일정 수정</Text>
           <Input label="제목" value={title} onChangeText={setTitle} />
           <Row gap="m" width="full">
@@ -454,7 +455,7 @@ const ADD_MENU_OFFSCREEN_Y = 400;
 
 function AddMenuButton({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress} className="bg-neutral-700 h-16 rounded-md items-center justify-center w-full">
+    <Pressable onPress={onPress} className="bg-neutral-700 h-spacing-12 rounded-radius-4 items-center justify-center w-full">
       <Text variant="base-medium" weight="medium">{label}</Text>
     </Pressable>
   );
@@ -485,11 +486,11 @@ function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule, onCreatePl
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40 justify-end" onPress={onClose}>
+      <Pressable className="flex-1 bg-neutral-1000/40 justify-end" onPress={onClose}>
         <Pressable>
           <Animated.View style={sheetStyle}>
-            <View className="bg-background-primary rounded-t-[32px] items-center pt-s px-6 pb-xxl" style={{ gap: 24 }}>
-              <View className="w-[104px] h-[4px] rounded-full bg-neutral-600" />
+            <View className="bg-background-primary rounded-t-radius-6 items-center pt-spacing-3 px-spacing-7 pb-spacing-9" style={{ gap: getSpacing("spacing-7") }}>
+              <View className="w-[104px] h-[4px] rounded-radius-full bg-neutral-600" />
               <Stack gap="s" width="full">
                 <AddMenuButton label="일정 생성하기" onPress={onCreateSchedule} />
                 <AddMenuButton label="과목 생성하기" />
@@ -506,9 +507,9 @@ function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule, onCreatePl
 function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onCancel: () => void; onConfirm: () => void }) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable className="flex-1 bg-black/40 items-center justify-center px-l" onPress={onCancel}>
+      <Pressable className="flex-1 bg-neutral-1000/40 items-center justify-center px-spacing-5" onPress={onCancel}>
         <Pressable style={{ width: "100%", maxWidth: 354 }}>
-          <Stack gap="xxl" width="full" className="bg-neutral-800 p-xl rounded-[20px]">
+          <Stack gap="xxl" width="full" className="bg-neutral-800 p-spacing-6 rounded-radius-5">
             <Stack gap="s" width="full">
               <Text variant="header-medium">{title}</Text>
               <Text variant="base-medium" color="secondary">삭제하고 되돌릴 수 없습니다.</Text>
@@ -518,7 +519,7 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
                 variant="disabled"
                 disabled={false}
                 width="auto"
-                style={{ width: 150, height: 52, borderRadius: 16, paddingTop: 0, paddingBottom: 0 }}
+                style={{ width: 150, height: 52, borderRadius: getRadius("radius-4"), paddingTop: 0, paddingBottom: 0 }}
                 onPress={onCancel}
               >
                 취소
@@ -526,7 +527,7 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
               <Button
                 variant="primary"
                 width="auto"
-                style={{ width: 150, height: 52, borderRadius: 16, paddingTop: 0, paddingBottom: 0 }}
+                style={{ width: 150, height: 52, borderRadius: getRadius("radius-4"), paddingTop: 0, paddingBottom: 0 }}
                 onPress={onConfirm}
               >
                 삭제
@@ -642,7 +643,7 @@ export default function Home() {
         {HOURS.map((hour, i) => (
           <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
             <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
-            <View className="flex-1 h-px bg-neutral-600 ml-s" />
+            <View className="flex-1 h-spacing-divider bg-neutral-600 ml-spacing-3" />
           </Row>
         ))}
       </View>
@@ -837,7 +838,7 @@ export default function Home() {
       <StatusBar style="light" />
       {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
 
-      <Row width="full" align="between" className="items-center pt-m pb-l">
+      <Row width="full" align="between" className="items-center pt-spacing-4 pb-spacing-5">
         <Row gap="s" className="items-center">
           <Text variant="header-large">{formatDateHeader(selectedDate)}</Text>
           {!isToday && (
@@ -884,7 +885,7 @@ export default function Home() {
           {HOURS.map((hour, i) => (
             <Row key={i} width="full" align="between" className="absolute items-center" style={{ top: i * 60 }}>
               <Text variant="base-caption" color="disabled">{pad(hour)}:00</Text>
-              <View className="flex-1 h-px bg-neutral-600 ml-s" />
+              <View className="flex-1 h-spacing-divider bg-neutral-600 ml-spacing-3" />
             </Row>
           ))}
 
@@ -931,11 +932,11 @@ export default function Home() {
       </View>
 
       <View className="absolute self-center items-center" style={{ bottom: 96 }}>
-        <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-full p-xs items-center">
-          <Pressable onPress={() => setShowAddMenu(true)} className="p-m rounded-full items-center justify-center">
+        <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-radius-full p-spacing-2 items-center">
+          <Pressable onPress={() => setShowAddMenu(true)} className="p-spacing-4 rounded-radius-full items-center justify-center">
             <Icon name="plus" size={20} />
           </Pressable>
-          <Pressable onPress={handleOpenAiChat} className="p-m rounded-full items-center justify-center">
+          <Pressable onPress={handleOpenAiChat} className="p-spacing-4 rounded-radius-full items-center justify-center">
             <Icon name="sparkle" size={20} />
           </Pressable>
         </Row>

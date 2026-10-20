@@ -32,7 +32,7 @@ function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect }: {
     <Stack width="full">
       <Row width="full" className="border-b border-neutral-600 justify-center">
         {WEEKDAYS.map((weekday, i) => (
-          <View key={weekday} className="flex-1 items-center px-m py-s">
+          <View key={weekday} className="flex-1 items-center px-spacing-4 py-spacing-3">
             <Text variant="base-medium" color={i === 0 || i === 6 ? "disabled" : "primary"}>{weekday}</Text>
           </View>
         ))}
@@ -51,12 +51,12 @@ function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect }: {
                 key={j}
                 onPress={() => onSelect(cell.date)}
                 disabled={!isSelectable}
-                className="flex-1 items-center rounded-sm px-xs py-l"
+                className="flex-1 items-center rounded-radius-3 px-spacing-2 py-spacing-5"
                 style={isSelected ? { borderWidth: 2, borderColor: "#F6482D", backgroundColor: "rgba(246,72,45,0.3)" } : undefined}
               >
                 {isToday ? (
                   // 원 28, 숫자 줄높이 20이라 위아래 4씩 당겨 다른 날짜와 높이 맞춤
-                  <View className="w-[28px] h-[28px] -my-xs bg-primary-500 rounded-full items-center justify-center">
+                  <View className="w-[28px] h-[28px] -my-spacing-2 bg-primary-500 rounded-radius-full items-center justify-center">
                     <Text variant="base-medium" color="primary" numberOfLines={1}>{cell.date.getDate()}</Text>
                   </View>
                 ) : (
@@ -99,25 +99,25 @@ export default function ExamDatePage() {
     <View className="flex-1">
       <StatusBar style="light" />
 
-      <Row gap="s" className="items-center pb-l">
+      <Row gap="s" className="items-center pb-spacing-5">
         <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
       </Row>
 
-      <Stack gap="s" width="full" className="pb-xl border-b border-neutral-600">
+      <Stack gap="s" width="full" className="pb-spacing-6 border-b border-neutral-600">
         <Text variant="title-medium" weight="semibold">시험 날짜 선택</Text>
         <Text variant="base-medium" color="secondary">시험 날짜를 선택해주세요</Text>
       </Stack>
 
-      <Stack gap="m" width="full" className="pt-xl flex-1">
+      <Stack gap="m" width="full" className="pt-spacing-6 flex-1">
         <Row width="full" align="between" className="items-center">
           <Text variant="header-large" weight="semibold">{`${viewYear}년 ${viewMonth + 1}월`}</Text>
           <Row gap="xs" className="items-center">
-            <Pressable onPress={goPrevMonth} className="p-xs rounded-full items-center justify-center">
+            <Pressable onPress={goPrevMonth} className="p-spacing-2 rounded-radius-full items-center justify-center">
               <Icon name="chevronLeft" size={24} />
             </Pressable>
-            <Pressable onPress={goNextMonth} className="p-xs rounded-full items-center justify-center">
+            <Pressable onPress={goNextMonth} className="p-spacing-2 rounded-radius-full items-center justify-center">
               <Icon name="chevronRight" size={24} />
             </Pressable>
           </Row>
@@ -129,10 +129,10 @@ export default function ExamDatePage() {
       <Pressable
         onPress={handleNext}
         disabled={!selectedDate}
-        className="h-16 rounded-md items-center justify-center w-full mb-xl"
+        className="h-spacing-12 rounded-radius-4 items-center justify-center w-full mb-spacing-6"
         style={{ backgroundColor: selectedDate ? "#F6482D" : "#3F4552" }}
       >
-        <Text variant="base-medium" weight="medium" className="text-white">다음</Text>
+        <Text variant="base-medium" weight="medium" className="text-text-primary">다음</Text>
       </Pressable>
     </View>
   );

@@ -10,6 +10,7 @@ import { isSameDay } from "@/utils/date";
 import { useNow } from "@/hooks/useNow";
 import { getWeeklyTasks } from "@/api/planBoard";
 import type { PlanTask, WeeklyPlan } from "@/api/planBoard";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Constants
@@ -59,7 +60,7 @@ function TaskRow({ task, onToggle }: { task: PlanTask; onToggle: () => void }) {
     <Pressable onPress={onToggle}>
       <Row gap="s" className="items-center">
         <Animated.View
-          className="w-[14px] h-[14px] rounded-xxs items-center justify-center"
+          className="w-[14px] h-[14px] rounded-radius-1 items-center justify-center"
           style={[task.isCompleted ? { backgroundColor: "#F6482D" } : { borderWidth: 1, borderColor: "#8A919E" }, boxStyle]}
         >
           {task.isCompleted && <Icon name="check" size={8} color="#FFFFFF" />}
@@ -83,7 +84,7 @@ function AddTaskRow({ date }: { date: Date }) {
   return (
     <Pressable onPress={() => router.push({ pathname: "/todo/AddTodo", params: { date: toDateString(date) } })}>
       <Row gap="s" className="items-center">
-        <View className="w-[14px] h-[14px] rounded-xxs border border-neutral-400" />
+        <View className="w-[14px] h-[14px] rounded-radius-1 border border-neutral-400" />
         <Text variant="base-medium" color="disabled" style={{ textDecorationLine: "underline" }}>눌러서 추가하기</Text>
       </Row>
     </Pressable>
@@ -134,16 +135,16 @@ export default function TodoPage() {
     <Animated.View entering={date ? SlideInRight.duration(300) : undefined} style={{ flex: 1 }}>
       <StatusBar style="light" />
 
-      <Row width="full" className="items-center pb-l">
+      <Row width="full" className="items-center pb-spacing-5">
         <Text variant="header-large">할 일</Text>
       </Row>
 
-      <Row width="full" className="border-b border-neutral-600 pb-s">
+      <Row width="full" className="border-b border-neutral-600 pb-spacing-3">
         {weekDates.map((date, i) => {
           const isSelected = isSameDay(date, selectedDate);
           const color = isSelected ? "primary" : "disabled";
           return (
-            <Pressable key={i} onPress={() => setSelectedDate(date)} className="flex-1 items-center py-s rounded-sm">
+            <Pressable key={i} onPress={() => setSelectedDate(date)} className="flex-1 items-center py-spacing-3 rounded-radius-3">
               <Stack gap="xs" align="center" className="items-center">
                 <Text variant="base-small" color={color}>{WEEKDAYS[date.getDay()]}</Text>
                 <Text variant="base-small" weight="medium" color={color}>{date.getDate()}</Text>
@@ -154,10 +155,10 @@ export default function TodoPage() {
       </Row>
 
       {!loaded ? <LoadingView className="pb-[140px]" /> : (
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        <Row gap="s" className="bg-neutral-700 p-xs rounded-xs w-full">
-          <View className="w-1 rounded-full bg-primary-500" />
-          <Stack gap="m" className="flex-1 p-s">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: getSpacing("spacing-5"), paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
+        <Row gap="s" className="bg-neutral-700 p-spacing-2 rounded-radius-2 w-full">
+          <View className="w-spacing-2 rounded-radius-full bg-primary-500" />
+          <Stack gap="m" className="flex-1 p-spacing-3">
             {tasks.map((task) => (
               <TaskRow key={task.id} task={task} onToggle={() => handleToggle(task)} />
             ))}

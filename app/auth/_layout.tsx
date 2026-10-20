@@ -5,8 +5,8 @@ import { Icon } from "@/assets";
 
 export default function AuthLayout() {
   return (
-    <Stack gap="xl" className="flex-1 pb-10">
-      <View className="py-4">
+    <Stack gap="xl" className="flex-1 pb-spacing-11">
+      <View className="py-spacing-5">
         <Pressable onPress={() => router.back()}>
           <Icon name="chevronLeft" size={32} />
         </Pressable>

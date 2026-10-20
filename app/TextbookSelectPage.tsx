@@ -10,6 +10,7 @@ import type { Subject, Textbook } from "@/api/catalog";
 import { getUserInfo } from "@/api/user";
 import { useUserStore } from "@/store";
 import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/token";
 
 // ================================
 // Types
@@ -27,9 +28,9 @@ function SubjectPill({ label, active, onPress }: { label: string; active: boolea
   return (
     <Pressable
       onPress={onPress}
-      className={`px-l py-m rounded-full ${active ? "bg-neutral-600" : "border border-neutral-600"}`}
+      className={`px-spacing-5 py-spacing-4 rounded-radius-full ${active ? "bg-neutral-600" : "border border-neutral-600"}`}
     >
-      <Text variant="base-medium" weight="medium" className="text-white">{label}</Text>
+      <Text variant="base-medium" weight="medium" className="text-text-primary">{label}</Text>
     </Pressable>
   );
 }
@@ -41,9 +42,9 @@ function TextbookCard({ textbook, onPress }: { textbook: TextbookWithSubject; on
   const displayTitle = textbook.title.replace(/\s*\([^)]+\)\s*$/, "");
 
   return (
-    <Pressable onPress={onPress} className="gap-s" style={{ width: 104 }}>
+    <Pressable onPress={onPress} className="gap-spacing-3" style={{ width: 104 }}>
       <View
-        className="rounded-xxs bg-neutral-700 items-center justify-center overflow-hidden"
+        className="rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden"
         style={{ aspectRatio: 210 / 270 }}
       >
         {textbook.coverImageUrl ? (
@@ -53,7 +54,7 @@ function TextbookCard({ textbook, onPress }: { textbook: TextbookWithSubject; on
         )}
       </View>
       <Stack gap="xxs" width="full">
-        <Text variant="base-small" weight="medium" className="text-white" numberOfLines={1}>{displayTitle}</Text>
+        <Text variant="base-small" weight="medium" className="text-text-primary" numberOfLines={1}>{displayTitle}</Text>
         <Text variant="base-small" color="secondary" numberOfLines={1}>{publisherName}</Text>
       </Stack>
     </Pressable>
@@ -137,18 +138,18 @@ export default function TextbookSelectPage() {
     <Animated.View exiting={nextTextbookId !== null ? SlideOutLeft.duration(300) : undefined} className="flex-1">
       <StatusBar style="light" />
 
-      <Row width="full" className="items-center pb-l">
+      <Row width="full" className="items-center pb-spacing-5">
         <Pressable onPress={goBack}>
           <Icon name="chevronLeft" size={28} />
         </Pressable>
       </Row>
 
-      <Stack gap="s" width="full" className="pb-xl">
+      <Stack gap="s" width="full" className="pb-spacing-6">
         <Text variant="title-medium" weight="semibold">교과서 선택</Text>
         <Text variant="base-medium" color="secondary">시험 범위에 알맞는 교과서를 선택해주세요</Text>
       </Stack>
 
-      <Row gap="s" className="pb-xl">
+      <Row gap="s" className="pb-spacing-6">
         <SubjectPill label="전체" active={selectedSubjectId === null} onPress={() => setSelectedSubjectId(null)} />
         {subjects.map((subject) => (
           <SubjectPill
@@ -162,7 +163,7 @@ export default function TextbookSelectPage() {
 
       {loadingTextbooks ? <LoadingView /> : (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
-        <View className="flex-row flex-wrap" style={{ gap: 20 }}>
+        <View className="flex-row flex-wrap" style={{ gap: getSpacing("spacing-6") }}>
           {visibleTextbooks.map((textbook) => (
             <TextbookCard
               key={textbook.id}

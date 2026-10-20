@@ -77,10 +77,10 @@ const buildContributionMonths = (today: Date, weekCount: number): ContributionMo
 
 function SettingRow({ icon, label, onPress }: { icon: IconName; label: string; onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress} className="flex-row items-center justify-between p-m rounded-sm w-full">
+    <Pressable onPress={onPress} className="flex-row items-center justify-between p-spacing-4 rounded-radius-3 w-full">
       <Row gap="s" className="flex-1 items-center">
         <Icon name={icon} size={20} />
-        <Text variant="base-medium" weight="medium" className="text-white">{label}</Text>
+        <Text variant="base-medium" weight="medium" className="text-text-primary">{label}</Text>
       </Row>
       <Icon name="chevronRight" size={24} color="#8A919E" />
     </Pressable>
@@ -111,7 +111,7 @@ function ContributionGraph() {
   }, [userId]);
 
   return (
-    <Row gap="s" width="full" className="items-end bg-neutral-700 p-l rounded-md">
+    <Row gap="s" width="full" className="items-end bg-neutral-700 p-spacing-5 rounded-radius-4">
       <Stack gap="xs">
         {WEEKDAYS.map((weekday) => (
           <View key={weekday} className="w-[20px] h-[20px] items-center justify-center">
@@ -138,7 +138,7 @@ function ContributionGraph() {
                       ) : (
                         <View
                           key={k}
-                          className="w-[20px] h-[20px] rounded-xxs"
+                          className="w-[20px] h-[20px] rounded-radius-1"
                           style={{ backgroundColor: CONTRIBUTION_LEVEL_COLORS[levels[toDateString(day)] ?? 0] }}
                         />
                       )
@@ -175,38 +175,38 @@ export default function SettingPage() {
       <StatusBar style="light" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
-      <Row width="full" className="items-center pb-l">
+      <Row width="full" className="items-center pb-spacing-5">
         <Text variant="header-large">마이페이지</Text>
       </Row>
 
-      <Pressable onPress={() => router.push("/more/Profile")} className="bg-neutral-700 flex-row items-center justify-between p-l rounded-md w-full">
+      <Pressable onPress={() => router.push("/more/Profile")} className="bg-neutral-700 flex-row items-center justify-between p-spacing-5 rounded-radius-4 w-full">
         <Row gap="m" className="items-center">
-          <View className="w-[48px] h-[48px] rounded-full bg-primary-500 items-center justify-center">
-            <Text variant="base-large" weight="medium" className="text-white">{username.slice(0, 1)}</Text>
+          <View className="w-[48px] h-[48px] rounded-radius-full bg-primary-500 items-center justify-center">
+            <Text variant="base-large" weight="medium" className="text-text-primary">{username.slice(0, 1)}</Text>
           </View>
           <Stack gap="xs">
-            <Text variant="base-medium" weight="medium" className="text-white">{username}</Text>
+            <Text variant="base-medium" weight="medium" className="text-text-primary">{username}</Text>
             <Text variant="base-medium" color="secondary">{email}</Text>
           </Stack>
         </Row>
         <Icon name="chevronRight" size={24} />
       </Pressable>
 
-      <Stack gap="l" width="full" className="pt-xxl">
+      <Stack gap="l" width="full" className="pt-spacing-9">
         <Text variant="base-medium" weight="medium" color="secondary">일반</Text>
-        <Stack gap="xs" width="full" className="bg-neutral-700 p-xs rounded-md">
+        <Stack gap="xs" width="full" className="bg-neutral-700 p-spacing-2 rounded-radius-4">
           <SettingRow icon="bell" label="알림" onPress={() => router.push("/more/Notification")} />
           <SettingRow icon="lock" label="계정" onPress={() => router.push("/more/AccountSetting")} />
           <SettingRow icon="calendar" label="불가능 시간" onPress={() => router.push("/UnavailableTimePage")} />
         </Stack>
       </Stack>
 
-      <Stack gap="l" width="full" className="pt-xxl">
+      <Stack gap="l" width="full" className="pt-spacing-9">
         <Text variant="base-medium" weight="medium" color="secondary">데일리</Text>
         <ContributionGraph />
       </Stack>
 
-      <Row width="full" className="justify-end pt-xxl" pointerEvents="none">
+      <Row width="full" className="justify-end pt-spacing-9" pointerEvents="none">
         <Icon name="mascotCharacter" size={120} />
       </Row>
       </ScrollView>

@@ -35,8 +35,8 @@ export function Toast({ text, onClose, className = "" }: Props) {
     >
       <Animated.View
         className={`
-          py-m px-l
-          rounded-xs
+          py-spacing-4 px-spacing-5
+          rounded-radius-2
           bg-neutral-1000/75
           ${className}
         `}

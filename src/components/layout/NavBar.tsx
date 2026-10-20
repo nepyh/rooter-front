@@ -38,7 +38,7 @@ const TABS: Tab[] = [
 function NavItem({ tab, active, onPress }: { tab: Tab; active: boolean; onPress: () => void }) {
   return (
     <Pressable className="flex-1" onPress={onPress}>
-      <Stack gap="xs" align="center" className="items-center py-s rounded-sm" style={{ height: 62 }}>
+      <Stack gap="xs" align="center" className="items-center py-spacing-3 rounded-radius-3" style={{ height: 62 }}>
         <Icon name={tab.icon} size={24} color={active ? "#FFFFFF" : "#8A919E"} />
         <Text variant="base-small" color={active ? "primary" : "disabled"}>{tab.label}</Text>
       </Stack>
@@ -53,7 +53,7 @@ export function NavBar() {
   const pathname = usePathname();
 
   return (
-    <Row width="full" gap="xs" className="border-t border-neutral-600 items-center justify-center absolute bottom-0 left-0 pt-s pb-xxl px-xl bg-background-primary">
+    <Row width="full" gap="xs" className="border-t border-neutral-600 items-center justify-center absolute bottom-spacing-0 left-spacing-0 pt-spacing-3 pb-spacing-9 px-spacing-6 bg-background-primary">
       {TABS.map((tab) => {
         const active = pathname === tab.path;
         return (
