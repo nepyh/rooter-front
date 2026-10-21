@@ -26,7 +26,6 @@ interface Props {
   plans: Plan[];
   currentTime: Date | null;
   activePlan: Plan | null;
-  canDeleteActive: boolean;
   onSelectPlan: (plan: Plan) => void;
   onComplete: (plan: Plan) => void;
   onFail: (plan: Plan) => void;
@@ -44,7 +43,6 @@ interface Props {
  * @param plans 계획 목록
  * @param currentTime 현재 시각 선을 그릴 시각, 오늘이 아니면 null
  * @param activePlan 액션 메뉴를 띄울 계획
- * @param canDeleteActive 액션 메뉴에 삭제 버튼을 보여줄지
  * @param onSelectPlan 계획 블록을 눌렀을 때 호출
  * @param onComplete 액션 메뉴의 완료를 눌렀을 때 호출
  * @param onFail 액션 메뉴의 실패를 눌렀을 때 호출
@@ -60,7 +58,6 @@ export function PlanTimeline({
   plans,
   currentTime,
   activePlan,
-  canDeleteActive,
   onSelectPlan,
   onComplete,
   onFail,
@@ -103,7 +100,6 @@ export function PlanTimeline({
           <ActionMenu
             key={activePlan.id}
             plan={activePlan}
-            canDelete={canDeleteActive}
             onComplete={() => onComplete(activePlan)}
             onFail={() => onFail(activePlan)}
             onEdit={() => onEdit(activePlan)}

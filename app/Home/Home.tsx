@@ -48,7 +48,7 @@ export default function Home() {
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
 
-  const { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
+  const { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
   const timeline = useTimelineScroll(now);
 
@@ -162,7 +162,6 @@ export default function Home() {
                 plans={coloredPlans}
                 currentTime={isToday ? now : null}
                 activePlan={activePlan}
-                canDeleteActive={isManualPlan(activePlan)}
                 onSelectPlan={handleSelectPlan}
                 onComplete={handleComplete}
                 onFail={handleFail}
