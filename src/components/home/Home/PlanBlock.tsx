@@ -73,10 +73,9 @@ export function PlanBlock({ plan, column, columns, onPress }: Props) {
     >
       <Pressable
         onPress={onPress}
-        style={{ flex: 1, backgroundColor: color.background.primary, opacity }}
+        style={{ flex: 1, backgroundColor: bg, opacity }}
         className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
       >
-        <View className="absolute inset-spacing-0" style={{ backgroundColor: bg }} />
         <View className="w-spacing-2 h-full rounded-radius-full" style={{ backgroundColor: bar }} />
         <View className="flex-1 py-spacing-1" style={{ opacity: measured ? 1 : 0 }}>
           {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
