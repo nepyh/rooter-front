@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Alert } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import type { Category } from "@/constants/category";
 import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
 import { getBoardInfo, getEditErrorMessage } from "@/api/home/Home";
-import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
+import { invalidatePlanQueries, invalidateTaskQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { useRefetchOnFocus } from "@/hooks/common/useRefetchOnFocus";
 import { DAY_MIN } from "@/utils/common/time";
 import {
@@ -29,8 +29,35 @@ interface DailyPlans {
 // Constants
 // ================================
 
-const EMPTY_MANUAL_IDS = new Set<number>();
-const EMPTY_CATEGORY_MAP = new Map<number, Category>();
+const EMPTY_MANUAL_IDS: number[] = [];
+const EMPTY_CATEGORY_MAP: Record<number, Category> = {};
+
+// ================================
+// Query Options
+// ================================
+
+/**
+ * 그날 할 일 쿼리 설정. usePlans 와 옆 날짜 미리 받기(usePrefetchNeighborDays)가 함께 씀
+ * @param date 조회할 날짜 (YYYY-MM-DD)
+ */
+export const dailyPlansQueryOptions = (date: string) =>
+  queryOptions({
+    queryKey: queryKeys.tasks.daily(date),
+    queryFn: async (): Promise<DailyPlans> => {
+      const daily = await getDailyTasks(date);
+      return { chatDailyPlanId: daily.tasks[0]?.dailyPlanId ?? null, plans: daily.tasks.map(mapPlanTaskToPlan) };
+    },
+  });
+
+/**
+ * 그날 할 일과 플랜보드 연결 정보 쿼리 설정. usePlans 와 usePrefetchNeighborDays 가 함께 씀
+ * @param date 조회할 날짜 (YYYY-MM-DD)
+ */
+export const boardInfoQueryOptions = (date: string) =>
+  queryOptions({
+    queryKey: queryKeys.boards.info(date),
+    queryFn: () => getBoardInfo(date),
+  });
 
 // ================================
 // Hooks
@@ -48,17 +75,8 @@ const EMPTY_CATEGORY_MAP = new Map<number, Category>();
 export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const dailyKey = queryKeys.tasks.daily(selectedKey);
 
-  const dailyQuery = useQuery({
-    queryKey: dailyKey,
-    queryFn: async (): Promise<DailyPlans> => {
-      const daily = await getDailyTasks(selectedKey);
-      return { chatDailyPlanId: daily.tasks[0]?.dailyPlanId ?? null, plans: daily.tasks.map(mapPlanTaskToPlan) };
-    },
-  });
-  const boardInfoQuery = useQuery({
-    queryKey: queryKeys.boards.info(selectedKey),
-    queryFn: () => getBoardInfo(selectedKey),
-  });
+  const dailyQuery = useQuery(dailyPlansQueryOptions(selectedKey));
+  const boardInfoQuery = useQuery(boardInfoQueryOptions(selectedKey));
 
   useRefetchOnFocus([dailyKey, queryKeys.boards.info(selectedKey)]);
 
@@ -90,11 +108,11 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const coloredPlans = plans.map((plan) => ({
     ...plan,
     status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
-    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
+    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId[plan.dailyPlanId]) || plan.category,
   }));
 
   const isManualPlan = (plan: Plan | null) =>
-    plan?.dailyPlanId !== undefined && manualDailyPlanIds.has(plan.dailyPlanId);
+    plan?.dailyPlanId !== undefined && manualDailyPlanIds.includes(plan.dailyPlanId);
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
     setStatusById((prev) => new Map(prev).set(id, status));
@@ -114,7 +132,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     }));
 
     updatePlanTask(Number(id), { taskName: title, startTime, endTime, estimatedMinutes: duration })
-      .then(() => invalidatePlanQueries())
+      .then(() => invalidateTaskQueries())
       .catch((error) => {
         reloadDaily();
         Alert.alert("수정 실패", getEditErrorMessage(error));
@@ -125,7 +143,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     setPlans((prev) => prev.filter((plan) => plan.id !== target.id));
     try {
       await deletePlanTask(Number(target.id));
-      invalidatePlanQueries();
+      invalidateTaskQueries();
       return true;
     } catch {
       reloadDaily();

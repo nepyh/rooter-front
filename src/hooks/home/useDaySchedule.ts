@@ -1,9 +1,23 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { getBusyTimes } from "@/api/home/Home/busyTime";
 import { getNextExamDate } from "@/api/home/Home";
 import { queryKeys } from "@/api/queryClient";
 import { useRefetchOnFocus } from "@/hooks/common/useRefetchOnFocus";
 import { buildBusyBlocks, getDDay } from "@/utils/home/timeline";
+
+// ================================
+// Query Options
+// ================================
+
+/**
+ * 그날 바쁜 시간 쿼리 설정. useDaySchedule 와 옆 날짜 미리 받기(usePrefetchNeighborDays)가 함께 씀
+ * @param date 조회할 날짜 (YYYY-MM-DD)
+ */
+export const busyTimesQueryOptions = (date: string) =>
+  queryOptions({
+    queryKey: queryKeys.busyTimes.range(date, date),
+    queryFn: () => getBusyTimes(date, date),
+  });
 
 // ================================
 // Hooks
@@ -17,10 +31,7 @@ import { buildBusyBlocks, getDDay } from "@/utils/home/timeline";
  * @returns busyBlocks(타임라인에 그릴 바쁜 시간), examDDay(가장 가까운 시험까지 남은 일수, 없으면 null)
  */
 export function useDaySchedule(selectedKey: string, now: Date) {
-  const busyQuery = useQuery({
-    queryKey: queryKeys.busyTimes.range(selectedKey, selectedKey),
-    queryFn: () => getBusyTimes(selectedKey, selectedKey),
-  });
+  const busyQuery = useQuery(busyTimesQueryOptions(selectedKey));
   const nextExamQuery = useQuery({
     queryKey: queryKeys.boards.nextExamDate,
     queryFn: getNextExamDate,
