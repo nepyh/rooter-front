@@ -1,9 +1,8 @@
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "expo-router";
-import type { Category } from "@/constants/category";
-import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
-import { getBoardInfo, getEditErrorMessage } from "@/api/home/Home";
+import { deletePlanTask, fillTaskSubjects, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
+import { getEditErrorMessage } from "@/api/home/Home";
 import { DAY_MIN } from "@/utils/common/time";
 import {
   WINDOW_START_MIN,
@@ -24,19 +23,18 @@ import {
  * @param selectedDate 보고 있는 날짜
  * @param selectedKey 보고 있는 날짜 (YYYY-MM-DD)
  * @param now 현재 시각, 끝난 시각이 지난 미완료 일정을 실패로 표시할 때 씀
- * @returns plans(원본), coloredPlans(실패·과목 색 반영), chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan
+ * @returns plans(원본), coloredPlans(실패 상태 반영), chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan
  */
 export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [chatDailyPlanId, setChatDailyPlanId] = useState<number | null>(null);
-  const [manualDailyPlanIds, setManualDailyPlanIds] = useState<Set<number>>(new Set());
-  const [categoryByDailyPlanId, setCategoryByDailyPlanId] = useState<Map<number, Category>>(new Map());
 
   const loadDailyTasks = useCallback(() => {
     getDailyTasks(selectedKey)
-      .then((daily) => {
-        setChatDailyPlanId(daily.tasks[0]?.dailyPlanId ?? null);
-        setPlans(daily.tasks.map(mapPlanTaskToPlan));
+      .then((daily) => fillTaskSubjects(daily.tasks))
+      .then((tasks) => {
+        setChatDailyPlanId(tasks[0]?.dailyPlanId ?? null);
+        setPlans(tasks.map(mapPlanTaskToPlan));
       })
       .catch(() => {
         setChatDailyPlanId(null);
@@ -44,36 +42,16 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
       });
   }, [selectedKey]);
 
-  const loadBoardInfo = useCallback(() => {
-    getBoardInfo(selectedKey)
-      .then((info) => {
-        setManualDailyPlanIds(info.manualDailyPlanIds);
-        setCategoryByDailyPlanId(info.categoryByDailyPlanId);
-      })
-      .catch(() => {
-        setManualDailyPlanIds(new Set());
-        setCategoryByDailyPlanId(new Map());
-      });
-  }, [selectedKey]);
-
   useFocusEffect(loadDailyTasks);
-  useFocusEffect(loadBoardInfo);
 
-  const reload = () => {
-    loadDailyTasks();
-    loadBoardInfo();
-  };
+  const reload = loadDailyTasks;
 
   const dayStartMs = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
   const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
   const coloredPlans = plans.map((plan) => ({
     ...plan,
     status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
-    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId.get(plan.dailyPlanId)) || plan.category,
   }));
-
-  const isManualPlan = (plan: Plan | null) =>
-    plan?.dailyPlanId !== undefined && manualDailyPlanIds.has(plan.dailyPlanId);
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
     setPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, status } : plan)));
@@ -111,5 +89,5 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     }
   };
 
-  return { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan };
+  return { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan };
 }
