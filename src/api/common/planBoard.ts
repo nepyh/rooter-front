@@ -26,14 +26,23 @@ export interface CreatePlanBoardResult {
   message: string;
 }
 
+/**
+ * 태스크 하나
+ * @param isManual 직접 추가한 일정인지 (시험일 없는 보드의 태스크)
+ * @param subjectName 과목 이름, 과목 없는 태스크는 null
+ */
 export interface PlanTask {
   id: number;
   dailyPlanId: number;
+  planBoardId: number;
+  isManual: boolean;
   taskName: string;
   startTime: string;
   endTime: string;
   estimatedMinutes: number;
   isCompleted: boolean;
+  subjectId: number | null;
+  subjectName: string | null;
 }
 
 export interface DailyPlan {
@@ -129,6 +138,40 @@ export const getBoardDaily = async (boardId: number, date?: string): Promise<Dai
 export const getPlanBoardSubjects = async (boardId: number): Promise<PlanBoardSubject[]> => {
   const response = await api.get(`/plan-boards/${boardId}/subjects`);
   return response.data;
+};
+
+const boardSubjectNameCache = new Map<number, Promise<string>>();
+
+/**
+ * 플랜보드의 대표 과목 이름 조회 (과목이 하나뿐인 보드만, 아니면 빈 문자열)
+ * @param boardId 플랜보드 ID
+ */
+const getBoardSubjectName = (boardId: number): Promise<string> => {
+  const cached = boardSubjectNameCache.get(boardId);
+  if (cached) return cached;
+
+  const request = getPlanBoardSubjects(boardId)
+    .then((subjects) => {
+      const names = [...new Set(subjects.map((subject) => subject.subjectName))];
+      return names.length === 1 ? names[0] : "";
+    })
+    .catch(() => {
+      boardSubjectNameCache.delete(boardId);
+      return "";
+    });
+  boardSubjectNameCache.set(boardId, request);
+  return request;
+};
+
+/**
+ * 과목이 안 붙은 태스크(과목 컬럼 추가 전 행, AI 가 과목명을 못 맞춘 행)의 과목을 소속 보드 과목으로 채움
+ * @param tasks 태스크 배열
+ * @returns subjectName 을 채운 태스크 배열
+ */
+export const fillTaskSubjects = async (tasks: PlanTask[]): Promise<PlanTask[]> => {
+  const boardIds = [...new Set(tasks.filter((task) => !task.subjectName && !task.isManual).map((task) => task.planBoardId))];
+  const names = new Map(await Promise.all(boardIds.map(async (id) => [id, await getBoardSubjectName(id)] as const)));
+  return tasks.map((task) => (task.subjectName ? task : { ...task, subjectName: names.get(task.planBoardId) || null }));
 };
 
 /**
