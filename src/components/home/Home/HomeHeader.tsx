@@ -1,6 +1,7 @@
 import { Pressable } from "react-native";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
+import { Icon } from "@/assets";
 import { color } from "@/constants/token/color";
 import { formatDateHeader } from "@/utils/home/timeline";
 
@@ -25,11 +26,15 @@ interface Props {
 export function HomeHeader({ date, isToday, examDDay, onPressToday }: Props) {
   return (
     <Row width="full" align="between" className="items-center pt-spacing-4 pb-spacing-5">
-      <Row gap="s" className="items-center">
+      <Row gap="m" className="items-center">
         <Text variant="header-large">{formatDateHeader(date)}</Text>
         {!isToday && (
-          <Pressable onPress={onPressToday} hitSlop={8}>
-            <Text variant="base-small" weight="medium" style={{ color: color.primary["500"] }}>오늘로</Text>
+          <Pressable
+            onPress={onPressToday}
+            hitSlop={8}
+            className="flex-row items-center gap-spacing-2 px-spacing-3 py-spacing-2 rounded-radius-2 bg-neutral-500/15 border border-neutral-500/40 active:bg-neutral-500/30"
+          >
+            <Text variant="base-small">오늘로</Text>
           </Pressable>
         )}
       </Row>

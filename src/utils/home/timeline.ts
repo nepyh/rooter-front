@@ -159,13 +159,14 @@ export const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
 };
 
 /**
- * 시간이 겹치는 계획끼리 묶어 빈 칸에 차례로 배치. 안 겹치면 한 칸(전체 너비)
- * @param plans 배치할 계획 목록
- * @returns 계획 id → 칸 위치
+ * 시간이 겹치는 블록끼리 묶어 빈 칸에 차례로 배치. 안 겹치면 한 칸(전체 너비)
+ * 계획과 바쁜 시간이 겹쳐도 서로 가리지 않도록 함께 넘김
+ * @param items 배치할 블록 목록 (id 는 서로 겹치지 않아야 함)
+ * @returns 블록 id → 칸 위치
  */
-export const layoutPlanColumns = (plans: Plan[]): Map<string, PlanColumn> => {
+export const layoutColumns = (items: { id: string; start: number; duration: number }[]): Map<string, PlanColumn> => {
   const result = new Map<string, PlanColumn>();
-  const sorted = [...plans].sort((a, b) => a.start - b.start || b.duration - a.duration);
+  const sorted = [...items].sort((a, b) => a.start - b.start || b.duration - a.duration);
   let group: { id: string; column: number }[] = [];
   let columnEnds: number[] = [];
   let groupEnd = -1;
@@ -176,13 +177,13 @@ export const layoutPlanColumns = (plans: Plan[]): Map<string, PlanColumn> => {
     columnEnds = [];
   };
 
-  sorted.forEach((plan) => {
-    if (plan.start >= groupEnd) flush();
-    const end = plan.start + plan.duration;
-    let column = columnEnds.findIndex((columnEnd) => columnEnd <= plan.start);
+  sorted.forEach((item) => {
+    if (item.start >= groupEnd) flush();
+    const end = item.start + item.duration;
+    let column = columnEnds.findIndex((columnEnd) => columnEnd <= item.start);
     if (column === -1) column = columnEnds.length;
     columnEnds[column] = end;
-    group.push({ id: plan.id, column });
+    group.push({ id: item.id, column });
     groupEnd = Math.max(groupEnd, end);
   });
   flush();

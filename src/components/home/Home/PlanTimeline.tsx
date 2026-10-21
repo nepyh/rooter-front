@@ -8,7 +8,7 @@ import { ActionMenu } from "./ActionMenu";
 import {
   TIMELINE_HEIGHT,
   TIMELINE_LEFT,
-  layoutPlanColumns,
+  layoutColumns,
   minutesSinceWindowStart,
   type BusyBlock,
   type Plan,
@@ -38,7 +38,7 @@ interface Props {
 
 /**
  * 하루 24시간 세로 타임라인. 시간 눈금, 바쁜 시간, 계획 블록, 현재 시각 선, 액션 메뉴를 겹쳐 그림
- * 겹치는 계획은 칸을 나눠 나란히 놓음
+ * 겹치는 계획·바쁜 시간은 칸을 나눠 나란히 놓음
  * @param dateKey 보고 있는 날짜 (YYYY-MM-DD), 날짜가 바뀌면 타임라인을 새로 그림
  * @param busyBlocks 수면·학교·불가능 시간 블록
  * @param plans 계획 목록
@@ -69,7 +69,11 @@ export function PlanTimeline({
   onScrollY,
   onViewportHeight,
 }: Props) {
-  const planColumns = layoutPlanColumns(plans);
+  const columns = layoutColumns([
+    ...busyBlocks.map((block) => ({ id: `busy:${block.key}`, start: block.start, duration: block.duration })),
+    ...plans.map((plan) => ({ id: `plan:${plan.id}`, start: plan.start, duration: plan.duration })),
+  ]);
+  const columnOf = (id: string) => columns.get(id) ?? { column: 0, columns: 1 };
 
   return (
     <ScrollView
@@ -84,15 +88,13 @@ export function PlanTimeline({
       <View key={dateKey} style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
         <HourLines />
 
-        {busyBlocks.map((block) => (
-          <BusyBlockView key={block.key} block={block} />
-        ))}
-
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: TIMELINE_LEFT, right: 0 }}>
-          {plans.map((plan) => {
-            const { column, columns } = planColumns.get(plan.id) ?? { column: 0, columns: 1 };
-            return <PlanBlock key={plan.id} plan={plan} column={column} columns={columns} onPress={() => onSelectPlan(plan)} />;
-          })}
+          {busyBlocks.map((block) => (
+            <BusyBlockView key={block.key} block={block} {...columnOf(`busy:${block.key}`)} />
+          ))}
+          {plans.map((plan) => (
+            <PlanBlock key={plan.id} plan={plan} {...columnOf(`plan:${plan.id}`)} onPress={() => onSelectPlan(plan)} />
+          ))}
         </View>
 
         {currentTime && <CurrentTimeLine top={minutesSinceWindowStart(currentTime)} label={formatClock(currentTime)} />}
