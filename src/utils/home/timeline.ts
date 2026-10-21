@@ -1,4 +1,4 @@
-import type { Category } from "@/constants/category";
+import { SUBJECT_CATEGORIES, type Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import type { DailyBusyTime } from "@/api/home/Home/busyTime";
 import type { PlanTask } from "@/api/common/planBoard";
@@ -197,7 +197,7 @@ export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   return {
     id: String(task.id),
     title: task.taskName,
-    category: "neutral",
+    category: (task.subjectName && SUBJECT_CATEGORIES[task.subjectName]) || "neutral",
     start,
     duration: task.estimatedMinutes,
     status: task.isCompleted ? "done" : "pending",
