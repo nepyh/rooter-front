@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -59,6 +60,7 @@ export default function Home() {
     setDayOffset((prev) => prev + delta);
   };
   const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
+  const pagerGesture = useMemo(() => Gesture.Native(), []);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
@@ -145,37 +147,40 @@ export default function Home() {
           <EmptyPlanNotice onCreate={() => router.push("/Home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
         )}
         {pager.pageWidth > 0 && (
-          <ScrollView
-            ref={pager.pagerRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: pager.pageWidth, y: 0 }}
-            onScrollBeginDrag={pager.syncNeighborOffset}
-            onMomentumScrollEnd={pager.handlePagerEnd}
-          >
-            <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-            <View style={{ width: pager.pageWidth }}>
-              <PlanTimeline
-                ref={timeline.scrollRef}
-                dateKey={selectedKey}
-                busyBlocks={busyBlocks}
-                plans={coloredPlans}
-                currentTime={isToday ? now : null}
-                activePlan={activePlan}
-                canDeleteActive={isManualPlan(activePlan)}
-                onLongPressPlan={handleLongPressPlan}
-                onDismissMenu={() => setActiveId(null)}
-                onComplete={handleComplete}
-                onFail={handleFail}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onScrollY={timeline.handleScrollY}
-                onViewportHeight={timeline.handleViewportHeight}
-              />
-            </View>
-            <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-          </ScrollView>
+          <GestureDetector gesture={pagerGesture}>
+            <ScrollView
+              ref={pager.pagerRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentOffset={{ x: pager.pageWidth, y: 0 }}
+              onScrollBeginDrag={pager.syncNeighborOffset}
+              onMomentumScrollEnd={pager.handlePagerEnd}
+            >
+              <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
+              <View style={{ width: pager.pageWidth }}>
+                <PlanTimeline
+                  ref={timeline.scrollRef}
+                  pagerGesture={pagerGesture}
+                  dateKey={selectedKey}
+                  busyBlocks={busyBlocks}
+                  plans={coloredPlans}
+                  currentTime={isToday ? now : null}
+                  activePlan={activePlan}
+                  canDeleteActive={isManualPlan(activePlan)}
+                  onLongPressPlan={handleLongPressPlan}
+                  onDismissMenu={() => setActiveId(null)}
+                  onComplete={handleComplete}
+                  onFail={handleFail}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onScrollY={timeline.handleScrollY}
+                  onViewportHeight={timeline.handleViewportHeight}
+                />
+              </View>
+              <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
+            </ScrollView>
+          </GestureDetector>
         )}
       </View>
 
