@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { PlanBlockText } from "./PlanBlockText";
+import { columnStyle } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
 import { color } from "@/constants/token/color";
 import type { Plan, PlanStatus } from "@/utils/home/timeline";
@@ -18,7 +19,6 @@ type PlanTextFit = "full" | "title" | "none";
 const PLAN_TEXT_PADDING = 12;
 const PLAN_TEXT_LEFT = 16;
 const PLAN_TEXT_RIGHT = 4;
-const PLAN_COLUMN_GAP_HALF = 2;
 
 // ================================
 // Styles
@@ -67,11 +67,8 @@ export function PlanBlock({ plan, column, columns, onPress }: Props) {
       style={{
         position: "absolute",
         top: plan.start,
-        left: `${(column * 100) / columns}%`,
-        width: `${100 / columns}%`,
         height: plan.duration,
-        paddingLeft: column > 0 ? PLAN_COLUMN_GAP_HALF : 0,
-        paddingRight: column < columns - 1 ? PLAN_COLUMN_GAP_HALF : 0,
+        ...columnStyle(column, columns),
       }}
     >
       <Pressable
