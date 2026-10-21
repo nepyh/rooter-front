@@ -7,6 +7,7 @@ import { generatePlan } from "@/api/home/common/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
 import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
 import { saveStudyStyleAnswers } from "@/api/common";
+import { invalidatePlanQueries } from "@/api/queryClient";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 
@@ -28,6 +29,7 @@ export default function PlanGeneratingPage() {
           subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
           examDate: examDate || undefined,
         });
+        invalidatePlanQueries();
         if (!leftRef.current) router.replace("/Home/Home");
       } catch (error) {
         if (leftRef.current) return;

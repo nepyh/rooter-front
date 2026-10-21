@@ -9,6 +9,7 @@ import {
   type TaskQuizAnswerResult,
   type TaskQuizResult,
 } from "@/api/quiz/QuizPage";
+import { invalidateTaskQueries } from "@/api/queryClient";
 import { getOptionState, pickCorrectMessage } from "@/utils/quiz/quiz";
 
 // ================================
@@ -66,6 +67,7 @@ export function useTaskQuiz(taskId: string | undefined) {
     setError("");
     try {
       setResult(await submitQuizAndComplete(id));
+      invalidateTaskQueries();
       setCurrentIndex(0);
       setPhase("review");
     } catch (e) {

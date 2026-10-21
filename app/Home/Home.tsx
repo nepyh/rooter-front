@@ -19,6 +19,7 @@ import { useNow } from "@/hooks/common/useNow";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
+import { usePrefetchNeighborDays } from "@/hooks/home/usePrefetchNeighborDays";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { useUIStore } from "@/store";
 import { toLocalDateString } from "@/utils/common/date";
@@ -50,6 +51,7 @@ export default function Home() {
 
   const { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
+  usePrefetchNeighborDays(selectedDate);
   const timeline = useTimelineScroll(now);
 
   const moveDay = (delta: number) => {

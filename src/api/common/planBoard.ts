@@ -1,4 +1,5 @@
 import api from '../axios';
+import { queryClient, queryKeys } from '../queryClient';
 import { toLocalDateString } from '@/utils/common/date';
 
 // ================================
@@ -130,6 +131,35 @@ export const getPlanBoardSubjects = async (boardId: number): Promise<PlanBoardSu
   const response = await api.get(`/plan-boards/${boardId}/subjects`);
   return response.data;
 };
+
+/**
+ * 플랜보드 목록을 캐시에서 꺼내고, 없거나 오래됐으면 서버에서 받아옴. 여러 화면이 같은 목록을 함께 씀
+ * @returns 플랜보드 배열
+ */
+export const fetchCachedPlanBoards = () =>
+  queryClient.fetchQuery({ queryKey: queryKeys.boards.list, queryFn: getPlanBoards });
+
+/**
+ * 플랜보드 과목 범위를 캐시에서 꺼내고, 없으면 서버에서 받아옴
+ * 과목은 보드를 만들 때만 정해져서, 보드 캐시가 무효화되기 전까지는 다시 받지 않습니다.
+ * @param boardId 플랜보드 ID
+ * @returns 보드에 등록된 과목·교과서·단원 범위 배열
+ */
+export const fetchCachedPlanBoardSubjects = (boardId: number) =>
+  queryClient.fetchQuery({
+    queryKey: queryKeys.boards.subjects(boardId),
+    queryFn: () => getPlanBoardSubjects(boardId),
+    staleTime: Infinity,
+  });
+
+/**
+ * 플랜보드별 하루 계획을 캐시에서 꺼내고, 없거나 오래됐으면 서버에서 받아옴
+ * @param boardId 플랜보드 ID
+ * @param date 조회할 날짜 (yyyy-MM-dd)
+ * @returns 그 보드의 그날 dailyPlanId와 태스크
+ */
+export const fetchCachedBoardDaily = (boardId: number, date: string) =>
+  queryClient.fetchQuery({ queryKey: queryKeys.boards.daily(boardId, date), queryFn: () => getBoardDaily(boardId, date) });
 
 /**
  * 일일 태스크 목록 조회 API 함수

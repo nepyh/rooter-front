@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createTodo } from "@/api/todo/AddTodo";
+import { invalidatePlanQueries } from "@/api/queryClient";
 import { normalizeClock } from "@/utils/common/time";
 
 // ================================
@@ -34,6 +35,7 @@ export function useAddTodo(date: string | undefined) {
     setSubmitting(true);
     try {
       await createTodo(date, title.trim(), startTime, endTime);
+      invalidatePlanQueries();
       return true;
     } catch {
       setError("할 일 추가에 실패했습니다. 잠시 후 다시 시도해주세요.");

@@ -1,4 +1,4 @@
-import { getBoardDaily, getDailyTasks, getPlanBoards, getPlanBoardSubjects } from '../../common/planBoard';
+import { fetchCachedBoardDaily, fetchCachedPlanBoards, fetchCachedPlanBoardSubjects, getDailyTasks } from '../../common/planBoard';
 import type { PlanTask } from '../../common/planBoard';
 import { SUBJECT_CATEGORIES } from '@/constants/category';
 import type { Category } from '@/constants/category';
@@ -28,15 +28,15 @@ export interface QuizItem {
  * @param date 조회할 날짜 (yyyy-MM-dd)
  */
 export const getQuizItems = async (date: string): Promise<QuizItem[]> => {
-  const [daily, boards] = await Promise.all([getDailyTasks(date), getPlanBoards()]);
+  const [daily, boards] = await Promise.all([getDailyTasks(date), fetchCachedPlanBoards()]);
   const subjectByDailyPlanId = new Map<number, string>();
   await Promise.all(
     boards
       .filter((board) => board.examDate !== null)
       .map(async (board) => {
         const [boardDaily, subjects] = await Promise.all([
-          getBoardDaily(board.id, date),
-          getPlanBoardSubjects(board.id).catch(() => []),
+          fetchCachedBoardDaily(board.id, date),
+          fetchCachedPlanBoardSubjects(board.id).catch(() => []),
         ]);
         if (typeof boardDaily.dailyPlanId !== "number") return;
         const names = [...new Set(subjects.map((subject) => subject.subjectName))];

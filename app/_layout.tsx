@@ -3,7 +3,9 @@ import { Slot, usePathname } from "expo-router";
 import { View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { NavBar } from "@/components";
+import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "@/api/queryClient";
 import { useUIStore, useUserStore } from "@/store";
 import "../global.css";
 
@@ -22,21 +24,24 @@ export default function RootLayout() {
     Jalnan2: require("@/assets/fonts/Jalnan2.otf"),
   });
 
-  // 저장된 로그인 정보를 먼저 복원해야 첫 화면 API가 토큰 없이 나가지 않음
   const restoreSession = useUserStore((state) => state.restoreSession);
   const [sessionRestored, setSessionRestored] = useState(false);
   useEffect(() => {
-    restoreSession().finally(() => setSessionRestored(true));
+    restoreSession()
+      .then(() => (useUserStore.getState().isLogin ? undefined : clearQueryCache()))
+      .finally(() => setSessionRestored(true));
   }, [restoreSession]);
 
   if (!fontsLoaded || !sessionRestored) return null;
 
   return (
-    <SafeAreaView className="flex-1 bg-background-primary">
-      <View className="px-spacing-7 flex-1 bg-background-primary">
-        <Slot />
-      </View>
-      {showNavBar && <NavBar />}
-    </SafeAreaView>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE_MS }}>
+      <SafeAreaView className="flex-1 bg-background-primary">
+        <View className="px-spacing-7 flex-1 bg-background-primary">
+          <Slot />
+        </View>
+        {showNavBar && <NavBar />}
+      </SafeAreaView>
+    </PersistQueryClientProvider>
   );
 }
