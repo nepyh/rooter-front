@@ -3,9 +3,9 @@ import { Slot, usePathname } from "expo-router";
 import { View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { NavBar } from "@/components";
-import { queryClient } from "@/api/queryClient";
+import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "@/api/queryClient";
 import { useUIStore, useUserStore } from "@/store";
 import "../global.css";
 
@@ -27,19 +27,21 @@ export default function RootLayout() {
   const restoreSession = useUserStore((state) => state.restoreSession);
   const [sessionRestored, setSessionRestored] = useState(false);
   useEffect(() => {
-    restoreSession().finally(() => setSessionRestored(true));
+    restoreSession()
+      .then(() => (useUserStore.getState().isLogin ? undefined : clearQueryCache()))
+      .finally(() => setSessionRestored(true));
   }, [restoreSession]);
 
   if (!fontsLoaded || !sessionRestored) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE_MS }}>
       <SafeAreaView className="flex-1 bg-background-primary">
         <View className="px-spacing-7 flex-1 bg-background-primary">
           <Slot />
         </View>
         {showNavBar && <NavBar />}
       </SafeAreaView>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

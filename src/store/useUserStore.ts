@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import { queryClient } from '@/api/queryClient';
+import { clearQueryCache } from '@/api/queryClient';
 
 // ================================
 // Styles
@@ -47,7 +47,7 @@ export const useUserStore = create<UserState>((set) => ({
   updateProfile: (patch) => set((state) => (state.user ? { user: { ...state.user, ...patch } } : state)),
   logout: () => {
     set({ user: null, token: null, userId: null, isLogin: false });
-    queryClient.clear();
+    clearQueryCache();
     SecureStore.deleteItemAsync(SESSION_KEY).catch(() => {});
   },
   restoreSession: async () => {
