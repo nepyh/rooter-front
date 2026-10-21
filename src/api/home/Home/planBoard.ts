@@ -1,4 +1,4 @@
-import { getBoardDaily, getPlanBoards, getPlanBoardSubjects } from '../../common/planBoard';
+import { fetchCachedBoardDaily, fetchCachedPlanBoards, fetchCachedPlanBoardSubjects } from '../../common/planBoard';
 import { SUBJECT_CATEGORIES } from '@/constants/category';
 import type { Category } from '@/constants/category';
 import { toLocalDateString } from '@/utils/common/date';
@@ -8,13 +8,13 @@ import { toLocalDateString } from '@/utils/common/date';
 // ================================
 
 /**
- * 그날 할일을 플랜보드와 연결하기 위한 정보
+ * 그날 할일을 플랜보드와 연결하기 위한 정보. 캐시를 기기에 JSON 으로 저장하므로 Set·Map 대신 배열·객체로 둠
  * @param manualDailyPlanIds 직접 추가한 일정(시험일 없는 기본 보드)의 dailyPlanId
  * @param categoryByDailyPlanId dailyPlanId → 과목 색 (과목이 하나뿐인 보드만, 나머지는 neutral)
  */
 export interface BoardInfo {
-  manualDailyPlanIds: Set<number>;
-  categoryByDailyPlanId: Map<number, Category>;
+  manualDailyPlanIds: number[];
+  categoryByDailyPlanId: Record<number, Category>;
 }
 
 // ================================
@@ -27,7 +27,7 @@ export interface BoardInfo {
  */
 export const getNextExamDate = async (): Promise<string | null> => {
   const today = toLocalDateString(new Date());
-  const boards = await getPlanBoards();
+  const boards = await fetchCachedPlanBoards();
   const upcoming = boards
     .map((board) => board.examDate)
     .filter((date): date is string => !!date && date >= today)
@@ -40,11 +40,11 @@ export const getNextExamDate = async (): Promise<string | null> => {
  * @param date 조회할 날짜 (YYYY-MM-DD)
  */
 export const getBoardInfo = async (date: string): Promise<BoardInfo> => {
-  const boards = await getPlanBoards();
+  const boards = await fetchCachedPlanBoards();
   const infos = await Promise.all(boards.map(async (board) => {
     const [daily, subjects] = await Promise.all([
-      getBoardDaily(board.id, date),
-      board.examDate === null ? Promise.resolve([]) : getPlanBoardSubjects(board.id).catch(() => []),
+      fetchCachedBoardDaily(board.id, date),
+      board.examDate === null ? Promise.resolve([]) : fetchCachedPlanBoardSubjects(board.id).catch(() => []),
     ]);
     const subjectNames = new Set(subjects.map((subject) => subject.subjectName));
     const category: Category = subjectNames.size === 1 ? SUBJECT_CATEGORIES[[...subjectNames][0]] ?? "neutral" : "neutral";
@@ -53,7 +53,7 @@ export const getBoardInfo = async (date: string): Promise<BoardInfo> => {
 
   const linked = infos.filter((info): info is typeof info & { dailyPlanId: number } => typeof info.dailyPlanId === "number");
   return {
-    manualDailyPlanIds: new Set(linked.filter((info) => info.manual).map((info) => info.dailyPlanId)),
-    categoryByDailyPlanId: new Map(linked.map((info) => [info.dailyPlanId, info.category])),
+    manualDailyPlanIds: linked.filter((info) => info.manual).map((info) => info.dailyPlanId),
+    categoryByDailyPlanId: Object.fromEntries(linked.map((info) => [info.dailyPlanId, info.category])),
   };
 };
