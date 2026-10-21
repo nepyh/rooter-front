@@ -1,5 +1,5 @@
 import type { Ref } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { HourLines } from "./HourLines";
 import { BusyBlockView } from "./BusyBlockView";
 import { PlanBlock } from "./PlanBlock";
@@ -27,7 +27,8 @@ interface Props {
   currentTime: Date | null;
   activePlan: Plan | null;
   canDeleteActive: boolean;
-  onSelectPlan: (plan: Plan) => void;
+  onLongPressPlan: (plan: Plan) => void;
+  onDismissMenu: () => void;
   onComplete: (plan: Plan) => void;
   onFail: (plan: Plan) => void;
   onEdit: (plan: Plan) => void;
@@ -45,7 +46,8 @@ interface Props {
  * @param currentTime 현재 시각 선을 그릴 시각, 오늘이 아니면 null
  * @param activePlan 액션 메뉴를 띄울 계획
  * @param canDeleteActive 액션 메뉴에 삭제 버튼을 보여줄지
- * @param onSelectPlan 계획 블록을 눌렀을 때 호출
+ * @param onLongPressPlan 계획 블록을 꾹 눌렀을 때 호출
+ * @param onDismissMenu 액션 메뉴가 떠 있을 때 바탕이나 다른 블록을 눌렀을 때 호출
  * @param onComplete 액션 메뉴의 완료를 눌렀을 때 호출
  * @param onFail 액션 메뉴의 실패를 눌렀을 때 호출
  * @param onEdit 액션 메뉴의 수정을 눌렀을 때 호출
@@ -61,7 +63,8 @@ export function PlanTimeline({
   currentTime,
   activePlan,
   canDeleteActive,
-  onSelectPlan,
+  onLongPressPlan,
+  onDismissMenu,
   onComplete,
   onFail,
   onEdit,
@@ -87,13 +90,20 @@ export function PlanTimeline({
     >
       <View key={dateKey} style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
         <HourLines />
+        {activePlan && <Pressable style={StyleSheet.absoluteFill} onPress={onDismissMenu} />}
 
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: TIMELINE_LEFT, right: 0 }}>
           {busyBlocks.map((block) => (
             <BusyBlockView key={block.key} block={block} {...columnOf(`busy:${block.key}`)} />
           ))}
           {plans.map((plan) => (
-            <PlanBlock key={plan.id} plan={plan} {...columnOf(`plan:${plan.id}`)} onPress={() => onSelectPlan(plan)} />
+            <PlanBlock
+              key={plan.id}
+              plan={plan}
+              {...columnOf(`plan:${plan.id}`)}
+              onPress={onDismissMenu}
+              onLongPress={() => onLongPressPlan(plan)}
+            />
           ))}
         </View>
 

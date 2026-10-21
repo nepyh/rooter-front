@@ -72,11 +72,10 @@ export default function Home() {
     return () => setFullScreenModalOpen(false);
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
-  const handleSelectPlan = (plan: Plan) => {
+  const handleLongPressPlan = (plan: Plan) => {
     if (plan.status !== "pending") return;
-    const nextId = plan.id === activeId ? null : plan.id;
-    setActiveId(nextId);
-    if (nextId) timeline.revealMenu(plan);
+    setActiveId(plan.id);
+    timeline.revealMenu(plan);
   };
 
   const handleComplete = (plan: Plan) => {
@@ -165,7 +164,8 @@ export default function Home() {
                 currentTime={isToday ? now : null}
                 activePlan={activePlan}
                 canDeleteActive={isManualPlan(activePlan)}
-                onSelectPlan={handleSelectPlan}
+                onLongPressPlan={handleLongPressPlan}
+                onDismissMenu={() => setActiveId(null)}
                 onComplete={handleComplete}
                 onFail={handleFail}
                 onEdit={handleEdit}

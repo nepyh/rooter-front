@@ -38,6 +38,7 @@ interface Props {
   column: number;
   columns: number;
   onPress: () => void;
+  onLongPress: () => void;
 }
 
 /**
@@ -46,9 +47,10 @@ interface Props {
  * @param plan 그릴 계획
  * @param column 겹치는 계획 사이에서 몇 번째 칸인지 (0부터)
  * @param columns 겹치는 묶음의 전체 칸 수
- * @param onPress 블록을 눌렀을 때 호출
+ * @param onPress 블록을 짧게 눌렀을 때 호출
+ * @param onLongPress 블록을 꾹 눌렀을 때 호출
  */
-export function PlanBlock({ plan, column, columns, onPress }: Props) {
+export function PlanBlock({ plan, column, columns, onPress, onLongPress }: Props) {
   const colors = CATEGORY_COLORS[plan.category];
   const override = statusOverrides[plan.status];
   const bar = override?.bar ?? colors.bar;
@@ -73,6 +75,7 @@ export function PlanBlock({ plan, column, columns, onPress }: Props) {
     >
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
         style={{ flex: 1, backgroundColor: bg, opacity }}
         className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
       >
