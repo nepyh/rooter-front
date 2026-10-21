@@ -51,10 +51,18 @@ export const queryKeys = {
     all: ['busy-times'] as const,
     range: (startDate: string, endDate: string) => ['busy-times', startDate, endDate] as const,
   },
+  calendar: {
+    all: ['calendar'] as const,
+    range: (start: string, end: string) => ['calendar', start, end] as const,
+  },
+  contribution: {
+    all: ['contribution'] as const,
+    range: (userId: number, start: string, end: string) => ['contribution', userId, start, end] as const,
+  },
 };
 
 /**
- * 할 일을 추가·수정·삭제·완료하거나 계획을 만든 뒤 호출. 태스크·보드·바쁜 시간 캐시를 모두 무효화해서
+ * 할 일을 추가·수정·삭제·완료하거나 계획을 만든 뒤 호출. 태스크·보드·바쁜 시간·캘린더(시험일)·잔디(완료율) 캐시를 모두 무효화해서
  * 지금 보고 있는 화면은 바로, 나머지 화면은 다시 들어갈 때 새로 불러옵니다.
  */
 export const invalidatePlanQueries = () =>
@@ -62,4 +70,6 @@ export const invalidatePlanQueries = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.boards.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.busyTimes.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.contribution.all }),
   ]);
