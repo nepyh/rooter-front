@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "@/store";
 import { addUnavailableTime, getUnavailableTimes } from "@/api/common/user";
 import type { UnavailableTime } from "@/api/common/user";
+import { queryClient, queryKeys } from "@/api/queryClient";
 import { normalizeClock } from "@/utils/common/time";
 
 // ================================
@@ -38,6 +39,7 @@ export function useUnavailableTimes() {
     try {
       const created = await addUnavailableTime(userId, { dayOfWeek, startTime, endTime });
       setItems((prev) => [...prev, created]);
+      queryClient.invalidateQueries({ queryKey: queryKeys.busyTimes.all });
       return true;
     } catch {
       setError("추가에 실패했습니다. 잠시 후 다시 시도해주세요.");

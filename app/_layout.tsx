@@ -3,7 +3,9 @@ import { Slot, usePathname } from "expo-router";
 import { View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { NavBar } from "@/components";
+import { queryClient } from "@/api/queryClient";
 import { useUIStore, useUserStore } from "@/store";
 import "../global.css";
 
@@ -22,7 +24,6 @@ export default function RootLayout() {
     Jalnan2: require("@/assets/fonts/Jalnan2.otf"),
   });
 
-  // 저장된 로그인 정보를 먼저 복원해야 첫 화면 API가 토큰 없이 나가지 않음
   const restoreSession = useUserStore((state) => state.restoreSession);
   const [sessionRestored, setSessionRestored] = useState(false);
   useEffect(() => {
@@ -32,11 +33,13 @@ export default function RootLayout() {
   if (!fontsLoaded || !sessionRestored) return null;
 
   return (
-    <SafeAreaView className="flex-1 bg-background-primary">
-      <View className="px-spacing-7 flex-1 bg-background-primary">
-        <Slot />
-      </View>
-      {showNavBar && <NavBar />}
-    </SafeAreaView>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaView className="flex-1 bg-background-primary">
+        <View className="px-spacing-7 flex-1 bg-background-primary">
+          <Slot />
+        </View>
+        {showNavBar && <NavBar />}
+      </SafeAreaView>
+    </QueryClientProvider>
   );
 }
