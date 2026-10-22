@@ -27,6 +27,8 @@ export interface CreatePlanBoardResult {
   message: string;
 }
 
+export type PlanTaskStatus = "PENDING" | "DONE" | "FAILED";
+
 export interface PlanTask {
   id: number;
   dailyPlanId: number;
@@ -36,7 +38,7 @@ export interface PlanTask {
   startTime: string;
   endTime: string;
   estimatedMinutes: number;
-  isCompleted: boolean;
+  status: PlanTaskStatus;
   subjectId?: number | null;
   subjectName?: string | null;
 }
@@ -62,6 +64,7 @@ export interface UpdatePlanTaskInput {
   startTime?: string;
   endTime?: string;
   estimatedMinutes?: number;
+  status?: PlanTaskStatus;
 }
 
 export interface WeeklyPlan {
@@ -137,17 +140,6 @@ export const getWeeklyTasks = async (date?: string): Promise<WeeklyPlan> => {
  */
 export const createPlanTask = async (input: CreatePlanTaskInput): Promise<void> => {
   await api.post('/plan-tasks', input);
-};
-
-/**
- * 태스크 완료 처리/취소 API 함수
- * @param taskId 태스크 ID
- * @param isCompleted 완료 여부
- * @returns 갱신된 태스크
- */
-export const completeTask = async (taskId: number, isCompleted: boolean): Promise<PlanTask> => {
-  const response = await api.patch(`/plan-tasks/${taskId}/complete`, { isCompleted });
-  return response.data;
 };
 
 /**
