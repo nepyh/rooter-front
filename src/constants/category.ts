@@ -56,6 +56,11 @@ export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string; focus:
   },
 };
 
+/**
+ * 할 일에 과목이 없을 때 대신 보여줄 과목 이름
+ */
+export const FALLBACK_SUBJECT_NAME = "기타";
+
 export const SUBJECT_CATEGORIES: Record<string, Category> = {
   "국어": "korean",
   "수학": "math",

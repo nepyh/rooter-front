@@ -1,4 +1,4 @@
-import { SUBJECT_CATEGORIES, type Category } from "@/constants/category";
+import { FALLBACK_SUBJECT_NAME, SUBJECT_CATEGORIES, type Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import type { DailyBusyTime } from "@/api/home/Home/busyTime";
 import type { PlanTask } from "@/api/common/planBoard";
@@ -97,8 +97,6 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
   "SCHOOL": "학교",
   "UNAVAILABLE": "불가능 시간",
 };
-
-const FALLBACK_SUBJECT = "기타";
 
 // ================================
 // Functions
@@ -261,7 +259,7 @@ export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
   const subjectName = task.subjectName?.trim();
-  const subject = task.isManual ? undefined : subjectName || FALLBACK_SUBJECT;
+  const subject = task.isManual ? undefined : subjectName || FALLBACK_SUBJECT_NAME;
   const timeLine: PlanLine = { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` };
   const showTaskLine = !task.isManual && task.taskName.trim().length > 0;
 
