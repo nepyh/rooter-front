@@ -3,11 +3,11 @@ import { View } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Text, LoadingView, BackHeader, PageTitle, NextButton, ChapterList } from "@/components";
+import { Text, LoadingView, BackHeader, PageTitle, ChapterList } from "@/components";
 import type { ChapterTree, TextbookDetail } from "@/api/home/common/catalog";
 import { getTextbookDetails } from "@/api/home/ChapterSelectPage";
 import { flattenLeaves, toSubjectEntries } from "@/utils/home/chapter";
-import { color } from "@/constants/token/color";
+import { usePlanDraftStore } from "@/store";
 
 // ================================
 // Helpers
@@ -31,15 +31,16 @@ export default function ChapterSelectPage() {
   const [textbooks, setTextbooks] = useState<TextbookDetail[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [showRequired, setShowRequired] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const subjectsByTextbook = usePlanDraftStore((state) => state.subjectsByTextbook);
+  const setTextbookSubjects = usePlanDraftStore((state) => state.setTextbookSubjects);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(
+    () => new Set((textbookIds ?? "").split(",").flatMap((id) => subjectsByTextbook[Number(id)] ?? []).map((subject) => subject.startChapterId)),
+  );
 
   const leavesByTextbook = useMemo(
     () => Object.fromEntries(textbooks.map((tb) => [tb.id, flattenLeaves(tb.chapters)])) as Record<number, ChapterTree[]>,
     [textbooks],
   );
-
-  const missingIds = new Set(textbooks.filter((tb) => !leavesByTextbook[tb.id]?.some((leaf) => selectedIds.has(leaf.id))).map((tb) => tb.id));
 
   useEffect(() => {
     getTextbookDetails(textbookIds ?? "")
@@ -47,14 +48,10 @@ export default function ChapterSelectPage() {
       .finally(() => setLoadingChapters(false));
   }, [textbookIds]);
 
-  const handleSubmit = () => {
-    if (textbooks.length === 0) return;
-    if (missingIds.size > 0) {
-      setShowRequired(true);
-      return;
-    }
-    const subjects = textbooks.flatMap((tb) => toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], selectedIds));
-    router.push({ pathname: "/Home/SleepTimePage", params: { examDate, subjects: JSON.stringify(subjects) } });
+  const handleToggleLeaf = (id: number) => {
+    const next = toggleInSet(selectedIds, id);
+    setSelectedIds(next);
+    textbooks.forEach((tb) => setTextbookSubjects(tb.id, toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], next)));
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/Home/TextbookSelectPage", params: { examDate } }));
@@ -76,18 +73,9 @@ export default function ChapterSelectPage() {
             expandedIds={expandedIds}
             onToggleExpand={(id) => setExpandedIds((prev) => toggleInSet(prev, id))}
             selectedIds={selectedIds}
-            onToggleLeaf={(id) => setSelectedIds((prev) => toggleInSet(prev, id))}
-            missingIds={missingIds}
-            showRequired={showRequired}
+            onToggleLeaf={handleToggleLeaf}
           />
         )}
-
-        {showRequired && missingIds.size > 0 && (
-          <Text variant="base-small" className="text-center pt-spacing-4" style={{ color: color.utility["error-primary"] }}>
-            선택하지 않은 필수 항목이 있어요
-          </Text>
-        )}
-        <NextButton onPress={handleSubmit} className="mt-spacing-5 mb-spacing-6" />
       </View>
     </Animated.View>
   );
