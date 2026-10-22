@@ -1,6 +1,4 @@
-import { fetchCachedBoardDaily, fetchCachedPlanBoards, fetchCachedPlanBoardSubjects } from '../../common/planBoard';
-import { SUBJECT_CATEGORIES } from '@/constants/category';
-import type { Category } from '@/constants/category';
+import { fetchCachedBoardDaily, fetchCachedPlanBoards } from '../../common/planBoard';
 import { toLocalDateString } from '@/utils/common/date';
 
 // ================================
@@ -10,11 +8,9 @@ import { toLocalDateString } from '@/utils/common/date';
 /**
  * 그날 할일을 플랜보드와 연결하기 위한 정보. 캐시를 기기에 JSON 으로 저장하므로 Set·Map 대신 배열·객체로 둠
  * @param manualDailyPlanIds 직접 추가한 일정(시험일 없는 기본 보드)의 dailyPlanId
- * @param categoryByDailyPlanId dailyPlanId → 과목 색 (과목이 하나뿐인 보드만, 나머지는 neutral)
  */
 export interface BoardInfo {
   manualDailyPlanIds: number[];
-  categoryByDailyPlanId: Record<number, Category>;
 }
 
 // ================================
@@ -42,18 +38,12 @@ export const getNextExamDate = async (): Promise<string | null> => {
 export const getBoardInfo = async (date: string): Promise<BoardInfo> => {
   const boards = await fetchCachedPlanBoards();
   const infos = await Promise.all(boards.map(async (board) => {
-    const [daily, subjects] = await Promise.all([
-      fetchCachedBoardDaily(board.id, date),
-      board.examDate === null ? Promise.resolve([]) : fetchCachedPlanBoardSubjects(board.id).catch(() => []),
-    ]);
-    const subjectNames = new Set(subjects.map((subject) => subject.subjectName));
-    const category: Category = subjectNames.size === 1 ? SUBJECT_CATEGORIES[[...subjectNames][0]] ?? "neutral" : "neutral";
-    return { dailyPlanId: daily.dailyPlanId, manual: board.examDate === null, category };
+    const daily = await fetchCachedBoardDaily(board.id, date);
+    return { dailyPlanId: daily.dailyPlanId, manual: board.examDate === null };
   }));
 
   const linked = infos.filter((info): info is typeof info & { dailyPlanId: number } => typeof info.dailyPlanId === "number");
   return {
     manualDailyPlanIds: linked.filter((info) => info.manual).map((info) => info.dailyPlanId),
-    categoryByDailyPlanId: Object.fromEntries(linked.map((info) => [info.dailyPlanId, info.category])),
   };
 };
