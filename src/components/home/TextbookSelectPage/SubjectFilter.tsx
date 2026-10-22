@@ -1,3 +1,4 @@
+import { ScrollView } from "react-native";
 import { Row } from "../../layout";
 import { SubjectPill } from "./SubjectPill";
 import type { Subject } from "@/api/home/common/catalog";
@@ -20,16 +21,18 @@ interface Props {
  */
 export function SubjectFilter({ subjects, selectedId, onSelect }: Props) {
   return (
-    <Row gap="s" className="pb-spacing-6">
-      <SubjectPill label="전체" active={selectedId === null} onPress={() => onSelect(null)} />
-      {subjects.map((subject) => (
-        <SubjectPill
-          key={subject.id}
-          label={subject.name}
-          active={selectedId === subject.id}
-          onPress={() => onSelect(subject.id)}
-        />
-      ))}
-    </Row>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0 mb-spacing-6">
+      <Row gap="s">
+        <SubjectPill label="전체" active={selectedId === null} onPress={() => onSelect(null)} />
+        {subjects.map((subject) => (
+          <SubjectPill
+            key={subject.id}
+            label={subject.name}
+            active={selectedId === subject.id}
+            onPress={() => onSelect(subject.id)}
+          />
+        ))}
+      </Row>
+    </ScrollView>
   );
 }
