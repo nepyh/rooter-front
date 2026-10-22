@@ -1,4 +1,4 @@
-import { useMemo, type Ref } from "react";
+import { useMemo, useState, type Ref } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
 import { HourLines } from "./HourLines";
@@ -28,8 +28,11 @@ interface Props {
   plans: Plan[];
   currentTime: Date | null;
   activePlan: Plan | null;
+  isDragging: boolean;
   canDeleteActive: boolean;
   onLongPressPlan: (plan: Plan) => void;
+  onDragStart: () => void;
+  onDropPlan: (plan: Plan, start: number) => void;
   onDismissMenu: () => void;
   onComplete: (plan: Plan) => void;
   onFail: (plan: Plan) => void;
@@ -47,10 +50,13 @@ interface Props {
  * @param busyBlocks 수면·학교·불가능 시간 블록
  * @param plans 계획 목록
  * @param currentTime 현재 시각 선을 그릴 시각, 오늘이 아니면 null
- * @param activePlan 액션 메뉴를 띄울 계획
+ * @param activePlan 꾹 눌러 옮길 준비가 된 계획, 이 계획에 액션 메뉴를 띄움
+ * @param isDragging 계획을 끌고 있는지, 끄는 동안에는 액션 메뉴를 숨김
  * @param canDeleteActive 액션 메뉴에 삭제 버튼을 보여줄지
  * @param onLongPressPlan 계획 블록을 꾹 눌렀을 때 호출
- * @param onDismissMenu 액션 메뉴가 떠 있을 때 바탕이나 다른 블록을 눌렀을 때 호출
+ * @param onDragStart 계획 블록을 끌기 시작했을 때 호출
+ * @param onDropPlan 끌던 계획 블록을 놓았을 때 새 시작 위치(분)와 함께 호출
+ * @param onDismissMenu 옮길 준비가 된 계획이 있을 때 바탕이나 다른 블록을 눌렀을 때 호출
  * @param onComplete 액션 메뉴의 완료를 눌렀을 때 호출
  * @param onFail 액션 메뉴의 실패를 눌렀을 때 호출
  * @param onEdit 액션 메뉴의 수정을 눌렀을 때 호출
@@ -66,8 +72,11 @@ export function PlanTimeline({
   plans,
   currentTime,
   activePlan,
+  isDragging,
   canDeleteActive,
   onLongPressPlan,
+  onDragStart,
+  onDropPlan,
   onDismissMenu,
   onComplete,
   onFail,
@@ -78,6 +87,7 @@ export function PlanTimeline({
 }: Props) {
   const scrollGesture = useMemo(() => Gesture.Native(), []);
   const scrollGestures = useMemo(() => [scrollGesture, pagerGesture], [scrollGesture, pagerGesture]);
+  const [areaWidth, setAreaWidth] = useState(0);
 
   const columns = layoutColumns([
     ...busyBlocks.map((block) => ({ id: `busy:${block.key}`, start: block.start, duration: block.duration })),
@@ -100,25 +110,35 @@ export function PlanTimeline({
           <HourLines />
           {activePlan && <Pressable style={StyleSheet.absoluteFill} onPress={onDismissMenu} />}
 
-          <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: TIMELINE_LEFT, right: 0 }}>
-            {busyBlocks.map((block) => (
-              <BusyBlockView key={block.key} block={block} {...columnOf(`busy:${block.key}`)} />
+          <View
+            pointerEvents="box-none"
+            style={{ position: "absolute", top: 0, bottom: 0, left: TIMELINE_LEFT, right: 0 }}
+            onLayout={(e) => setAreaWidth(e.nativeEvent.layout.width)}
+          >
+            {areaWidth > 0 && busyBlocks.map((block) => (
+              <BusyBlockView key={block.key} block={block} {...columnOf(`busy:${block.key}`)} areaWidth={areaWidth} />
             ))}
-            {plans.map((plan) => (
+            {areaWidth > 0 && plans.map((plan) => (
               <PlanBlock
                 key={plan.id}
                 plan={plan}
                 {...columnOf(`plan:${plan.id}`)}
+                areaWidth={areaWidth}
+                isActive={plan.id === activePlan?.id}
+                isDragging={plan.id === activePlan?.id && isDragging}
+                draggable={plan.status === "pending"}
                 scrollGestures={scrollGestures}
                 onPress={onDismissMenu}
                 onLongPress={() => onLongPressPlan(plan)}
+                onDragStart={onDragStart}
+                onDrop={(start) => onDropPlan(plan, start)}
               />
             ))}
           </View>
 
           {currentTime && <CurrentTimeLine top={minutesSinceWindowStart(currentTime)} label={formatClock(currentTime)} />}
 
-          {activePlan && (
+          {activePlan && !isDragging && (
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}

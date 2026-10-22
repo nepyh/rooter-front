@@ -62,6 +62,7 @@ export const WINDOW_START_MIN = 0;
 export const TIMELINE_HEIGHT = DAY_MIN;
 export const TIMELINE_LEFT = 52;
 export const POPOVER_HEIGHT = 92;
+export const SNAP_MIN = 15;
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
@@ -78,7 +79,19 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
 export const minutesSinceWindowStart = (date: Date) =>
   (date.getHours() * 60 + date.getMinutes() - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
 
-export const formatDateHeader = (date: Date) =>
+/**
+ * 끌어 놓은 계획의 시작 위치를 SNAP_MIN 단위로 맞추고, 타임라인 밖으로 나가지 않게 제한
+ * 제스처 콜백(UI 스레드)에서 부를 수 있도록 worklet 으로 만듦
+ * @param start 끌어 놓은 위치 (타임라인 시작 기준 분)
+ * @param duration 계획 길이(분)
+ */
+export const snapPlanStart = (start: number, duration: number) => {
+  "worklet";
+  const snapped = Math.round(start / SNAP_MIN) * SNAP_MIN;
+  return Math.min(Math.max(snapped, 0), TIMELINE_HEIGHT - duration);
+};
+
+export const formatDateHeader =(date: Date) =>
   `${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAYS[date.getDay()]})`;
 
 export const formatDuration = (mins: number) => {

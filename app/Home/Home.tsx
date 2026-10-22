@@ -38,6 +38,7 @@ export default function Home() {
   const isToday = dayOffset === 0;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -78,6 +79,12 @@ export default function Home() {
     if (plan.status !== "pending") return;
     setActiveId(plan.id);
     timeline.revealMenu(plan);
+  };
+
+  const handleDropPlan = (plan: Plan, start: number) => {
+    setIsDragging(false);
+    if (start !== plan.start) savePlanEdit(plan.id, plan.title, start, plan.duration);
+    timeline.revealMenu({ ...plan, start });
   };
 
   const handleComplete = (plan: Plan) => {
@@ -167,8 +174,11 @@ export default function Home() {
                   plans={coloredPlans}
                   currentTime={isToday ? now : null}
                   activePlan={activePlan}
+                  isDragging={isDragging}
                   canDeleteActive={isManualPlan(activePlan)}
                   onLongPressPlan={handleLongPressPlan}
+                  onDragStart={() => setIsDragging(true)}
+                  onDropPlan={handleDropPlan}
                   onDismissMenu={() => setActiveId(null)}
                   onComplete={handleComplete}
                   onFail={handleFail}

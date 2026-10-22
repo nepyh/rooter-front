@@ -30,6 +30,7 @@ interface Props {
   block: BusyBlock;
   column: number;
   columns: number;
+  areaWidth: number;
 }
 
 /**
@@ -37,15 +38,16 @@ interface Props {
  * @param block 그릴 블록 (key 앞부분으로 수면·학교 색을 정하고, 나머지는 기본 회색)
  * @param column 겹치는 블록 사이에서 몇 번째 칸인지 (0부터)
  * @param columns 겹치는 묶음의 전체 칸 수
+ * @param areaWidth 블록을 놓는 영역의 너비(px)
  */
-export function BusyBlockView({ block, column, columns }: Props) {
+export function BusyBlockView({ block, column, columns, areaWidth }: Props) {
   const kind = block.key.split("-")[0];
   const colors = kind === "sleep" || kind === "school" ? busyColors[kind] : CATEGORY_COLORS.neutral;
 
   return (
     <View
       pointerEvents="none"
-      style={{ position: "absolute", top: block.start, height: block.duration, ...columnStyle(column, columns) }}
+      style={{ position: "absolute", top: block.start, height: block.duration, ...columnStyle(column, columns, areaWidth) }}
     >
       <View
         style={{ flex: 1, backgroundColor: colors.bg }}
