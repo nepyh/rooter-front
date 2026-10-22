@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
-import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import {
+  Gesture,
+  GestureDetector,
+  type NativeGesture,
+} from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { PlanBlockText } from "./PlanBlockText";
 import { columnStyle } from "./styles";
@@ -43,12 +52,29 @@ const HANDLE_HIT_SLOP = { vertical: 12, horizontal: 16 };
 // Styles
 // ================================
 
-const statusOverrides: Partial<Record<PlanStatus, { bar: string; bg: string; opacity: number }>> = {
-  "done": { bar: color.neutral["500"], bg: `${color.neutral["500"]}1F`, opacity: 0.55 },
-  "failed": { bar: color.utility["error-primary"], bg: `${color.utility["error-primary"]}29`, opacity: 0.85 },
+const statusOverrides: Partial<
+  Record<PlanStatus, { bar: string; bg: string; opacity: number }>
+> = {
+  "done": {
+    bar: color.neutral["500"],
+    bg: `${color.neutral["500"]}1F`,
+    opacity: 0.55,
+  },
+  "failed": {
+    bar: color.utility["error-primary"],
+    bg: `${color.utility["error-primary"]}29`,
+    opacity: 0.85,
+  },
 };
 
-const ACTIVE_SHADOW = [{ offsetX: 0, offsetY: 8, blurRadius: 24, color: `${color.neutral["1000"]}99` }];
+const ACTIVE_SHADOW = [
+  {
+    offsetX: 0,
+    offsetY: 8,
+    blurRadius: 24,
+    color: `${color.neutral["1000"]}99`,
+  },
+];
 
 // ================================
 // Components
@@ -118,11 +144,24 @@ export function PlanBlock({
   const [fullHeight, setFullHeight] = useState(0);
   const available = plan.duration - PLAN_TEXT_PADDING;
   const measured = fullHeight > 0;
-  const fit: PlanTextFit = fullHeight <= available ? "full" : titleHeight <= available ? "title" : "none";
+  const fit: PlanTextFit =
+    fullHeight <= available
+      ? "full"
+      : titleHeight <= available
+        ? "title"
+        : "none";
 
-  const { left, width, ...columnPadding } = columnStyle(column, columns, areaWidth);
+  const { left, width, ...columnPadding } = columnStyle(
+    column,
+    columns,
+    areaWidth,
+  );
 
-  const { x: startX, width: animatedWidth } = useAnimatedColumn(left, width, dragMode !== null);
+  const { x: startX, width: animatedWidth } = useAnimatedColumn(
+    left,
+    width,
+    dragMode !== null,
+  );
   const startY = useSharedValue(plan.start);
   const height = useSharedValue(plan.duration);
   const dragX = useSharedValue(0);
@@ -134,7 +173,12 @@ export function PlanBlock({
   const dragging = useSharedValue(false);
   const previewStart = useSharedValue(plan.start);
   const previewDuration = useSharedValue(plan.duration);
-  const { scrollDelta, begin: beginAutoScroll, update: updateAutoScroll, end: endAutoScroll } = autoScroll;
+  const {
+    scrollDelta,
+    begin: beginAutoScroll,
+    update: updateAutoScroll,
+    end: endAutoScroll,
+  } = autoScroll;
 
   useEffect(() => {
     startY.set(plan.start);
@@ -168,11 +212,17 @@ export function PlanBlock({
       topDelta.set(delta);
       preview = snapResizeTop(top + delta, top + h);
     } else {
-      const delta = Math.min(Math.max(y, SNAP_MIN - h), TIMELINE_HEIGHT - top - h);
+      const delta = Math.min(
+        Math.max(y, SNAP_MIN - h),
+        TIMELINE_HEIGHT - top - h,
+      );
       bottomDelta.set(delta);
       preview = snapResizeBottom(top, top + h + delta);
     }
-    if (preview.start !== previewStart.get() || preview.duration !== previewDuration.get()) {
+    if (
+      preview.start !== previewStart.get() ||
+      preview.duration !== previewDuration.get()
+    ) {
       previewStart.set(preview.start);
       previewDuration.set(preview.duration);
       scheduleOnRN(onDragMove, preview.start, preview.duration);
@@ -199,7 +249,10 @@ export function PlanBlock({
     .onUpdate((e) => {
       dragX.set(e.translationX);
       fingerY.set(e.translationY);
-      if (!dragging.get() && Math.hypot(e.translationX, e.translationY) > DRAG_START_DISTANCE) {
+      if (
+        !dragging.get() &&
+        Math.hypot(e.translationX, e.translationY) > DRAG_START_DISTANCE
+      ) {
         dragging.set(true);
         previewStart.set(startY.get());
         previewDuration.set(height.get());
@@ -255,9 +308,10 @@ export function PlanBlock({
           scheduleOnRN(onDrop, top, h);
           return;
         }
-        const next = edge === "top"
-          ? snapResizeTop(top + topDelta.get(), top + h)
-          : snapResizeBottom(top, top + h + bottomDelta.get());
+        const next =
+          edge === "top"
+            ? snapResizeTop(top + topDelta.get(), top + h)
+            : snapResizeBottom(top, top + h + bottomDelta.get());
         startY.set(top + topDelta.get());
         height.set(h - topDelta.get() + bottomDelta.get());
         topDelta.set(0);
@@ -286,30 +340,69 @@ export function PlanBlock({
     >
       <GestureDetector gesture={gesture}>
         <View className="flex-1">
-          <View className="flex-1 rounded-radius-1" style={isActive ? { boxShadow: ACTIVE_SHADOW } : undefined}>
+          <View
+            className="flex-1 rounded-radius-1"
+            style={isActive ? { boxShadow: ACTIVE_SHADOW } : undefined}
+          >
             <View
               style={{ flex: 1, backgroundColor: bg, opacity }}
-              className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
+              className="flex-row gap-spacing-3 overflow-hidden rounded-radius-1 p-spacing-2"
             >
-              {!isActive && <View className="w-spacing-2 h-full rounded-radius-full" style={{ backgroundColor: bar }} />}
-              <View className="flex-1 py-spacing-1" style={{ opacity: measured ? 1 : 0 }}>
-                {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
+              {!isActive && (
+                <View
+                  className="h-full w-spacing-2 rounded-radius-full"
+                  style={{ backgroundColor: bar }}
+                />
+              )}
+              <View
+                className="flex-1 py-spacing-1"
+                style={{ opacity: measured ? 1 : 0 }}
+              >
+                {fit !== "none" && (
+                  <PlanBlockText plan={plan} showLines={fit === "full"} />
+                )}
               </View>
-              <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
-                <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: PLAN_TEXT_LEFT,
+                  right: PLAN_TEXT_RIGHT,
+                  opacity: 0,
+                }}
+              >
+                <PlanBlockText
+                  plan={plan}
+                  showLines
+                  onTitleLayout={setTitleHeight}
+                  onLayout={setFullHeight}
+                />
               </View>
             </View>
           </View>
           {isActive && dragMode !== "move" && (
             <>
-              <View pointerEvents="box-none" className="absolute -top-spacing-2 inset-x-spacing-0 items-center z-10">
+              <View
+                pointerEvents="box-none"
+                className="absolute inset-x-spacing-0 -top-spacing-2 z-10 items-center"
+              >
                 <GestureDetector gesture={topHandleGesture}>
-                  <View className="w-spacing-11 h-spacing-3 rounded-radius-1 border border-neutral-100" style={{ backgroundColor: colors.muted }} />
+                  <View
+                    className="h-spacing-3 w-spacing-11 rounded-radius-1 border border-neutral-100"
+                    style={{ backgroundColor: colors.muted }}
+                  />
                 </GestureDetector>
               </View>
-              <View pointerEvents="box-none" className="absolute -bottom-spacing-2 inset-x-spacing-0 items-center z-10">
+              <View
+                pointerEvents="box-none"
+                className="absolute inset-x-spacing-0 -bottom-spacing-2 z-10 items-center"
+              >
                 <GestureDetector gesture={bottomHandleGesture}>
-                  <View className="w-spacing-11 h-spacing-3 rounded-radius-1 border border-neutral-100" style={{ backgroundColor: colors.muted }} />
+                  <View
+                    className="h-spacing-3 w-spacing-11 rounded-radius-1 border border-neutral-100"
+                    style={{ backgroundColor: colors.muted }}
+                  />
                 </GestureDetector>
               </View>
             </>
