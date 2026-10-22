@@ -30,11 +30,15 @@ export interface CreatePlanBoardResult {
 export interface PlanTask {
   id: number;
   dailyPlanId: number;
+  planBoardId: number;
+  isManual: boolean;
   taskName: string;
   startTime: string;
   endTime: string;
   estimatedMinutes: number;
   isCompleted: boolean;
+  subjectId?: number | null;
+  subjectName?: string | null;
 }
 
 export interface DailyPlan {
@@ -50,6 +54,7 @@ export interface CreatePlanTaskInput {
   startTime: string;
   endTime: string;
   estimatedMinutes: number;
+  textbookId?: number;
 }
 
 export interface UpdatePlanTaskInput {
@@ -183,7 +188,7 @@ export const getWeeklyTasks = async (date?: string): Promise<WeeklyPlan> => {
 
 /**
  * 태스크 생성 API 함수
- * @param input 생성할 태스크 정보
+ * @param input 생성할 태스크 정보, textbookId 를 보내면 서버가 그 교과서의 과목을 태스크에 붙임
  */
 export const createPlanTask = async (input: CreatePlanTaskInput): Promise<void> => {
   await api.post('/plan-tasks', input);

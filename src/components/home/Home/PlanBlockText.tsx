@@ -23,9 +23,9 @@ interface Props {
 }
 
 /**
- * 계획 블록 안의 제목과 시간 줄
+ * 계획 블록 안의 제목(과목 이름, 직접 만든 일정은 입력한 제목)과 부가 줄(해야 할 일·시간)
  * @param plan 보여줄 계획
- * @param showLines 제목 아래 시간 줄까지 보여줄지
+ * @param showLines 제목 아래 부가 줄까지 보여줄지
  * @param onTitleLayout 제목 줄 높이를 잰 뒤 호출
  * @param onLayout 전체 글자 영역 높이를 잰 뒤 호출
  */
@@ -36,7 +36,7 @@ export function PlanBlockText({ plan, showLines, onTitleLayout, onLayout }: Prop
         {plan.status === "done" && <Icon name="check" size={12} color={color.neutral["0"]} />}
         {plan.status === "failed" && <Icon name="close" size={12} color={color.utility["error-primary"]} />}
         <Text variant="base-small" weight="medium" style={plan.status === "failed" ? FAILED_TITLE_STYLE : undefined}>
-          {plan.title}
+          {plan.subject ?? plan.title}
         </Text>
       </Row>
       {showLines && plan.lines.map((line, i) => (

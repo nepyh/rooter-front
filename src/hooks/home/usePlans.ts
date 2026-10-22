@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Alert } from "react-native";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import type { Category } from "@/constants/category";
 import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
 import { getBoardInfo, getEditErrorMessage } from "@/api/home/Home";
 import { invalidatePlanQueries, invalidateTaskQueries, queryClient, queryKeys } from "@/api/queryClient";
@@ -30,7 +29,6 @@ interface DailyPlans {
 // ================================
 
 const EMPTY_MANUAL_IDS: number[] = [];
-const EMPTY_CATEGORY_MAP: Record<number, Category> = {};
 
 // ================================
 // Query Options
@@ -90,7 +88,6 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const chatDailyPlanId = daily?.chatDailyPlanId ?? null;
   const boardInfo = boardInfoQuery.isError ? null : boardInfoQuery.data;
   const manualDailyPlanIds = boardInfo?.manualDailyPlanIds ?? EMPTY_MANUAL_IDS;
-  const categoryByDailyPlanId = boardInfo?.categoryByDailyPlanId ?? EMPTY_CATEGORY_MAP;
 
   const setPlans = (update: (prev: Plan[]) => Plan[]) => {
     queryClient.cancelQueries({ queryKey: dailyKey });
@@ -108,7 +105,6 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const coloredPlans = plans.map((plan) => ({
     ...plan,
     status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
-    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId[plan.dailyPlanId]) || plan.category,
   }));
 
   const isManualPlan = (plan: Plan | null) =>
@@ -127,7 +123,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
       if (plan.id !== id) return plan;
       const lines = plan.lines.map((line) => line.icon === "history"
         ? { ...line, text: `${startTime} - ${endTime} | ${formatDuration(duration)}` }
-        : line);
+        : { ...line, text: title });
       return { ...plan, title, start, duration, lines };
     }));
 
