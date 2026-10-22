@@ -17,13 +17,18 @@ const JUMP_FALLBACK_MS = 400;
  * @param dayOffset 오늘 기준 며칠 떨어진 날을 보고 있는지 (0 이 오늘)
  * @param onMoveDay 날짜를 delta 만큼 옮길 때 호출
  * @param scrollYRef 세로 타임라인의 현재 스크롤 위치, 옆 페이지 눈금을 같은 높이로 맞출 때 씀
- * @returns pagerRef, pageWidth, setPageWidth, neighborOffset, syncNeighborOffset, goToday, handlePagerEnd
+ * @returns pagerRef, pageWidth, setPageWidth, neighborOffset, neighborDeltas(옆 페이지가 지금 날짜에서 며칠 떨어졌는지, [오늘로] 이동 중에는 오늘), syncNeighborOffset, goToday, handlePagerEnd
  */
 export function useDayPager(dayOffset: number, onMoveDay: (delta: number) => void, scrollYRef: RefObject<number>) {
   const pagerRef = useRef<ScrollView>(null);
   const [pageWidth, setPageWidth] = useState(0);
   const [neighborOffset, setNeighborOffset] = useState(0);
   const pendingJumpRef = useRef<number | null>(null);
+  const [pendingJump, setPendingJump] = useState<number | null>(null);
+  const neighborDeltas = {
+    prev: pendingJump !== null && pendingJump < 0 ? pendingJump : -1,
+    next: pendingJump !== null && pendingJump > 0 ? pendingJump : 1,
+  };
 
   const syncNeighborOffset = () => setNeighborOffset(scrollYRef.current);
 
@@ -31,6 +36,7 @@ export function useDayPager(dayOffset: number, onMoveDay: (delta: number) => voi
     const delta = pendingJumpRef.current;
     if (delta === null) return;
     pendingJumpRef.current = null;
+    setPendingJump(null);
     onMoveDay(delta);
     pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
   };
@@ -41,6 +47,7 @@ export function useDayPager(dayOffset: number, onMoveDay: (delta: number) => voi
       return;
     }
     pendingJumpRef.current = -dayOffset;
+    setPendingJump(-dayOffset);
     syncNeighborOffset();
     pagerRef.current?.scrollTo({ x: dayOffset > 0 ? 0 : pageWidth * 2, animated: true });
     setTimeout(finishJump, JUMP_FALLBACK_MS);
@@ -57,5 +64,5 @@ export function useDayPager(dayOffset: number, onMoveDay: (delta: number) => voi
     pagerRef.current?.scrollTo({ x: pageWidth, animated: false });
   };
 
-  return { pagerRef, pageWidth, setPageWidth, neighborOffset, syncNeighborOffset, goToday, handlePagerEnd };
+  return { pagerRef, pageWidth, setPageWidth, neighborOffset, neighborDeltas, syncNeighborOffset, goToday, handlePagerEnd };
 }
