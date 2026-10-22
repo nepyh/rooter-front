@@ -30,7 +30,7 @@ export default function TodoPage() {
   }, [date]);
 
   const handleToggle = (task: PlanTask) => {
-    if (task.isCompleted || isTaskEnded(task, selectedKey)) return;
+    if (task.status === "DONE" || isTaskEnded(task, selectedKey)) return;
     router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
