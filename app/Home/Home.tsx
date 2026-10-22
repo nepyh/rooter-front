@@ -20,7 +20,6 @@ import { useNow } from "@/hooks/common/useNow";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
-import { usePrefetchNeighborDays } from "@/hooks/home/usePrefetchNeighborDays";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { toLocalDateString } from "@/utils/common/date";
@@ -54,7 +53,6 @@ export default function Home() {
 
   const { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
-  usePrefetchNeighborDays(selectedDate);
   const timeline = useTimelineScroll(now);
 
   const moveDay = (delta: number) => {
@@ -63,6 +61,7 @@ export default function Home() {
   };
   const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
   const pagerGesture = useMemo(() => Gesture.Native(), []);
+  const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
@@ -155,50 +154,54 @@ export default function Home() {
 
       <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
 
-      <View className="flex-1" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
+      <View className="flex-1">
         {plans.length === 0 && !emptyNoticeClosed && (
           <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
-        {pager.pageWidth > 0 && (
-          <GestureDetector gesture={pagerGesture}>
-            <ScrollView
-              ref={pager.pagerRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              contentOffset={{ x: pager.pageWidth, y: 0 }}
-              onScrollBeginDrag={pager.syncNeighborOffset}
-              onMomentumScrollEnd={pager.handlePagerEnd}
-            >
-              <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-              <View style={{ width: pager.pageWidth }}>
-                <PlanTimeline
-                  scrollRef={timeline.scrollRef}
-                  pagerGesture={pagerGesture}
-                  dateKey={selectedKey}
-                  busyBlocks={busyBlocks}
-                  plans={coloredPlans}
-                  currentTime={isToday ? now : null}
-                  activePlan={activePlan}
-                  dragPreview={dragPreview}
-                  canDeleteActive={isManualPlan(activePlan)}
-                  onLongPressPlan={handleLongPressPlan}
-                  onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
-                  onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
-                  onDropPlan={handleDropPlan}
-                  onDismissMenu={() => setActiveId(null)}
-                  onComplete={handleComplete}
-                  onFail={handleFail}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onScrollY={timeline.handleScrollY}
-                  onViewportHeight={timeline.handleViewportHeight}
-                />
-              </View>
-              <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-            </ScrollView>
-          </GestureDetector>
-        )}
+        <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
+          {pager.pageWidth > 0 && (
+            <GestureDetector gesture={pagerGesture}>
+              <ScrollView
+                ref={pager.pagerRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                contentOffset={{ x: pager.pageWidth, y: 0 }}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={pager.handlePagerBeginDrag}
+                onScroll={pager.handlePagerScroll}
+                onMomentumScrollEnd={pager.handlePagerEnd}
+              >
+                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.prev)} now={now} />
+                <View className="px-spacing-7" style={{ width: pager.pageWidth }}>
+                  <PlanTimeline
+                    scrollRef={timeline.scrollRef}
+                    pagerGesture={pagerGesture}
+                    dateKey={selectedKey}
+                    busyBlocks={busyBlocks}
+                    plans={coloredPlans}
+                    currentTime={isToday ? now : null}
+                    activePlan={activePlan}
+                    dragPreview={dragPreview}
+                    canDeleteActive={isManualPlan(activePlan)}
+                    onLongPressPlan={handleLongPressPlan}
+                    onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
+                    onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
+                    onDropPlan={handleDropPlan}
+                    onDismissMenu={() => setActiveId(null)}
+                    onComplete={handleComplete}
+                    onFail={handleFail}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onScrollY={timeline.handleScrollY}
+                    onViewportHeight={timeline.handleViewportHeight}
+                  />
+                </View>
+                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.next)} now={now} />
+              </ScrollView>
+            </GestureDetector>
+          )}
+        </View>
       </View>
 
       <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />

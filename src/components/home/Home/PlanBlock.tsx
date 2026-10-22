@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { PlanBlockText } from "./PlanBlockText";
+import { PlanBlockCard } from "./PlanBlockCard";
 import { columnStyle } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
-import { color } from "@/constants/token/color";
 import { useAnimatedColumn } from "@/hooks/home/useAnimatedColumn";
 import type { AutoScroll } from "@/hooks/home/useAutoScroll";
 import {
@@ -17,38 +16,22 @@ import {
   snapResizeTop,
   type DragMode,
   type Plan,
-  type PlanStatus,
 } from "@/utils/home/timeline";
 
 // ================================
 // Types
 // ================================
 
-type PlanTextFit = "full" | "title" | "none";
 type GestureMode = "idle" | "move" | "top" | "bottom";
 
 // ================================
 // Constants
 // ================================
 
-const PLAN_TEXT_PADDING = 12;
-const PLAN_TEXT_LEFT = 16;
-const PLAN_TEXT_RIGHT = 4;
 const LONG_PRESS_MS = 500;
 const DRAG_START_DISTANCE = 8;
 const DROP_TIMING = { duration: 120 };
 const HANDLE_HIT_SLOP = { vertical: 12, horizontal: 16 };
-
-// ================================
-// Styles
-// ================================
-
-const statusOverrides: Partial<Record<PlanStatus, { bar: string; bg: string; opacity: number }>> = {
-  "done": { bar: color.neutral["500"], bg: `${color.neutral["500"]}1F`, opacity: 0.55 },
-  "failed": { bar: color.utility["error-primary"], bg: `${color.utility["error-primary"]}29`, opacity: 0.85 },
-};
-
-const ACTIVE_SHADOW = [{ offsetX: 0, offsetY: 8, blurRadius: 24, color: `${color.neutral["1000"]}99` }];
 
 // ================================
 // Components
@@ -109,16 +92,6 @@ export function PlanBlock({
   onDrop,
 }: Props) {
   const colors = CATEGORY_COLORS[plan.category];
-  const override = statusOverrides[plan.status];
-  const bar = override?.bar ?? colors.bar;
-  const bg = override?.bg ?? (isActive ? colors.focus : colors.bg);
-  const opacity = override?.opacity ?? 1;
-
-  const [titleHeight, setTitleHeight] = useState(0);
-  const [fullHeight, setFullHeight] = useState(0);
-  const available = plan.duration - PLAN_TEXT_PADDING;
-  const measured = fullHeight > 0;
-  const fit: PlanTextFit = fullHeight <= available ? "full" : titleHeight <= available ? "title" : "none";
 
   const { left, width, ...columnPadding } = columnStyle(column, columns, areaWidth);
 
@@ -286,20 +259,7 @@ export function PlanBlock({
     >
       <GestureDetector gesture={gesture}>
         <View className="flex-1">
-          <View className="flex-1 rounded-radius-1" style={isActive ? { boxShadow: ACTIVE_SHADOW } : undefined}>
-            <View
-              style={{ flex: 1, backgroundColor: bg, opacity }}
-              className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
-            >
-              {!isActive && <View className="w-spacing-2 h-full rounded-radius-full" style={{ backgroundColor: bar }} />}
-              <View className="flex-1 py-spacing-1" style={{ opacity: measured ? 1 : 0 }}>
-                {fit !== "none" && <PlanBlockText plan={plan} showLines={fit === "full"} />}
-              </View>
-              <View pointerEvents="none" style={{ position: "absolute", top: 0, left: PLAN_TEXT_LEFT, right: PLAN_TEXT_RIGHT, opacity: 0 }}>
-                <PlanBlockText plan={plan} showLines onTitleLayout={setTitleHeight} onLayout={setFullHeight} />
-              </View>
-            </View>
-          </View>
+          <PlanBlockCard plan={plan} isActive={isActive} />
           {isActive && dragMode !== "move" && (
             <>
               <View pointerEvents="box-none" className="absolute -top-spacing-2 inset-x-spacing-0 items-center z-10">

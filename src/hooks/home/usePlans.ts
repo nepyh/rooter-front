@@ -10,6 +10,7 @@ import {
   WINDOW_START_MIN,
   formatDuration,
   mapPlanTaskToPlan,
+  markPastPlansFailed,
   toClockString,
   type Plan,
   type PlanStatus,
@@ -29,7 +30,7 @@ interface DailyPlans {
 // ================================
 
 /**
- * 그날 할 일 쿼리 설정. usePlans 와 옆 날짜 미리 받기(usePrefetchNeighborDays)가 함께 씀
+ * 그날 할 일 쿼리 설정. usePlans 와 옆 페이지(useNeighborDay)가 함께 씀
  * @param date 조회할 날짜 (YYYY-MM-DD)
  */
 export const dailyPlansQueryOptions = (date: string) =>
@@ -81,12 +82,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     invalidatePlanQueries();
   };
 
-  const dayStartMs = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
-  const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
-  const coloredPlans = plans.map((plan) => ({
-    ...plan,
-    status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
-  }));
+  const coloredPlans = markPastPlansFailed(plans, selectedDate, now);
 
   const isManualPlan = (plan: Plan | null) => plan?.isManual ?? false;
 

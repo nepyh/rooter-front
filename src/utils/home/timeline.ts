@@ -255,6 +255,21 @@ export const layoutColumns = (items: { id: string; start: number; duration: numb
   return result;
 };
 
+/**
+ * 끝난 시각이 지났는데 아직 완료하지 않은 계획을 실패로 바꿔 돌려줌
+ * @param plans 그날 계획 목록
+ * @param date 계획이 속한 날짜
+ * @param now 현재 시각
+ */
+export const markPastPlansFailed = (plans: Plan[], date: Date, now: Date): Plan[] => {
+  const dayStartMs = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
+  return plans.map((plan) => ({
+    ...plan,
+    status: plan.status === "pending" && isPast(plan) ? "failed" : plan.status,
+  }));
+};
+
 /** 백엔드 할일 status → 타임라인 블록 상태 (실패한 할일은 끌 수 없게 failed 로 둠) */
 const PLAN_STATUS: Record<PlanTaskStatus, PlanStatus> = {
   PENDING: "pending",
