@@ -6,6 +6,12 @@ import { color } from "@/constants/token/color";
 import type { Plan } from "@/utils/home/timeline";
 
 // ================================
+// Types
+// ================================
+
+export type PlanLineLayout = "column" | "row" | "none";
+
+// ================================
 // Styles
 // ================================
 
@@ -20,7 +26,7 @@ const FAILED_TITLE_STYLE = {
 
 interface Props {
   plan: Plan;
-  showLines: boolean;
+  lineLayout: PlanLineLayout;
   onTitleLayout?: (height: number) => void;
   onLayout?: (height: number) => void;
 }
@@ -28,16 +34,29 @@ interface Props {
 /**
  * 계획 블록 안의 제목(과목 이름, 직접 만든 일정은 입력한 제목)과 부가 줄(해야 할 일·시간)
  * @param plan 보여줄 계획
- * @param showLines 제목 아래 부가 줄까지 보여줄지
+ * @param lineLayout 부가 줄 배치. column 은 제목 아래 한 줄씩, row 는 한 줄에 나란히, none 은 숨김
  * @param onTitleLayout 제목 줄 높이를 잰 뒤 호출
  * @param onLayout 전체 글자 영역 높이를 잰 뒤 호출
  */
 export function PlanBlockText({
   plan,
-  showLines,
+  lineLayout,
   onTitleLayout,
   onLayout,
 }: Props) {
+  const lines = plan.lines.map((line, i) => (
+    <Row key={i} gap="xs" className="shrink items-center">
+      <Icon name={line.icon} size={12} color={MUTED_TEXT_COLOR} />
+      <Text
+        variant="base-caption"
+        className="shrink"
+        style={{ color: MUTED_TEXT_COLOR }}
+      >
+        {line.text}
+      </Text>
+    </Row>
+  ));
+
   return (
     <Stack gap="xs" onLayout={(e) => onLayout?.(e.nativeEvent.layout.height)}>
       <Row
@@ -59,15 +78,12 @@ export function PlanBlockText({
           {plan.subject ?? plan.title}
         </Text>
       </Row>
-      {showLines &&
-        plan.lines.map((line, i) => (
-          <Row key={i} gap="xs" className="items-center">
-            <Icon name={line.icon} size={12} color={MUTED_TEXT_COLOR} />
-            <Text variant="base-caption" style={{ color: MUTED_TEXT_COLOR }}>
-              {line.text}
-            </Text>
-          </Row>
-        ))}
+      {lineLayout === "column" && lines}
+      {lineLayout === "row" && (
+        <Row gap="m" className="flex-wrap">
+          {lines}
+        </Row>
+      )}
     </Stack>
   );
 }

@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { PlanBlockText } from "./PlanBlockText";
+import { PlanBlockText, type PlanLineLayout } from "./PlanBlockText";
 import { columnStyle } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
 import { color } from "@/constants/token/color";
@@ -33,7 +33,6 @@ import {
 // Types
 // ================================
 
-type PlanTextFit = "full" | "title" | "none";
 type GestureMode = "idle" | "move" | "top" | "bottom";
 
 // ================================
@@ -67,6 +66,14 @@ const statusOverrides: Partial<
   },
 };
 
+const MEASURE_STYLE = {
+  position: "absolute" as const,
+  top: 0,
+  left: PLAN_TEXT_LEFT,
+  right: PLAN_TEXT_RIGHT,
+  opacity: 0,
+};
+
 const ACTIVE_SHADOW = [
   {
     offsetX: 0,
@@ -98,7 +105,7 @@ interface Props {
 }
 
 /**
- * 타임라인의 계획 블록. 글자가 블록보다 길면 시간 줄 → 제목 순으로 숨김
+ * 타임라인의 계획 블록. 글자가 블록보다 길면 부가 줄을 한 줄로 나란히 → 부가 줄 숨김 → 제목 숨김 순으로 줄임
  * 완료는 흐리게, 실패는 붉은 톤으로 표시
  * 꾹 누르면 그림자가 생기고 상하좌우로 자유롭게 끌어 옮길 수 있음. 그림자가 있는 동안은 꾹 누르지 않고 바로 끌 수 있음
  * 그림자가 있는 동안 위아래 손잡이를 끌면 시작·종료 시각을 바꿀 수 있음 (최소 SNAP_MIN 분)
@@ -142,14 +149,16 @@ export function PlanBlock({
 
   const [titleHeight, setTitleHeight] = useState(0);
   const [fullHeight, setFullHeight] = useState(0);
+  const [rowHeight, setRowHeight] = useState(0);
   const available = plan.duration - PLAN_TEXT_PADDING;
-  const measured = fullHeight > 0;
-  const fit: PlanTextFit =
+  const measured = fullHeight > 0 && rowHeight > 0;
+  const lineLayout: PlanLineLayout =
     fullHeight <= available
-      ? "full"
-      : titleHeight <= available
-        ? "title"
+      ? "column"
+      : rowHeight <= available
+        ? "row"
         : "none";
+  const showText = titleHeight <= available;
 
   const { left, width, ...columnPadding } = columnStyle(
     column,
@@ -358,25 +367,23 @@ export function PlanBlock({
                 className="flex-1 py-spacing-1"
                 style={{ opacity: measured ? 1 : 0 }}
               >
-                {fit !== "none" && (
-                  <PlanBlockText plan={plan} showLines={fit === "full"} />
+                {showText && (
+                  <PlanBlockText plan={plan} lineLayout={lineLayout} />
                 )}
               </View>
-              <View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: PLAN_TEXT_LEFT,
-                  right: PLAN_TEXT_RIGHT,
-                  opacity: 0,
-                }}
-              >
+              <View pointerEvents="none" style={MEASURE_STYLE}>
                 <PlanBlockText
                   plan={plan}
-                  showLines
+                  lineLayout="column"
                   onTitleLayout={setTitleHeight}
                   onLayout={setFullHeight}
+                />
+              </View>
+              <View pointerEvents="none" style={MEASURE_STYLE}>
+                <PlanBlockText
+                  plan={plan}
+                  lineLayout="row"
+                  onLayout={setRowHeight}
                 />
               </View>
             </View>
