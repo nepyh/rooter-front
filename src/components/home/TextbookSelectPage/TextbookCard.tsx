@@ -12,15 +12,17 @@ import { color } from "@/constants/token/color";
 
 interface Props {
   textbook: TextbookWithSubject;
+  selected?: boolean;
   onPress: () => void;
 }
 
 /**
  * 표지·제목·출판사로 된 교과서 카드
  * @param textbook 보여줄 교과서
+ * @param selected 목차를 고른 교과서인지. 표지에 테두리·덮개·체크 표시를 띄움
  * @param onPress 카드를 눌렀을 때 호출
  */
-export function TextbookCard({ textbook, onPress }: Props) {
+export function TextbookCard({ textbook, selected = false, onPress }: Props) {
   const { title, publisher } = getTextbookLabels(textbook, textbook.subjectName);
 
   return (
@@ -30,6 +32,14 @@ export function TextbookCard({ textbook, onPress }: Props) {
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
           <Icon name="book" size={32} color={color.neutral["400"]} />
+        )}
+        {selected && (
+          <>
+            <View className="absolute inset-spacing-0 rounded-radius-1 border-2 border-primary-500 bg-primary-500/30" />
+            <View className="absolute top-spacing-2 right-spacing-3">
+              <Icon name="checkCircle" size={20} color={color.primary["500"]} />
+            </View>
+          </>
         )}
       </View>
       <Stack gap="xxs" width="full">

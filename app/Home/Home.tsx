@@ -22,7 +22,7 @@ import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
 import { usePrefetchNeighborDays } from "@/hooks/home/usePrefetchNeighborDays";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
-import { useUIStore } from "@/store";
+import { usePlanDraftStore, useUIStore } from "@/store";
 import { toLocalDateString } from "@/utils/common/date";
 import type { DragPreview, Plan } from "@/utils/home/timeline";
 
@@ -50,6 +50,7 @@ export default function Home() {
   const [showAiChat, setShowAiChat] = useState(false);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
+  const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
   const { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
@@ -132,6 +133,11 @@ export default function Home() {
     setShowAiChat(true);
   };
 
+  const startPlanCreation = () => {
+    resetPlanDraft();
+    router.push("/Home/ExamDatePage");
+  };
+
   const handlePlanCreated = () => {
     setShowAddPlan(false);
     reload();
@@ -151,7 +157,7 @@ export default function Home() {
 
       <View className="flex-1" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
         {plans.length === 0 && !emptyNoticeClosed && (
-          <EmptyPlanNotice onCreate={() => router.push("/Home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
+          <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
         {pager.pageWidth > 0 && (
           <GestureDetector gesture={pagerGesture}>
@@ -218,7 +224,7 @@ export default function Home() {
           afterAddMenuClosedRef.current = null;
         }}
         onCreateSchedule={() => closeAddMenuThen(() => setShowAddPlan(true))}
-        onCreatePlan={() => closeAddMenuThen(() => router.push("/Home/ExamDatePage"))}
+        onCreatePlan={() => closeAddMenuThen(startPlanCreation)}
       />
 
       <AddPlanBoardModal

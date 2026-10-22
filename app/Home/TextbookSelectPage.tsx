@@ -2,50 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 import Animated, { SlideOutLeft } from "react-native-reanimated";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { LoadingView, BackHeader, PageTitle, SubjectFilter, TextbookGrid } from "@/components";
-import { getSubjects } from "@/api/home/common/catalog";
-import type { Subject } from "@/api/home/common/catalog";
-import { getUserInfo } from "@/api/common/user";
-import { getTextbooksWithSubject, type TextbookWithSubject } from "@/api/home/TextbookSelectPage";
-import { useUserStore } from "@/store";
-import { filterTextbooksByGrade } from "@/utils/home/textbook";
+import { Text, LoadingView, BackHeader, PageTitle, SubjectFilter, TextbookGrid, NextButton } from "@/components";
+import { useTextbookCatalog } from "@/hooks/home/useTextbookCatalog";
+import { usePlanDraftStore } from "@/store";
 
 /**
  * 교과서 선택 화면
  */
 export default function TextbookSelectPage() {
   const { examDate } = useLocalSearchParams<{ examDate: string }>();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
-  const [textbooks, setTextbooks] = useState<TextbookWithSubject[]>([]);
-  const [loadingTextbooks, setLoadingTextbooks] = useState(true);
-  const userId = useUserStore((state) => state.userId);
-  const [grade, setGrade] = useState<number | null>(null);
+  const { subjects, textbooks, loadingTextbooks } = useTextbookCatalog(selectedSubjectId);
   const [nextTextbookId, setNextTextbookId] = useState<number | null>(null);
-
-  useEffect(() => {
-    getSubjects()
-      .then((list) => {
-        setSubjects(list);
-        if (list.length === 0) setLoadingTextbooks(false);
-      })
-      .catch(() => setLoadingTextbooks(false));
-  }, []);
-
-  useEffect(() => {
-    if (userId === null) return;
-    getUserInfo(userId).then((info) => setGrade(info.grade)).catch(() => setGrade(null));
-  }, [userId]);
-
-  useEffect(() => {
-    if (subjects.length === 0) return;
-    const targets = selectedSubjectId === null ? subjects : subjects.filter((s) => s.id === selectedSubjectId);
-    setLoadingTextbooks(true);
-    getTextbooksWithSubject(targets).then((list) => {
-      setTextbooks(list);
-      setLoadingTextbooks(false);
-    });
-  }, [subjects, selectedSubjectId]);
+  const subjectsByTextbook = usePlanDraftStore((state) => state.subjectsByTextbook);
+  const selectedSubjects = Object.values(subjectsByTextbook).flat();
+  const selectedTextbookIds = new Set(selectedSubjects.map((subject) => subject.textbookId));
 
   useEffect(() => {
     if (nextTextbookId === null) return;
@@ -59,15 +30,24 @@ export default function TextbookSelectPage() {
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamDatePage"));
 
+  const handleNext = () => {
+    if (selectedSubjects.length === 0) return;
+    router.push({ pathname: "/Home/SleepTimePage", params: { examDate, subjects: JSON.stringify(selectedSubjects) } });
+  };
+
   return (
     <Animated.View exiting={nextTextbookId !== null ? SlideOutLeft.duration(300) : undefined} className="flex-1">
       <StatusBar style="light" />
-      <BackHeader onBack={goBack} />
+      <BackHeader
+        onBack={goBack}
+        right={<Text variant="base-large" color="disabled">{`${selectedTextbookIds.size}개 선택됨`}</Text>}
+      />
       <PageTitle title="교과서 선택" description="시험 범위에 알맞는 교과서를 선택해주세요" className="pb-spacing-6" />
       <SubjectFilter subjects={subjects} selectedId={selectedSubjectId} onSelect={setSelectedSubjectId} />
       {loadingTextbooks
         ? <LoadingView />
-        : <TextbookGrid textbooks={filterTextbooksByGrade(textbooks, grade)} onSelect={setNextTextbookId} />}
+        : <TextbookGrid textbooks={textbooks} selectedIds={selectedTextbookIds} onSelect={setNextTextbookId} />}
+      <NextButton disabled={selectedSubjects.length === 0} onPress={handleNext} className="mt-spacing-5 mb-spacing-6" />
     </Animated.View>
   );
 }
