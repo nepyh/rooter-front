@@ -24,7 +24,7 @@ import { usePrefetchNeighborDays } from "@/hooks/home/usePrefetchNeighborDays";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { useUIStore } from "@/store";
 import { toLocalDateString } from "@/utils/common/date";
-import type { Plan } from "@/utils/home/timeline";
+import type { DragPreview, Plan } from "@/utils/home/timeline";
 
 /**
  * 홈 화면
@@ -38,7 +38,7 @@ export default function Home() {
   const isToday = dayOffset === 0;
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -82,7 +82,7 @@ export default function Home() {
   };
 
   const handleDropPlan = (plan: Plan, start: number) => {
-    setIsDragging(false);
+    setDragPreview(null);
     if (start !== plan.start) savePlanEdit(plan.id, plan.title, start, plan.duration);
     timeline.revealMenu({ ...plan, start });
   };
@@ -174,10 +174,11 @@ export default function Home() {
                   plans={coloredPlans}
                   currentTime={isToday ? now : null}
                   activePlan={activePlan}
-                  isDragging={isDragging}
+                  dragPreview={dragPreview}
                   canDeleteActive={isManualPlan(activePlan)}
                   onLongPressPlan={handleLongPressPlan}
-                  onDragStart={() => setIsDragging(true)}
+                  onDragStart={(plan) => setDragPreview({ id: plan.id, start: plan.start })}
+                  onDragMove={(plan, start) => setDragPreview({ id: plan.id, start })}
                   onDropPlan={handleDropPlan}
                   onDismissMenu={() => setActiveId(null)}
                   onComplete={handleComplete}

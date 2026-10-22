@@ -32,6 +32,16 @@ export interface Plan {
 }
 
 /**
+ * 끌고 있는 계획과, 지금 놓으면 들어갈 시작 위치. 끄는 동안 주변 블록 칸 배치를 미리 계산할 때 씀
+ * @param id 끌고 있는 계획 id
+ * @param start 타임라인 시작 기준 오프셋(분), SNAP_MIN 단위로 맞춘 값
+ */
+export interface DragPreview {
+  id: string;
+  start: number;
+}
+
+/**
  * 수면·학교·불가능 시간 블록
  * @param start 타임라인 시작 기준 오프셋(분)
  * @param duration 길이(분)
