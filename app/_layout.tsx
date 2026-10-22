@@ -3,6 +3,7 @@ import { Slot, usePathname } from "expo-router";
 import { View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { NavBar } from "@/components";
 import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "@/api/queryClient";
@@ -35,13 +36,15 @@ export default function RootLayout() {
   if (!fontsLoaded || !sessionRestored) return null;
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE_MS }}>
-      <SafeAreaView className="flex-1 bg-background-primary">
-        <View className="px-spacing-7 flex-1 bg-background-primary">
-          <Slot />
-        </View>
-        {showNavBar && <NavBar />}
-      </SafeAreaView>
-    </PersistQueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE_MS }}>
+        <SafeAreaView className="flex-1 bg-background-primary">
+          <View className="px-spacing-7 flex-1 bg-background-primary">
+            <Slot />
+          </View>
+          {showNavBar && <NavBar />}
+        </SafeAreaView>
+      </PersistQueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

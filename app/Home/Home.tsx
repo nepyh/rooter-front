@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -23,7 +24,7 @@ import { usePrefetchNeighborDays } from "@/hooks/home/usePrefetchNeighborDays";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { useUIStore } from "@/store";
 import { toLocalDateString } from "@/utils/common/date";
-import type { Plan } from "@/utils/home/timeline";
+import type { DragPreview, Plan } from "@/utils/home/timeline";
 
 /**
  * 홈 화면
@@ -37,6 +38,7 @@ export default function Home() {
   const isToday = dayOffset === 0;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -59,6 +61,7 @@ export default function Home() {
     setDayOffset((prev) => prev + delta);
   };
   const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
+  const pagerGesture = useMemo(() => Gesture.Native(), []);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
@@ -72,11 +75,16 @@ export default function Home() {
     return () => setFullScreenModalOpen(false);
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
-  const handleSelectPlan = (plan: Plan) => {
+  const handleLongPressPlan = (plan: Plan) => {
     if (plan.status !== "pending") return;
-    const nextId = plan.id === activeId ? null : plan.id;
-    setActiveId(nextId);
-    if (nextId) timeline.revealMenu(plan);
+    setActiveId(plan.id);
+    timeline.revealMenu(plan);
+  };
+
+  const handleDropPlan = (plan: Plan, start: number, duration: number) => {
+    setDragPreview(null);
+    if (start !== plan.start || duration !== plan.duration) savePlanEdit(plan.id, plan.title, start, duration);
+    timeline.revealMenu({ ...plan, start, duration });
   };
 
   const handleComplete = (plan: Plan) => {
@@ -146,36 +154,44 @@ export default function Home() {
           <EmptyPlanNotice onCreate={() => router.push("/Home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
         )}
         {pager.pageWidth > 0 && (
-          <ScrollView
-            ref={pager.pagerRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: pager.pageWidth, y: 0 }}
-            onScrollBeginDrag={pager.syncNeighborOffset}
-            onMomentumScrollEnd={pager.handlePagerEnd}
-          >
-            <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-            <View style={{ width: pager.pageWidth }}>
-              <PlanTimeline
-                ref={timeline.scrollRef}
-                dateKey={selectedKey}
-                busyBlocks={busyBlocks}
-                plans={coloredPlans}
-                currentTime={isToday ? now : null}
-                activePlan={activePlan}
-                canDeleteActive={isManualPlan(activePlan)}
-                onSelectPlan={handleSelectPlan}
-                onComplete={handleComplete}
-                onFail={handleFail}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onScrollY={timeline.handleScrollY}
-                onViewportHeight={timeline.handleViewportHeight}
-              />
-            </View>
-            <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-          </ScrollView>
+          <GestureDetector gesture={pagerGesture}>
+            <ScrollView
+              ref={pager.pagerRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentOffset={{ x: pager.pageWidth, y: 0 }}
+              onScrollBeginDrag={pager.syncNeighborOffset}
+              onMomentumScrollEnd={pager.handlePagerEnd}
+            >
+              <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
+              <View style={{ width: pager.pageWidth }}>
+                <PlanTimeline
+                  scrollRef={timeline.scrollRef}
+                  pagerGesture={pagerGesture}
+                  dateKey={selectedKey}
+                  busyBlocks={busyBlocks}
+                  plans={coloredPlans}
+                  currentTime={isToday ? now : null}
+                  activePlan={activePlan}
+                  dragPreview={dragPreview}
+                  canDeleteActive={isManualPlan(activePlan)}
+                  onLongPressPlan={handleLongPressPlan}
+                  onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
+                  onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
+                  onDropPlan={handleDropPlan}
+                  onDismissMenu={() => setActiveId(null)}
+                  onComplete={handleComplete}
+                  onFail={handleFail}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onScrollY={timeline.handleScrollY}
+                  onViewportHeight={timeline.handleViewportHeight}
+                />
+              </View>
+              <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
+            </ScrollView>
+          </GestureDetector>
         )}
       </View>
 
