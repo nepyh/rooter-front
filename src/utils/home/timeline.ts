@@ -1,4 +1,4 @@
-import type { Category } from "@/constants/category";
+import { FALLBACK_SUBJECT_NAME, SUBJECT_CATEGORIES, type Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import type { DailyBusyTime } from "@/api/home/Home/busyTime";
 import type { PlanTask } from "@/api/common/planBoard";
@@ -24,12 +24,17 @@ export interface PlanLine {
 
 /**
  * 타임라인에 그리는 계획 블록
+ * @param title 해야 할 일 (태스크 이름), 직접 만든 일정은 입력한 제목
+ * @param subject 블록 제목으로 쓸 과목 이름 (과목이 없으면 "기타"), 직접 만든 일정은 없음
+ * @param isManual 직접 만든 일정인지 (삭제는 직접 만든 일정만 가능)
  * @param start 타임라인 시작(00:00) 기준 오프셋(분)
  * @param duration 길이(분)
  */
 export interface Plan {
   id: string;
   title: string;
+  subject?: string;
+  isManual: boolean;
   category: Category;
   lines: PlanLine[];
   start: number;
@@ -253,17 +258,21 @@ export const layoutColumns = (items: { id: string; start: number; duration: numb
 export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  const subjectName = task.subjectName?.trim();
+  const subject = task.isManual ? undefined : subjectName || FALLBACK_SUBJECT_NAME;
+  const timeLine: PlanLine = { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` };
+  const showTaskLine = !task.isManual && task.taskName.trim().length > 0;
 
   return {
     id: String(task.id),
     title: task.taskName,
-    category: "neutral",
+    subject,
+    isManual: task.isManual,
+    category: (subjectName && SUBJECT_CATEGORIES[subjectName]) || "neutral",
     start,
     duration: task.estimatedMinutes,
     status: task.isCompleted ? "done" : "pending",
     dailyPlanId: task.dailyPlanId,
-    lines: [
-      { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
-    ],
+    lines: showTaskLine ? [{ icon: "book", text: task.taskName }, timeLine] : [timeLine],
   };
 };

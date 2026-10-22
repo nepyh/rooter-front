@@ -4,7 +4,7 @@ import { color } from "@/constants/token/color";
 // Types
 // ================================
 
-export type Category = "math" | "english" | "science" | "social" | "neutral";
+export type Category = "korean" | "math" | "english" | "science" | "social" | "neutral";
 
 // ================================
 // Constants
@@ -18,11 +18,17 @@ export type Category = "math" | "english" | "science" | "social" | "neutral";
  * @param muted 꾹 눌러 옮길 준비가 된 상태의 위아래 손잡이
  */
 export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string; focus: string; muted: string }> = {
-  math: {
+  korean: {
     bar: color.label["red-primary"],
     bg: color.label["red-overlay"],
     focus: color.label["red-focus"],
     muted: color.label["red-muted"],
+  },
+  math: {
+    bar: color.label["orange-primary"],
+    bg: color.label["orange-overlay"],
+    focus: color.label["orange-focus"],
+    muted: color.label["orange-muted"],
   },
   english: {
     bar: color.label["deepblue-primary"],
@@ -31,16 +37,16 @@ export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string; focus:
     muted: color.label["deepblue-muted"],
   },
   science: {
+    bar: color.label["green-primary"],
+    bg: color.label["green-overlay"],
+    focus: color.label["green-focus"],
+    muted: color.label["green-muted"],
+  },
+  social: {
     bar: color.label["yellow-primary"],
     bg: color.label["yellow-overlay"],
     focus: color.label["yellow-focus"],
     muted: color.label["yellow-muted"],
-  },
-  social: {
-    bar: color.label["lightblue-primary"],
-    bg: color.label["lightblue-overlay"],
-    focus: color.label["lightblue-focus"],
-    muted: color.label["lightblue-muted"],
   },
   neutral: {
     bar: color.label["grey-primary"],
@@ -50,7 +56,13 @@ export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string; focus:
   },
 };
 
+/**
+ * 할 일에 과목이 없을 때 대신 보여줄 과목 이름
+ */
+export const FALLBACK_SUBJECT_NAME = "기타";
+
 export const SUBJECT_CATEGORIES: Record<string, Category> = {
+  "국어": "korean",
   "수학": "math",
   "영어": "english",
   "과학": "science",

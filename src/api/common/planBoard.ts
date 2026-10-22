@@ -30,11 +30,15 @@ export interface CreatePlanBoardResult {
 export interface PlanTask {
   id: number;
   dailyPlanId: number;
+  planBoardId: number;
+  isManual: boolean;
   taskName: string;
   startTime: string;
   endTime: string;
   estimatedMinutes: number;
   isCompleted: boolean;
+  subjectId?: number | null;
+  subjectName?: string | null;
 }
 
 export interface DailyPlan {
@@ -50,6 +54,7 @@ export interface CreatePlanTaskInput {
   startTime: string;
   endTime: string;
   estimatedMinutes: number;
+  textbookId?: number;
 }
 
 export interface UpdatePlanTaskInput {
@@ -57,18 +62,6 @@ export interface UpdatePlanTaskInput {
   startTime?: string;
   endTime?: string;
   estimatedMinutes?: number;
-}
-
-export interface PlanBoardSubject {
-  id: number;
-  planBoardId: number;
-  subjectId: number;
-  subjectName: string;
-  textbookId: number;
-  textbookTitle: string;
-  startChapterId: number | null;
-  endChapterId: number | null;
-  customRangeText: string | null;
 }
 
 export interface WeeklyPlan {
@@ -112,54 +105,11 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
 };
 
 /**
- * 플랜보드별 하루 계획 조회 API 함수
- * @param boardId 플랜보드 ID
- * @param date 조회할 날짜 (yyyy-MM-dd), 생략 시 오늘 (Swagger엔 없지만 실서버가 받음)
- * @returns 그 보드의 그날 dailyPlanId와 태스크
- */
-export const getBoardDaily = async (boardId: number, date?: string): Promise<DailyPlan> => {
-  const response = await api.get(`/plan-boards/${boardId}/daily`, { params: date ? { date } : undefined });
-  return response.data;
-};
-
-/**
- * 플랜보드 과목 범위 조회 API 함수
- * @param boardId 플랜보드 ID
- * @returns 보드에 등록된 과목·교과서·단원 범위 배열
- */
-export const getPlanBoardSubjects = async (boardId: number): Promise<PlanBoardSubject[]> => {
-  const response = await api.get(`/plan-boards/${boardId}/subjects`);
-  return response.data;
-};
-
-/**
  * 플랜보드 목록을 캐시에서 꺼내고, 없거나 오래됐으면 서버에서 받아옴. 여러 화면이 같은 목록을 함께 씀
  * @returns 플랜보드 배열
  */
 export const fetchCachedPlanBoards = () =>
   queryClient.fetchQuery({ queryKey: queryKeys.boards.list, queryFn: getPlanBoards });
-
-/**
- * 플랜보드 과목 범위를 캐시에서 꺼내고, 없으면 서버에서 받아옴
- * 과목은 보드를 만들 때만 정해져서, 보드 캐시가 무효화되기 전까지는 다시 받지 않습니다.
- * @param boardId 플랜보드 ID
- * @returns 보드에 등록된 과목·교과서·단원 범위 배열
- */
-export const fetchCachedPlanBoardSubjects = (boardId: number) =>
-  queryClient.fetchQuery({
-    queryKey: queryKeys.boards.subjects(boardId),
-    queryFn: () => getPlanBoardSubjects(boardId),
-    staleTime: Infinity,
-  });
-
-/**
- * 플랜보드별 하루 계획을 캐시에서 꺼내고, 없거나 오래됐으면 서버에서 받아옴
- * @param boardId 플랜보드 ID
- * @param date 조회할 날짜 (yyyy-MM-dd)
- * @returns 그 보드의 그날 dailyPlanId와 태스크
- */
-export const fetchCachedBoardDaily = (boardId: number, date: string) =>
-  queryClient.fetchQuery({ queryKey: queryKeys.boards.daily(boardId, date), queryFn: () => getBoardDaily(boardId, date) });
 
 /**
  * 일일 태스크 목록 조회 API 함수
@@ -183,7 +133,7 @@ export const getWeeklyTasks = async (date?: string): Promise<WeeklyPlan> => {
 
 /**
  * 태스크 생성 API 함수
- * @param input 생성할 태스크 정보
+ * @param input 생성할 태스크 정보, textbookId 를 보내면 서버가 그 교과서의 과목을 태스크에 붙임
  */
 export const createPlanTask = async (input: CreatePlanTaskInput): Promise<void> => {
   await api.post('/plan-tasks', input);

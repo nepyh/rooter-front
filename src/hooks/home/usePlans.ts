@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Alert } from "react-native";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import type { Category } from "@/constants/category";
 import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
-import { getBoardInfo, getEditErrorMessage } from "@/api/home/Home";
+import { getEditErrorMessage } from "@/api/home/Home";
 import { invalidatePlanQueries, invalidateTaskQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { useRefetchOnFocus } from "@/hooks/common/useRefetchOnFocus";
 import { DAY_MIN } from "@/utils/common/time";
@@ -26,13 +25,6 @@ interface DailyPlans {
 }
 
 // ================================
-// Constants
-// ================================
-
-const EMPTY_MANUAL_IDS: number[] = [];
-const EMPTY_CATEGORY_MAP: Record<number, Category> = {};
-
-// ================================
 // Query Options
 // ================================
 
@@ -47,16 +39,6 @@ export const dailyPlansQueryOptions = (date: string) =>
       const daily = await getDailyTasks(date);
       return { chatDailyPlanId: daily.tasks[0]?.dailyPlanId ?? null, plans: daily.tasks.map(mapPlanTaskToPlan) };
     },
-  });
-
-/**
- * 그날 할 일과 플랜보드 연결 정보 쿼리 설정. usePlans 와 usePrefetchNeighborDays 가 함께 씀
- * @param date 조회할 날짜 (YYYY-MM-DD)
- */
-export const boardInfoQueryOptions = (date: string) =>
-  queryOptions({
-    queryKey: queryKeys.boards.info(date),
-    queryFn: () => getBoardInfo(date),
   });
 
 // ================================
@@ -76,9 +58,8 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const dailyKey = queryKeys.tasks.daily(selectedKey);
 
   const dailyQuery = useQuery(dailyPlansQueryOptions(selectedKey));
-  const boardInfoQuery = useQuery(boardInfoQueryOptions(selectedKey));
 
-  useRefetchOnFocus([dailyKey, queryKeys.boards.info(selectedKey)]);
+  useRefetchOnFocus([dailyKey]);
 
   const [statusById, setStatusById] = useState<Map<string, PlanStatus>>(new Map());
 
@@ -88,9 +69,6 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     return status ? { ...plan, status } : plan;
   });
   const chatDailyPlanId = daily?.chatDailyPlanId ?? null;
-  const boardInfo = boardInfoQuery.isError ? null : boardInfoQuery.data;
-  const manualDailyPlanIds = boardInfo?.manualDailyPlanIds ?? EMPTY_MANUAL_IDS;
-  const categoryByDailyPlanId = boardInfo?.categoryByDailyPlanId ?? EMPTY_CATEGORY_MAP;
 
   const setPlans = (update: (prev: Plan[]) => Plan[]) => {
     queryClient.cancelQueries({ queryKey: dailyKey });
@@ -108,11 +86,9 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const coloredPlans = plans.map((plan) => ({
     ...plan,
     status: plan.status === "pending" && isPast(plan) ? ("failed" as const) : plan.status,
-    category: (plan.dailyPlanId !== undefined && categoryByDailyPlanId[plan.dailyPlanId]) || plan.category,
   }));
 
-  const isManualPlan = (plan: Plan | null) =>
-    plan?.dailyPlanId !== undefined && manualDailyPlanIds.includes(plan.dailyPlanId);
+  const isManualPlan = (plan: Plan | null) => plan?.isManual ?? false;
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
     setStatusById((prev) => new Map(prev).set(id, status));
@@ -127,7 +103,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
       if (plan.id !== id) return plan;
       const lines = plan.lines.map((line) => line.icon === "history"
         ? { ...line, text: `${startTime} - ${endTime} | ${formatDuration(duration)}` }
-        : line);
+        : { ...line, text: title });
       return { ...plan, title, start, duration, lines };
     }));
 

@@ -3,12 +3,13 @@ import { ScrollView } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Row, Text, LoadingView, WeekDateStrip, TaskList } from "@/components";
+import { Row, Stack, Text, LoadingView, WeekDateStrip, TaskList } from "@/components";
 import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
 import { toLocalDateString } from "@/utils/common/date";
 import { getWeekDates, isTaskEnded, parseDateString } from "@/utils/todo/date";
+import { groupTasksBySubject } from "@/utils/todo/task";
 import { getSpacing } from "@/utils/common/token";
 
 /**
@@ -33,10 +34,6 @@ export default function TodoPage() {
     router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
-  const handleAdd = () => {
-    router.push({ pathname: "/Todo/AddTodo", params: { date: selectedKey } });
-  };
-
   return (
     <Animated.View entering={date ? SlideInRight.duration(300) : undefined} style={{ flex: 1 }}>
       <StatusBar style="light" />
@@ -49,7 +46,17 @@ export default function TodoPage() {
 
       {!loaded ? <LoadingView className="pb-[140px]" /> : (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: getSpacing("spacing-5"), paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-          <TaskList tasks={tasks} onToggleTask={handleToggle} onAdd={handleAdd} />
+          <Stack gap="l">
+            {groupTasksBySubject(tasks).map((group) => (
+              <TaskList
+                key={group.subjectName}
+                subjectName={group.subjectName}
+                category={group.category}
+                tasks={group.tasks}
+                onToggleTask={handleToggle}
+              />
+            ))}
+          </Stack>
         </ScrollView>
       )}
     </Animated.View>

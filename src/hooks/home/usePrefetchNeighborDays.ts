@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { boardInfoQueryOptions, dailyPlansQueryOptions } from "@/hooks/home/usePlans";
+import { dailyPlansQueryOptions } from "@/hooks/home/usePlans";
 import { busyTimesQueryOptions } from "@/hooks/home/useDaySchedule";
 import { toLocalDateString } from "@/utils/common/date";
 
@@ -21,7 +21,6 @@ export function usePrefetchNeighborDays(selectedDate: Date) {
   useEffect(() => {
     [prevKey, nextKey].forEach((date) => {
       queryClient.prefetchQuery(dailyPlansQueryOptions(date));
-      queryClient.prefetchQuery(boardInfoQueryOptions(date));
       queryClient.prefetchQuery(busyTimesQueryOptions(date));
     });
   }, [queryClient, prevKey, nextKey]);

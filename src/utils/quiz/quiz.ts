@@ -15,6 +15,7 @@ export type OptionState = "default" | "selected" | "correct" | "wrong";
  * 퀴즈 응답에 과목 정보가 없을 때 쓰는, 홈에서 넘겨준 카테고리별 과목 이름
  */
 export const SUBJECT_LABELS: Partial<Record<Category, string>> = {
+  "korean": "국어",
   "math": "수학",
   "english": "영어",
   "science": "과학",

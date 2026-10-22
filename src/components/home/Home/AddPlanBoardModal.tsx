@@ -248,6 +248,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
         startTime: formatTimePill(startAt),
         endTime: formatTimePill(endAt),
         estimatedMinutes,
+        textbookId: [...selectedTextbooks.keys()][0],
       });
       onCreated();
     } catch {
