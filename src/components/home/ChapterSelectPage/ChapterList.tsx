@@ -5,7 +5,6 @@ import { Text } from "../../ui/Text";
 import { TopLevelAccordion } from "./TopLevelAccordion";
 import type { TextbookDetail } from "@/api/home/common/catalog";
 import { sortByChapterOrder } from "@/utils/home/chapter";
-import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 
 // ================================
@@ -24,8 +23,6 @@ interface Props {
   onToggleExpand: (id: number) => void;
   selectedIds: Set<number>;
   onToggleLeaf: (id: number) => void;
-  missingIds: Set<number>;
-  showRequired: boolean;
 }
 
 /**
@@ -35,10 +32,8 @@ interface Props {
  * @param onToggleExpand 대단원을 펼치거나 접을 때 호출
  * @param selectedIds 고른 소단원 id
  * @param onToggleLeaf 소단원을 눌렀을 때 호출
- * @param missingIds 아직 목차를 하나도 고르지 않은 교과서 id
- * @param showRequired 고르지 않은 교과서에 필수 안내를 띄울지
  */
-export function ChapterList({ textbooks, expandedIds, onToggleExpand, selectedIds, onToggleLeaf, missingIds, showRequired }: Props) {
+export function ChapterList({ textbooks, expandedIds, onToggleExpand, selectedIds, onToggleLeaf }: Props) {
   const overlayOpacity = useSharedValue(1);
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
 
@@ -60,9 +55,6 @@ export function ChapterList({ textbooks, expandedIds, onToggleExpand, selectedId
           <Stack key={textbook.id} gap="m" width="full">
             {textbooks.length > 1 && (
               <Text variant="header-medium" weight="semibold" color="secondary" className="pt-spacing-3">{textbook.title}</Text>
-            )}
-            {showRequired && missingIds.has(textbook.id) && (
-              <Text variant="base-small" style={{ color: color.utility["error-primary"] }}>* 필수 항목이에요. 목차를 하나 이상 선택해주세요</Text>
             )}
             {sortByChapterOrder(textbook.chapters).map((node) => (
               <TopLevelAccordion

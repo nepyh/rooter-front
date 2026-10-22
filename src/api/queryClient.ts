@@ -77,6 +77,13 @@ export const queryKeys = {
     all: ['contribution'] as const,
     range: (userId: number, start: string, end: string) => ['contribution', userId, start, end] as const,
   },
+  catalog: {
+    subjects: ['catalog', 'subjects'] as const,
+    textbooks: (subjectIds: number[]) => ['catalog', 'textbooks', subjectIds] as const,
+  },
+  users: {
+    info: (userId: number) => ['users', userId] as const,
+  },
 };
 
 /**
