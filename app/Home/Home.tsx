@@ -81,10 +81,10 @@ export default function Home() {
     timeline.revealMenu(plan);
   };
 
-  const handleDropPlan = (plan: Plan, start: number) => {
+  const handleDropPlan = (plan: Plan, start: number, duration: number) => {
     setDragPreview(null);
-    if (start !== plan.start) savePlanEdit(plan.id, plan.title, start, plan.duration);
-    timeline.revealMenu({ ...plan, start });
+    if (start !== plan.start || duration !== plan.duration) savePlanEdit(plan.id, plan.title, start, duration);
+    timeline.revealMenu({ ...plan, start, duration });
   };
 
   const handleComplete = (plan: Plan) => {
@@ -177,8 +177,8 @@ export default function Home() {
                   dragPreview={dragPreview}
                   canDeleteActive={isManualPlan(activePlan)}
                   onLongPressPlan={handleLongPressPlan}
-                  onDragStart={(plan) => setDragPreview({ id: plan.id, start: plan.start })}
-                  onDragMove={(plan, start) => setDragPreview({ id: plan.id, start })}
+                  onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
+                  onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
                   onDropPlan={handleDropPlan}
                   onDismissMenu={() => setActiveId(null)}
                   onComplete={handleComplete}

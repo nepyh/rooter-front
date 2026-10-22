@@ -12,6 +12,7 @@ import {
   layoutColumns,
   minutesSinceWindowStart,
   type BusyBlock,
+  type DragMode,
   type DragPreview,
   type Plan,
 } from "@/utils/home/timeline";
@@ -32,9 +33,9 @@ interface Props {
   dragPreview: DragPreview | null;
   canDeleteActive: boolean;
   onLongPressPlan: (plan: Plan) => void;
-  onDragStart: (plan: Plan) => void;
-  onDragMove: (plan: Plan, start: number) => void;
-  onDropPlan: (plan: Plan, start: number) => void;
+  onDragStart: (plan: Plan, mode: DragMode) => void;
+  onDragMove: (plan: Plan, start: number, duration: number) => void;
+  onDropPlan: (plan: Plan, start: number, duration: number) => void;
   onDismissMenu: () => void;
   onComplete: (plan: Plan) => void;
   onFail: (plan: Plan) => void;
@@ -53,12 +54,12 @@ interface Props {
  * @param plans 계획 목록
  * @param currentTime 현재 시각 선을 그릴 시각, 오늘이 아니면 null
  * @param activePlan 꾹 눌러 옮길 준비가 된 계획, 이 계획에 액션 메뉴를 띄움
- * @param dragPreview 끌고 있는 계획과 지금 놓으면 들어갈 시작 위치, 끌고 있지 않으면 null (끄는 동안에는 액션 메뉴를 숨김)
+ * @param dragPreview 끌고 있는 계획과 지금 놓으면 들어갈 시작 위치·길이, 끌고 있지 않으면 null (끄는 동안에는 액션 메뉴를 숨김)
  * @param canDeleteActive 액션 메뉴에 삭제 버튼을 보여줄지
  * @param onLongPressPlan 계획 블록을 꾹 눌렀을 때 호출
- * @param onDragStart 계획 블록을 끌기 시작했을 때 호출
- * @param onDragMove 끄는 동안 놓을 자리가 SNAP_MIN 단위로 바뀔 때마다 새 시작 위치(분)와 함께 호출
- * @param onDropPlan 끌던 계획 블록을 놓았을 때 새 시작 위치(분)와 함께 호출
+ * @param onDragStart 계획 블록을 옮기거나 손잡이로 길이를 바꾸기 시작했을 때 호출
+ * @param onDragMove 끄는 동안 놓을 자리가 SNAP_MIN 단위로 바뀔 때마다 새 시작 위치·길이(분)와 함께 호출
+ * @param onDropPlan 끌던 계획 블록을 놓았을 때 새 시작 위치·길이(분)와 함께 호출
  * @param onDismissMenu 옮길 준비가 된 계획이 있을 때 바탕이나 다른 블록을 눌렀을 때 호출
  * @param onComplete 액션 메뉴의 완료를 눌렀을 때 호출
  * @param onFail 액션 메뉴의 실패를 눌렀을 때 호출
@@ -98,7 +99,7 @@ export function PlanTimeline({
     ...plans.map((plan) => ({
       id: `plan:${plan.id}`,
       start: plan.id === dragPreview?.id ? dragPreview.start : plan.start,
-      duration: plan.duration,
+      duration: plan.id === dragPreview?.id ? dragPreview.duration : plan.duration,
     })),
   ]);
   const columnOf = (id: string) => columns.get(id) ?? { column: 0, columns: 1 };
@@ -133,14 +134,14 @@ export function PlanTimeline({
                 {...columnOf(`plan:${plan.id}`)}
                 areaWidth={areaWidth}
                 isActive={plan.id === activePlan?.id}
-                isDragging={plan.id === dragPreview?.id}
+                dragMode={plan.id === dragPreview?.id ? dragPreview.mode : null}
                 draggable={plan.status === "pending"}
                 scrollGestures={scrollGestures}
                 onPress={onDismissMenu}
                 onLongPress={() => onLongPressPlan(plan)}
-                onDragStart={() => onDragStart(plan)}
-                onDragMove={(start) => onDragMove(plan, start)}
-                onDrop={(start) => onDropPlan(plan, start)}
+                onDragStart={(mode) => onDragStart(plan, mode)}
+                onDragMove={(start, duration) => onDragMove(plan, start, duration)}
+                onDrop={(start, duration) => onDropPlan(plan, start, duration)}
               />
             ))}
           </View>

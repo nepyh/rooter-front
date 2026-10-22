@@ -10,6 +10,13 @@ import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
 export type PlanStatus = "pending" | "done" | "failed";
 
+/**
+ * 계획 블록을 끄는 방식
+ * - move: 블록 전체를 옮김
+ * - resize: 위아래 손잡이로 시작·종료 시각을 바꿈
+ */
+export type DragMode = "move" | "resize";
+
 export interface PlanLine {
   icon: "book" | "history";
   text: string;
@@ -32,13 +39,17 @@ export interface Plan {
 }
 
 /**
- * 끌고 있는 계획과, 지금 놓으면 들어갈 시작 위치. 끄는 동안 주변 블록 칸 배치를 미리 계산할 때 씀
+ * 끌고 있는 계획과, 지금 놓으면 들어갈 시작 위치·길이. 끄는 동안 주변 블록 칸 배치를 미리 계산할 때 씀
  * @param id 끌고 있는 계획 id
+ * @param mode 옮기는 중인지, 길이를 바꾸는 중인지
  * @param start 타임라인 시작 기준 오프셋(분), SNAP_MIN 단위로 맞춘 값
+ * @param duration 길이(분), SNAP_MIN 단위로 맞춘 값
  */
 export interface DragPreview {
   id: string;
+  mode: DragMode;
   start: number;
+  duration: number;
 }
 
 /**
@@ -99,6 +110,32 @@ export const snapPlanStart = (start: number, duration: number) => {
   "worklet";
   const snapped = Math.round(start / SNAP_MIN) * SNAP_MIN;
   return Math.min(Math.max(snapped, 0), TIMELINE_HEIGHT - duration);
+};
+
+/**
+ * 위 손잡이로 바꾼 시작 위치를 SNAP_MIN 단위로 맞춤. 종료 시각은 그대로 두고, 최소 SNAP_MIN 길이를 남김
+ * @param start 끌어 놓은 시작 위치 (타임라인 시작 기준 분)
+ * @param end 바뀌지 않는 종료 위치 (타임라인 시작 기준 분)
+ * @returns start(맞춘 시작 위치), duration(새 길이)
+ */
+export const snapResizeTop = (start: number, end: number) => {
+  "worklet";
+  const snapped = Math.round(start / SNAP_MIN) * SNAP_MIN;
+  const next = Math.min(Math.max(snapped, 0), end - SNAP_MIN);
+  return { start: next, duration: end - next };
+};
+
+/**
+ * 아래 손잡이로 바꾼 종료 위치를 SNAP_MIN 단위로 맞춤. 시작 시각은 그대로 두고, 최소 SNAP_MIN 길이를 남김
+ * @param start 바뀌지 않는 시작 위치 (타임라인 시작 기준 분)
+ * @param end 끌어 놓은 종료 위치 (타임라인 시작 기준 분)
+ * @returns start(그대로인 시작 위치), duration(새 길이)
+ */
+export const snapResizeBottom = (start: number, end: number) => {
+  "worklet";
+  const snapped = Math.round(end / SNAP_MIN) * SNAP_MIN;
+  const next = Math.min(Math.max(snapped, start + SNAP_MIN), TIMELINE_HEIGHT);
+  return { start, duration: next - start };
 };
 
 export const formatDateHeader =(date: Date) =>
