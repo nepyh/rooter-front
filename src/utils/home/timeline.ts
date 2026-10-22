@@ -1,7 +1,7 @@
 import { FALLBACK_SUBJECT_NAME, SUBJECT_CATEGORIES, type Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
 import type { DailyBusyTime } from "@/api/home/Home/busyTime";
-import type { PlanTask } from "@/api/common/planBoard";
+import type { PlanTask, PlanTaskStatus } from "@/api/common/planBoard";
 import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
 // ================================
@@ -255,6 +255,13 @@ export const layoutColumns = (items: { id: string; start: number; duration: numb
   return result;
 };
 
+/** 백엔드 할일 status → 타임라인 블록 상태 (실패한 할일은 끌 수 없게 failed 로 둠) */
+const PLAN_STATUS: Record<PlanTaskStatus, PlanStatus> = {
+  PENDING: "pending",
+  DONE: "done",
+  FAILED: "failed",
+};
+
 export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -271,7 +278,7 @@ export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
     category: (subjectName && SUBJECT_CATEGORIES[subjectName]) || "neutral",
     start,
     duration: task.estimatedMinutes,
-    status: task.isCompleted ? "done" : "pending",
+    status: PLAN_STATUS[task.status],
     dailyPlanId: task.dailyPlanId,
     lines: showTaskLine ? [{ icon: "book", text: task.taskName }, timeLine] : [timeLine],
   };

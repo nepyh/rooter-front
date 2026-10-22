@@ -4,7 +4,7 @@ import {
   getQuizErrorMessage,
   getTaskQuiz,
   isAlreadyAnswered,
-  submitQuizAndComplete,
+  submitTaskQuiz,
   type TaskQuiz,
   type TaskQuizAnswerResult,
   type TaskQuizResult,
@@ -66,7 +66,7 @@ export function useTaskQuiz(taskId: string | undefined) {
     setChecking(true);
     setError("");
     try {
-      setResult(await submitQuizAndComplete(id));
+      setResult(await submitTaskQuiz(id));
       invalidateTaskQueries();
       setCurrentIndex(0);
       setPhase("review");

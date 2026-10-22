@@ -27,10 +27,10 @@ export function useQuizItems(now: Date) {
   const items = (itemsQuery.isError ? null : itemsQuery.data) ?? [];
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const remaining = items.filter((item) => !item.task.isCompleted);
+  const remaining = items.filter((item) => item.task.status !== "DONE");
   const current = remaining.filter((item) => parseHHmm(item.task.startTime) <= nowMin && nowMin < parseHHmm(item.task.endTime));
   const upcoming = remaining.filter((item) => parseHHmm(item.task.startTime) > nowMin);
-  const completed = items.filter((item) => item.task.isCompleted);
+  const completed = items.filter((item) => item.task.status === "DONE");
 
   return { loaded: !itemsQuery.isPending, current, upcoming, completed, isEmpty: current.length + upcoming.length + completed.length === 0 };
 }

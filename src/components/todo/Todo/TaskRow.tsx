@@ -34,16 +34,17 @@ interface Props {
 export function TaskRow({ task, accentColor = color.primary["500"], onToggle }: Props) {
   const scale = useSharedValue(1);
   const isFirstRender = useRef(true);
+  const isDone = task.status === "DONE";
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    if (task.isCompleted) {
+    if (isDone) {
       scale.value = withSequence(withTiming(1.35, { duration: 120 }), withTiming(1, { duration: 160 }));
     }
-  }, [task.isCompleted, scale]);
+  }, [isDone, scale]);
 
   const boxStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -52,15 +53,15 @@ export function TaskRow({ task, accentColor = color.primary["500"], onToggle }: 
       <Row gap="s" className="items-center">
         <Animated.View
           className="w-[14px] h-[14px] rounded-radius-1 items-center justify-center"
-          style={[task.isCompleted ? { backgroundColor: accentColor } : TODO_CHECKBOX_STYLE, boxStyle]}
+          style={[isDone ? { backgroundColor: accentColor } : TODO_CHECKBOX_STYLE, boxStyle]}
         >
-          {task.isCompleted && <Icon name="check" size={8} color={color.neutral["0"]} />}
+          {isDone && <Icon name="check" size={8} color={color.neutral["0"]} />}
         </Animated.View>
         <Text
           variant="base-medium"
-          color={task.isCompleted ? "disabled" : "primary"}
+          color={isDone ? "disabled" : "primary"}
           className="flex-1"
-          style={task.isCompleted ? COMPLETED_TITLE_STYLE : undefined}
+          style={isDone ? COMPLETED_TITLE_STYLE : undefined}
         >
           {task.taskName}
         </Text>
