@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { PlanBlockText } from "./PlanBlockText";
 import { columnStyle } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
 import { color } from "@/constants/token/color";
 import { useAnimatedColumn } from "@/hooks/home/useAnimatedColumn";
+import type { AutoScroll } from "@/hooks/home/useAutoScroll";
 import {
   SNAP_MIN,
   TIMELINE_HEIGHT,
@@ -24,6 +25,7 @@ import {
 // ================================
 
 type PlanTextFit = "full" | "title" | "none";
+type GestureMode = "idle" | "move" | "top" | "bottom";
 
 // ================================
 // Constants
@@ -61,6 +63,7 @@ interface Props {
   dragMode: DragMode | null;
   draggable: boolean;
   scrollGestures: NativeGesture[];
+  autoScroll: AutoScroll;
   onPress: () => void;
   onLongPress: () => void;
   onDragStart: (mode: DragMode) => void;
@@ -82,6 +85,7 @@ interface Props {
  * @param dragMode 이 블록을 끄는 방식, 끌고 있지 않으면 null. 끄는 동안에는 칸 배치가 바뀌어도 크기를 유지하고, 옮기는 동안에는 손잡이를 숨김
  * @param draggable 꾹 누르기·끌기를 받을지 (완료·실패한 계획은 false)
  * @param scrollGestures 끄는 동안 막을 ScrollView 제스처들
+ * @param autoScroll 끄다가 손가락이 위·아래 끝에 가까워지면 타임라인을 저절로 스크롤하는 도구 (스크롤한 만큼 블록 위치도 보정)
  * @param onPress 블록을 짧게 눌렀을 때 호출 (옮길 준비가 된 블록은 호출하지 않음)
  * @param onLongPress 블록을 꾹 눌렀을 때 호출
  * @param onDragStart 블록을 옮기거나 손잡이로 길이를 바꾸기 시작했을 때 호출
@@ -97,6 +101,7 @@ export function PlanBlock({
   dragMode,
   draggable,
   scrollGestures,
+  autoScroll,
   onPress,
   onLongPress,
   onDragStart,
@@ -124,9 +129,12 @@ export function PlanBlock({
   const dragY = useSharedValue(0);
   const topDelta = useSharedValue(0);
   const bottomDelta = useSharedValue(0);
+  const fingerY = useSharedValue(0);
+  const gestureMode = useSharedValue<GestureMode>("idle");
   const dragging = useSharedValue(false);
   const previewStart = useSharedValue(plan.start);
   const previewDuration = useSharedValue(plan.duration);
+  const { scrollDelta, begin: beginAutoScroll, update: updateAutoScroll, end: endAutoScroll } = autoScroll;
 
   useEffect(() => {
     startY.set(plan.start);
@@ -143,29 +151,66 @@ export function PlanBlock({
     height: height.get() - topDelta.get() + bottomDelta.get(),
   }));
 
+  const followFinger = () => {
+    "worklet";
+    const mode = gestureMode.get();
+    if (mode === "idle") return;
+    const y = fingerY.get() + scrollDelta.get();
+    const top = startY.get();
+    const h = height.get();
+    let preview;
+    if (mode === "move") {
+      dragY.set(y);
+      if (!dragging.get()) return;
+      preview = { start: snapPlanStart(top + y, h), duration: h };
+    } else if (mode === "top") {
+      const delta = Math.min(Math.max(y, -top), h - SNAP_MIN);
+      topDelta.set(delta);
+      preview = snapResizeTop(top + delta, top + h);
+    } else {
+      const delta = Math.min(Math.max(y, SNAP_MIN - h), TIMELINE_HEIGHT - top - h);
+      bottomDelta.set(delta);
+      preview = snapResizeBottom(top, top + h + delta);
+    }
+    if (preview.start !== previewStart.get() || preview.duration !== previewDuration.get()) {
+      previewStart.set(preview.start);
+      previewDuration.set(preview.duration);
+      scheduleOnRN(onDragMove, preview.start, preview.duration);
+    }
+  };
+
+  useAnimatedReaction(
+    () => scrollDelta.get(),
+    (current, previous) => {
+      if (current !== previous) followFinger();
+    },
+  );
+
   const dragGesture = Gesture.Pan()
     .enabled(draggable)
     .activateAfterLongPress(isActive ? 0 : LONG_PRESS_MS)
     .blocksExternalGesture(...scrollGestures)
     .onStart(() => {
       if (!isActive) scheduleOnRN(onLongPress);
+      fingerY.set(0);
+      gestureMode.set("move");
+      beginAutoScroll();
     })
     .onUpdate((e) => {
       dragX.set(e.translationX);
-      dragY.set(e.translationY);
+      fingerY.set(e.translationY);
       if (!dragging.get() && Math.hypot(e.translationX, e.translationY) > DRAG_START_DISTANCE) {
         dragging.set(true);
         previewStart.set(startY.get());
+        previewDuration.set(height.get());
         scheduleOnRN(onDragStart, "move");
       }
-      if (!dragging.get()) return;
-      const snapped = snapPlanStart(startY.get() + e.translationY, height.get());
-      if (snapped !== previewStart.get()) {
-        previewStart.set(snapped);
-        scheduleOnRN(onDragMove, snapped, height.get());
-      }
+      if (dragging.get()) updateAutoScroll(e.absoluteY);
+      followFinger();
     })
     .onEnd(() => {
+      endAutoScroll();
+      gestureMode.set("idle");
       if (!dragging.get()) {
         dragX.set(0);
         dragY.set(0);
@@ -191,28 +236,19 @@ export function PlanBlock({
       .onStart(() => {
         previewStart.set(startY.get());
         previewDuration.set(height.get());
+        fingerY.set(0);
+        gestureMode.set(edge);
+        beginAutoScroll();
         scheduleOnRN(onDragStart, "resize");
       })
       .onUpdate((e) => {
-        const top = startY.get();
-        const h = height.get();
-        let preview;
-        if (edge === "top") {
-          const delta = Math.min(Math.max(e.translationY, -top), h - SNAP_MIN);
-          topDelta.set(delta);
-          preview = snapResizeTop(top + delta, top + h);
-        } else {
-          const delta = Math.min(Math.max(e.translationY, SNAP_MIN - h), TIMELINE_HEIGHT - top - h);
-          bottomDelta.set(delta);
-          preview = snapResizeBottom(top, top + h + delta);
-        }
-        if (preview.start !== previewStart.get() || preview.duration !== previewDuration.get()) {
-          previewStart.set(preview.start);
-          previewDuration.set(preview.duration);
-          scheduleOnRN(onDragMove, preview.start, preview.duration);
-        }
+        fingerY.set(e.translationY);
+        updateAutoScroll(e.absoluteY);
+        followFinger();
       })
       .onEnd(() => {
+        endAutoScroll();
+        gestureMode.set("idle");
         const top = startY.get();
         const h = height.get();
         if (topDelta.get() === 0 && bottomDelta.get() === 0) {

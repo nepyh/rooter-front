@@ -167,7 +167,7 @@ export default function Home() {
               <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
               <View style={{ width: pager.pageWidth }}>
                 <PlanTimeline
-                  ref={timeline.scrollRef}
+                  scrollRef={timeline.scrollRef}
                   pagerGesture={pagerGesture}
                   dateKey={selectedKey}
                   busyBlocks={busyBlocks}
