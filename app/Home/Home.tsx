@@ -167,7 +167,9 @@ export default function Home() {
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 contentOffset={{ x: pager.pageWidth, y: 0 }}
-                onScrollBeginDrag={pager.syncNeighborOffset}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={pager.handlePagerBeginDrag}
+                onScroll={pager.handlePagerScroll}
                 onMomentumScrollEnd={pager.handlePagerEnd}
               >
                 <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.prev)} now={now} />
