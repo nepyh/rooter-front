@@ -23,6 +23,17 @@ Sentry 조직 토큰의 CI용 `org:ci` 권한은 소스맵 업로드에 사용�
 
 토큰이 없는 개발자는 `npm start`, `npm run export:web`, `npm run sentry:check`를 사용할 수 있습니다. Sentry 수집도 확인하려면 공개 DSN을 설정합니다. `npm run sentry:upload`는 명시적인 업로드 요청이므로 필수 설정이나 소스맵이 없으면 실패합니다.
 
+## GitHub에서 웹 빌드와 소스맵 업로드 검증
+
+수동 workflow는 [`.github/workflows/sentry-web.yml`](../.github/workflows/sentry-web.yml)에 있습니다. **이 파일이 기본 브랜치에 머지된 뒤에** GitHub Actions에서 실행할 수 있습니다. PR 브랜치에만 있는 동안에는 `Run workflow`로 실행할 수 없습니다. 이는 [GitHub의 수동 실행 조건](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)에 따른 제약입니다.
+
+1. 저장소의 **Settings → Secrets and variables → Actions**에서 다음 값을 등록합니다. `Variables`에는 `EXPO_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`(`personal-g2d`), `SENTRY_PROJECT`(`rooter-front`)를 넣고, `Secrets`에는 `SENTRY_AUTH_TOKEN`을 넣습니다. 서버 API도 사용하려면 공개 서버 주소를 `EXPO_PUBLIC_API_BASE_URL` variable에 등록합니다.
+2. **Actions → Sentry 웹 검증 → Run workflow**에서 검증할 브랜치를 선택합니다. `environment`의 기본값은 `monitoring-validation`입니다. release는 선택한 커밋의 `rooter-front@<SHA>`로 자동 설정합니다.
+3. Node.js 24에서 의존성 설치 → 모니터링 테스트 → 타입 검사 → 웹 export → Debug ID 검사 → 실제 Sentry 소스맵 업로드를 차례로 실행합니다. 필수 variable이나 환경 이름이 공백이면 처음에 실패합니다. 인증 토큰은 업로드 단계에만 전달하며, 토큰 누락이나 업로드 실패도 workflow 실패로 처리합니다.
+4. 성공한 실행의 **Artifacts**에서 `sentry-web-<SHA>`를 내려받습니다. 업로드에 사용한 동일한 웹 번들을 7일 동안 보관하며 `.map` 파일은 포함하지 않습니다. 이 번들로 브라우저 오류를 발생시킨 뒤 Sentry의 `monitoring-validation` 환경과 해당 release에서 수신·원본 스택을 확인합니다. 다른 환경 이름을 입력했다면 그 이름을 선택합니다.
+
+이 workflow는 웹 파일을 호스팅하거나 테스트 오류를 발생시키지 않습니다. 소스맵 업로드 성공과 실제 오류 수신은 별도로 확인해야 합니다. TestFlight 앱의 빌드·배포나 네이티브 설정도 변경하지 않습니다.
+
 ## 웹 배포에 연결하는 방법
 
 저장소에는 웹 호스팅 배포 workflow가 없습니다. 아래 명령을 실제 호스팅 서비스의 빌드·배포 작업에 연결해야 합니다. 현재 구현만으로 외부 배포에 자동 연결되지는 않습니다.
@@ -55,7 +66,9 @@ Sentry 수집 서버가 네트워크 통신 중 보는 IP까지 브라우저 코
 
 ## 배포 후 확인
 
-실제 DSN과 업로드 토큰은 저장소에 없으므로 외부 수신·업로드 성공은 아직 검증하지 않았습니다. 설정을 마친 뒤 staging에서 확인합니다.
+2026-10-23에 `monitoring-validation` 환경에서 실제 소스맵 업로드와 오류 수신을 검증했습니다. 로컬 브라우저의 로그인 요청에 모의 500 응답을 반환했고, [검증 이벤트](https://personal-g2d.sentry.io/issues/7807740825/events/8822e8d5790c483ebabb2868dd6a5d3a/)에서 `app/Auth/Login.tsx:19`, `src/api/axios.ts:36`, `src/lib/monitoring.ts:36`으로 원본 코드가 표시되었습니다. 테스트 이메일·비밀번호·응답 본문은 전송되지 않았습니다. 운영 API에는 요청하지 않았으며, 호스팅 배포와 TestFlight 빌드는 검증하지 않았습니다.
+
+소스맵은 이 저장소의 `npm run sentry:upload`로 업로드합니다. 업로드가 성공해도 서버 처리가 끝나기 전 발생한 이벤트에는 원본 코드가 표시되지 않을 수 있습니다. 잠시 뒤 새 테스트 오류를 발생시켜 확인합니다. 다른 배포 환경에서도 다음 절차로 검증합니다.
 
 1. Sentry 프로젝트와 배포 환경을 선택합니다. 공개 DSN을 넣어 빌드한 배포인지 확인합니다.
 2. 개발 브랜치의 임시 화면 버튼에서 `throw new Error('Sentry staging smoke test')`를 발생시킵니다. 렌더 오류도 확인하려면 임시 컴포넌트의 렌더 중 같은 오류를 발생시킵니다. 개인정보를 테스트 메시지에 넣지 않습니다.
@@ -64,5 +77,14 @@ Sentry 수집 서버가 네트워크 통신 중 보는 IP까지 브라우저 코
 5. 이벤트 JSON에 Authorization, Cookie, 이메일, 요청·응답 본문, 토큰이 없는지 확인합니다. 임시 화면과 테스트 코드는 제거합니다.
 
 로컬 검증은 `npm run test:monitoring`, `npx tsc --noEmit`, `npm run lint`, `npm run export:web`, `npm run sentry:check`로 실행합니다. 전체 lint에 기존 오류가 남아 있다면 변경한 파일의 lint 결과와 구분합니다.
+
+## TestFlight에서 확인할 사항
+
+기존 TestFlight 앱으로 기능 테스트는 진행할 수 있습니다. 다만 이번 PR의 검증 범위는 웹이며, 기존 설치 앱에는 이 PR의 코드가 자동으로 반영되지 않습니다. TestFlight에서 Sentry를 검증하려면 먼저 앱을 빌드한 저장소와 커밋을 확인하고, iOS 빌드에 SDK 설정과 소스맵 업로드를 연결한 새 빌드를 받아야 합니다. GitHub Actions의 변수와 secret은 EAS에 자동으로 전달되지 않습니다.
+
+1. TestFlight에서 앱 버전과 빌드 번호를 기록합니다. 테스트할 계정으로 로그인 → 학습 계획 생성 → 저장 후 재실행 → 완료 표시를 순서대로 확인합니다.
+2. 로그인 실패, 빈 입력, 네트워크 끊김 후 복구를 확인합니다. 정상적인 입력 오류와 4xx는 Sentry 오류가 없어야 합니다.
+3. Sentry가 연결된 새 테스트 빌드에서는 개발자가 준비한 테스트용 오류를 한 번 발생시킵니다. 같은 시간·환경·release의 이벤트와 원본 코드 위치를 확인합니다. 현재 설정은 네이티브 크래시 수집을 끄므로 앱 강제 종료만으로 수집 성공을 판정하지 않습니다.
+4. 문제를 발견하면 `빌드 번호 / 기기와 OS / 재현 순서 / 기대 결과 / 실제 결과 / 발생 시각`을 남깁니다. 화면 캡처와 함께 [TestFlight 피드백](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/)으로 전달할 수 있습니다.
 
 참고: [Expo의 Sentry 연동 안내](https://docs.expo.dev/guides/using-sentry/), [Sentry 인증 토큰 안내](https://docs.sentry.io/api/guides/create-auth-token/), [조직 토큰의 CI 권한](https://www.sentry.help/en/articles/13964301-how-can-i-change-the-scope-for-an-organization-auth-token)
