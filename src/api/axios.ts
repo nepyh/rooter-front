@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { router } from 'expo-router';
 import { useUserStore } from '@/store';
+import { captureApiFailure } from '@/lib/monitoring';
 
 // AI 호출 API(계획 생성·퀴즈·피드백·챗봇) 전용 timeout
 export const AI_TIMEOUT_MS = 60_000;
@@ -32,6 +33,7 @@ let lastSessionRedirectAt = 0;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    captureApiFailure(error);
     const isUnauthorized = error.response?.status === 401 && error.response?.data?.code === 'UNAUTHORIZED';
     const now = Date.now();
     if (isUnauthorized && now - lastSessionRedirectAt > REDIRECT_COOLDOWN_MS) {

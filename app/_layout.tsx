@@ -1,5 +1,6 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Slot, usePathname } from "expo-router";
+import { ErrorBoundary as RouterErrorBoundary, Slot, usePathname } from "expo-router";
+import { Sentry } from "@/lib/monitoring";
 import { View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
@@ -16,7 +17,7 @@ import "../global.css";
 
 const TAB_PATHS = ["/Home/Home", "/Todo/Todo", "/Quiz/Quiz", "/Calendar/Calendar", "/More/More"];
 
-export default function RootLayout() {
+function RootLayout() {
   const pathname = usePathname();
   const isFullScreenModalOpen = useUIStore((state) => state.isFullScreenModalOpen);
   const showNavBar = TAB_PATHS.includes(pathname) && !isFullScreenModalOpen;
@@ -48,3 +49,7 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export const ErrorBoundary = Sentry.wrapExpoRouterErrorBoundary(RouterErrorBoundary);
+
+export default Sentry.wrap(RootLayout);
