@@ -4,6 +4,7 @@ export { NeighborPage } from "./NeighborPage";
 export { HourLines } from "./HourLines";
 export { BusyBlockView } from "./BusyBlockView";
 export { PlanBlock } from "./PlanBlock";
+export { PlanBlockCard } from "./PlanBlockCard";
 export { PlanBlockText } from "./PlanBlockText";
 export { CurrentTimeLine } from "./CurrentTimeLine";
 export { ActionMenu } from "./ActionMenu";

@@ -1,21 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  type NativeGesture,
-} from "react-native-gesture-handler";
-import Animated, {
-  useAnimatedReaction,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { PlanBlockText, type PlanLineLayout } from "./PlanBlockText";
+import { PlanBlockCard } from "./PlanBlockCard";
 import { columnStyle } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
-import { color } from "@/constants/token/color";
 import { useAnimatedColumn } from "@/hooks/home/useAnimatedColumn";
 import type { AutoScroll } from "@/hooks/home/useAutoScroll";
 import {
@@ -26,7 +16,6 @@ import {
   snapResizeTop,
   type DragMode,
   type Plan,
-  type PlanStatus,
 } from "@/utils/home/timeline";
 
 // ================================
@@ -39,49 +28,10 @@ type GestureMode = "idle" | "move" | "top" | "bottom";
 // Constants
 // ================================
 
-const PLAN_TEXT_PADDING = 12;
-const PLAN_TEXT_LEFT = 16;
-const PLAN_TEXT_RIGHT = 4;
 const LONG_PRESS_MS = 500;
 const DRAG_START_DISTANCE = 8;
 const DROP_TIMING = { duration: 120 };
 const HANDLE_HIT_SLOP = { vertical: 12, horizontal: 16 };
-
-// ================================
-// Styles
-// ================================
-
-const statusOverrides: Partial<
-  Record<PlanStatus, { bar: string; bg: string; opacity: number }>
-> = {
-  "done": {
-    bar: color.neutral["500"],
-    bg: `${color.neutral["500"]}1F`,
-    opacity: 0.55,
-  },
-  "failed": {
-    bar: color.utility["error-primary"],
-    bg: `${color.utility["error-primary"]}29`,
-    opacity: 0.85,
-  },
-};
-
-const MEASURE_STYLE = {
-  position: "absolute" as const,
-  top: 0,
-  left: PLAN_TEXT_LEFT,
-  right: PLAN_TEXT_RIGHT,
-  opacity: 0,
-};
-
-const ACTIVE_SHADOW = [
-  {
-    offsetX: 0,
-    offsetY: 8,
-    blurRadius: 24,
-    color: `${color.neutral["1000"]}99`,
-  },
-];
 
 // ================================
 // Components
@@ -105,7 +55,7 @@ interface Props {
 }
 
 /**
- * 타임라인의 계획 블록. 글자가 블록보다 길면 부가 줄을 한 줄로 나란히 → 부가 줄 숨김 → 제목 숨김 순으로 줄임
+ * 타임라인의 계획 블록. 글자가 블록보다 길면 시간 줄 → 제목 순으로 숨김
  * 완료는 흐리게, 실패는 붉은 톤으로 표시
  * 꾹 누르면 그림자가 생기고 상하좌우로 자유롭게 끌어 옮길 수 있음. 그림자가 있는 동안은 꾹 누르지 않고 바로 끌 수 있음
  * 그림자가 있는 동안 위아래 손잡이를 끌면 시작·종료 시각을 바꿀 수 있음 (최소 SNAP_MIN 분)
@@ -142,35 +92,10 @@ export function PlanBlock({
   onDrop,
 }: Props) {
   const colors = CATEGORY_COLORS[plan.category];
-  const override = statusOverrides[plan.status];
-  const bar = override?.bar ?? colors.bar;
-  const bg = override?.bg ?? (isActive ? colors.focus : colors.bg);
-  const opacity = override?.opacity ?? 1;
 
-  const [titleHeight, setTitleHeight] = useState(0);
-  const [fullHeight, setFullHeight] = useState(0);
-  const [rowHeight, setRowHeight] = useState(0);
-  const available = plan.duration - PLAN_TEXT_PADDING;
-  const measured = fullHeight > 0 && rowHeight > 0;
-  const lineLayout: PlanLineLayout =
-    fullHeight <= available
-      ? "column"
-      : rowHeight <= available
-        ? "row"
-        : "none";
-  const showText = titleHeight <= available;
+  const { left, width, ...columnPadding } = columnStyle(column, columns, areaWidth);
 
-  const { left, width, ...columnPadding } = columnStyle(
-    column,
-    columns,
-    areaWidth,
-  );
-
-  const { x: startX, width: animatedWidth } = useAnimatedColumn(
-    left,
-    width,
-    dragMode !== null,
-  );
+  const { x: startX, width: animatedWidth } = useAnimatedColumn(left, width, dragMode !== null);
   const startY = useSharedValue(plan.start);
   const height = useSharedValue(plan.duration);
   const dragX = useSharedValue(0);
@@ -182,12 +107,7 @@ export function PlanBlock({
   const dragging = useSharedValue(false);
   const previewStart = useSharedValue(plan.start);
   const previewDuration = useSharedValue(plan.duration);
-  const {
-    scrollDelta,
-    begin: beginAutoScroll,
-    update: updateAutoScroll,
-    end: endAutoScroll,
-  } = autoScroll;
+  const { scrollDelta, begin: beginAutoScroll, update: updateAutoScroll, end: endAutoScroll } = autoScroll;
 
   useEffect(() => {
     startY.set(plan.start);
@@ -221,17 +141,11 @@ export function PlanBlock({
       topDelta.set(delta);
       preview = snapResizeTop(top + delta, top + h);
     } else {
-      const delta = Math.min(
-        Math.max(y, SNAP_MIN - h),
-        TIMELINE_HEIGHT - top - h,
-      );
+      const delta = Math.min(Math.max(y, SNAP_MIN - h), TIMELINE_HEIGHT - top - h);
       bottomDelta.set(delta);
       preview = snapResizeBottom(top, top + h + delta);
     }
-    if (
-      preview.start !== previewStart.get() ||
-      preview.duration !== previewDuration.get()
-    ) {
+    if (preview.start !== previewStart.get() || preview.duration !== previewDuration.get()) {
       previewStart.set(preview.start);
       previewDuration.set(preview.duration);
       scheduleOnRN(onDragMove, preview.start, preview.duration);
@@ -258,10 +172,7 @@ export function PlanBlock({
     .onUpdate((e) => {
       dragX.set(e.translationX);
       fingerY.set(e.translationY);
-      if (
-        !dragging.get() &&
-        Math.hypot(e.translationX, e.translationY) > DRAG_START_DISTANCE
-      ) {
+      if (!dragging.get() && Math.hypot(e.translationX, e.translationY) > DRAG_START_DISTANCE) {
         dragging.set(true);
         previewStart.set(startY.get());
         previewDuration.set(height.get());
@@ -317,10 +228,9 @@ export function PlanBlock({
           scheduleOnRN(onDrop, top, h);
           return;
         }
-        const next =
-          edge === "top"
-            ? snapResizeTop(top + topDelta.get(), top + h)
-            : snapResizeBottom(top, top + h + bottomDelta.get());
+        const next = edge === "top"
+          ? snapResizeTop(top + topDelta.get(), top + h)
+          : snapResizeBottom(top, top + h + bottomDelta.get());
         startY.set(top + topDelta.get());
         height.set(h - topDelta.get() + bottomDelta.get());
         topDelta.set(0);
@@ -349,67 +259,17 @@ export function PlanBlock({
     >
       <GestureDetector gesture={gesture}>
         <View className="flex-1">
-          <View
-            className="flex-1 rounded-radius-1"
-            style={isActive ? { boxShadow: ACTIVE_SHADOW } : undefined}
-          >
-            <View
-              style={{ flex: 1, backgroundColor: bg, opacity }}
-              className="flex-row gap-spacing-3 overflow-hidden rounded-radius-1 p-spacing-2"
-            >
-              {!isActive && (
-                <View
-                  className="h-full w-spacing-2 rounded-radius-full"
-                  style={{ backgroundColor: bar }}
-                />
-              )}
-              <View
-                className="flex-1 py-spacing-1"
-                style={{ opacity: measured ? 1 : 0 }}
-              >
-                {showText && (
-                  <PlanBlockText plan={plan} lineLayout={lineLayout} />
-                )}
-              </View>
-              <View pointerEvents="none" style={MEASURE_STYLE}>
-                <PlanBlockText
-                  plan={plan}
-                  lineLayout="column"
-                  onTitleLayout={setTitleHeight}
-                  onLayout={setFullHeight}
-                />
-              </View>
-              <View pointerEvents="none" style={MEASURE_STYLE}>
-                <PlanBlockText
-                  plan={plan}
-                  lineLayout="row"
-                  onLayout={setRowHeight}
-                />
-              </View>
-            </View>
-          </View>
+          <PlanBlockCard plan={plan} isActive={isActive} />
           {isActive && dragMode !== "move" && (
             <>
-              <View
-                pointerEvents="box-none"
-                className="absolute inset-x-spacing-0 -top-spacing-2 z-10 items-center"
-              >
+              <View pointerEvents="box-none" className="absolute -top-spacing-2 inset-x-spacing-0 items-center z-10">
                 <GestureDetector gesture={topHandleGesture}>
-                  <View
-                    className="h-spacing-3 w-spacing-11 rounded-radius-1 border border-neutral-100"
-                    style={{ backgroundColor: colors.muted }}
-                  />
+                  <View className="w-spacing-11 h-spacing-3 rounded-radius-1 border border-neutral-100" style={{ backgroundColor: colors.muted }} />
                 </GestureDetector>
               </View>
-              <View
-                pointerEvents="box-none"
-                className="absolute inset-x-spacing-0 -bottom-spacing-2 z-10 items-center"
-              >
+              <View pointerEvents="box-none" className="absolute -bottom-spacing-2 inset-x-spacing-0 items-center z-10">
                 <GestureDetector gesture={bottomHandleGesture}>
-                  <View
-                    className="h-spacing-3 w-spacing-11 rounded-radius-1 border border-neutral-100"
-                    style={{ backgroundColor: colors.muted }}
-                  />
+                  <View className="w-spacing-11 h-spacing-3 rounded-radius-1 border border-neutral-100" style={{ backgroundColor: colors.muted }} />
                 </GestureDetector>
               </View>
             </>

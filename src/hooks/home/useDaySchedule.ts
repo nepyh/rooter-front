@@ -10,7 +10,7 @@ import { buildBusyBlocks, getDDay } from "@/utils/home/timeline";
 // ================================
 
 /**
- * 그날 바쁜 시간 쿼리 설정. useDaySchedule 와 옆 날짜 미리 받기(usePrefetchNeighborDays)가 함께 씀
+ * 그날 바쁜 시간 쿼리 설정. useDaySchedule 와 옆 페이지(useNeighborDay)가 함께 씀
  * @param date 조회할 날짜 (YYYY-MM-DD)
  */
 export const busyTimesQueryOptions = (date: string) =>
