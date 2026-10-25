@@ -38,3 +38,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Sentry upload credentials
+.env.sentry-build-plugin
+sentry.properties

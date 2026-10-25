@@ -1,0 +1,78 @@
+name: Sentry 웹 검증
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Sentry 이벤트를 구분할 환경 이름
+        type: string
+        required: true
+        default: monitoring-validation
+
+permissions:
+  contents: read
+
+jobs:
+  validate-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_PUBLIC_SENTRY_DSN: ${{ vars.EXPO_PUBLIC_SENTRY_DSN }}
+      EXPO_PUBLIC_SENTRY_ENVIRONMENT: ${{ inputs.environment }}
+      EXPO_PUBLIC_SENTRY_RELEASE: rooter-front@${{ github.sha }}
+      EXPO_PUBLIC_API_BASE_URL: ${{ vars.EXPO_PUBLIC_API_BASE_URL }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+
+    steps:
+      - name: 필수 설정 확인
+        shell: bash
+        run: |
+          for variable in EXPO_PUBLIC_SENTRY_DSN EXPO_PUBLIC_SENTRY_ENVIRONMENT SENTRY_ORG SENTRY_PROJECT; do
+            value="${!variable}"
+            if [[ -z "${value//[[:space:]]/}" ]]; then
+              echo "::error::필수 설정이 비어 있습니다: $variable"
+              exit 1
+            fi
+          done
+
+      - name: 소스 코드 가져오기
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Node.js 24 설정
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 모니터링 테스트
+        run: npm run test:monitoring
+
+      - name: 타입 검사
+        run: npx tsc --noEmit
+
+      - name: 웹 번들과 소스맵 생성
+        run: npm run export:web
+
+      - name: 번들과 소스맵 Debug ID 검사
+        run: npm run sentry:check
+
+      - name: Sentry 소스맵 업로드
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: npm run sentry:upload
+
+      - name: 검증한 웹 번들 보관
+        uses: actions/upload-artifact@v7
+        with:
+          name: sentry-web-${{ github.sha }}
+          path: |
+            dist/
+            !dist/**/*.map
+          if-no-files-found: error
+          retention-days: 7
