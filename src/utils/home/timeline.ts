@@ -26,7 +26,7 @@ export interface PlanLine {
  * 타임라인에 그리는 계획 블록
  * @param title 해야 할 일 (태스크 이름), 직접 만든 일정은 입력한 제목
  * @param subject 블록 제목으로 쓸 과목 이름 (과목이 없으면 "기타"), 직접 만든 일정은 없음
- * @param isManual 직접 만든 일정인지 (삭제는 직접 만든 일정만 가능)
+ * @param isManual 직접 만든 일정인지
  * @param start 타임라인 시작(00:00) 기준 오프셋(분)
  * @param duration 길이(분)
  */

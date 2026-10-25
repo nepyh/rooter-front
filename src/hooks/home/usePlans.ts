@@ -53,7 +53,7 @@ export const dailyPlansQueryOptions = (date: string) =>
  * @param selectedDate 보고 있는 날짜
  * @param selectedKey 보고 있는 날짜 (YYYY-MM-DD)
  * @param now 현재 시각, 끝난 시각이 지난 미완료 일정을 실패로 표시할 때 씀
- * @returns plans(원본), coloredPlans(실패·과목 색 반영), chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan
+ * @returns plans(원본), coloredPlans(실패·과목 색 반영), chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan
  */
 export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const dailyKey = queryKeys.tasks.daily(selectedKey);
@@ -83,8 +83,6 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   };
 
   const coloredPlans = markPastPlansFailed(plans, selectedDate, now);
-
-  const isManualPlan = (plan: Plan | null) => plan?.isManual ?? false;
 
   const setPlanStatus = (id: string, status: PlanStatus) => {
     setStatusById((prev) => new Map(prev).set(id, status));
@@ -124,5 +122,5 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     }
   };
 
-  return { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan };
+  return { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan };
 }

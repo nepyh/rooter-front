@@ -51,7 +51,7 @@ export default function Home() {
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
-  const { plans, coloredPlans, chatDailyPlanId, reload, isManualPlan, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
+  const { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
   const timeline = useTimelineScroll(now);
 
@@ -183,7 +183,6 @@ export default function Home() {
                     currentTime={isToday ? now : null}
                     activePlan={activePlan}
                     dragPreview={dragPreview}
-                    canDeleteActive={isManualPlan(activePlan)}
                     onLongPressPlan={handleLongPressPlan}
                     onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
                     onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}

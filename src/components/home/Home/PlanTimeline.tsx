@@ -39,7 +39,6 @@ interface Props {
   currentTime: Date | null;
   activePlan: Plan | null;
   dragPreview: DragPreview | null;
-  canDeleteActive: boolean;
   onLongPressPlan: (plan: Plan) => void;
   onDragStart: (plan: Plan, mode: DragMode) => void;
   onDragMove: (plan: Plan, start: number, duration: number) => void;
@@ -65,7 +64,6 @@ interface Props {
  * @param currentTime 현재 시각 선을 그릴 시각, 오늘이 아니면 null
  * @param activePlan 꾹 눌러 옮길 준비가 된 계획, 이 계획에 액션 메뉴를 띄움
  * @param dragPreview 끌고 있는 계획과 지금 놓으면 들어갈 시작 위치·길이, 끌고 있지 않으면 null (끄는 동안에는 액션 메뉴를 숨김)
- * @param canDeleteActive 액션 메뉴에 삭제 버튼을 보여줄지
  * @param onLongPressPlan 계획 블록을 꾹 눌렀을 때 호출
  * @param onDragStart 계획 블록을 옮기거나 손잡이로 길이를 바꾸기 시작했을 때 호출
  * @param onDragMove 끄는 동안 놓을 자리가 SNAP_MIN 단위로 바뀔 때마다 새 시작 위치·길이(분)와 함께 호출
@@ -87,7 +85,6 @@ export function PlanTimeline({
   currentTime,
   activePlan,
   dragPreview,
-  canDeleteActive,
   onLongPressPlan,
   onDragStart,
   onDragMove,
@@ -167,7 +164,6 @@ export function PlanTimeline({
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
-              canDelete={canDeleteActive}
               onComplete={() => onComplete(activePlan)}
               onFail={() => onFail(activePlan)}
               onEdit={() => onEdit(activePlan)}
