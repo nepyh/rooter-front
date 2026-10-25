@@ -34,7 +34,7 @@ interface Props {
 /**
  * 계획 블록 안의 제목(과목 이름, 직접 만든 일정은 입력한 제목)과 부가 줄(해야 할 일·시간)
  * @param plan 보여줄 계획
- * @param lineLayout 부가 줄 배치. column 은 제목 아래 한 줄씩, row 는 한 줄에 나란히, none 은 숨김
+ * @param lineLayout 부가 줄 배치. column 은 제목 아래 한 줄씩, row 는 한 줄을 반씩 나눠 넘치면 말줄임, none 은 숨김
  * @param onTitleLayout 제목 줄 높이를 잰 뒤 호출
  * @param onLayout 전체 글자 영역 높이를 잰 뒤 호출
  */
@@ -44,12 +44,14 @@ export function PlanBlockText({
   onTitleLayout,
   onLayout,
 }: Props) {
+  const inRow = lineLayout === "row";
   const lines = plan.lines.map((line, i) => (
-    <Row key={i} gap="xs" className="shrink items-center">
+    <Row key={i} gap="xs" className={`items-center ${inRow ? "flex-1" : ""}`}>
       <Icon name={line.icon} size={12} color={MUTED_TEXT_COLOR} />
       <Text
         variant="base-caption"
         className="shrink"
+        numberOfLines={inRow ? 1 : undefined}
         style={{ color: MUTED_TEXT_COLOR }}
       >
         {line.text}
@@ -79,11 +81,7 @@ export function PlanBlockText({
         </Text>
       </Row>
       {lineLayout === "column" && lines}
-      {lineLayout === "row" && (
-        <Row gap="m" className="flex-wrap">
-          {lines}
-        </Row>
-      )}
+      {inRow && <Row>{lines}</Row>}
     </Stack>
   );
 }
