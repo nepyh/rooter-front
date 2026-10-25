@@ -4,10 +4,16 @@ import api from '../../axios';
 // Types
 // ================================
 
-export type BusyTimeType = 'SLEEP' | 'SCHOOL' | 'UNAVAILABLE' | 'TASK';
+export type BusyTimeType = 'SLEEP' | 'SCHOOL_PREP' | 'SCHOOL' | 'COMMUTE' | 'MEAL' | 'UNAVAILABLE' | 'TASK';
 
+/**
+ * 바쁜 시간 하나
+ * @param type 바쁜 시간 종류
+ * @param label 화면에 그대로 보여줄 이름
+ */
 export interface BusyTimeItem {
   type: BusyTimeType;
+  label: string;
   startTime: string;
   endTime: string;
   taskId: number | null;
