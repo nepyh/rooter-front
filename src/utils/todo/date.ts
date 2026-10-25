@@ -1,4 +1,5 @@
 import type { PlanTask } from "@/api/common/planBoard";
+import { toLocalDateString } from "@/utils/common/date";
 
 /**
  * yyyy-MM-dd 를 그날 0시(기기 시간)로 변환
@@ -7,6 +8,17 @@ import type { PlanTask } from "@/api/common/planBoard";
 export const parseDateString = (value: string) => {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
+};
+
+/**
+ * 그 날짜가 속한 주(월~일)의 월요일
+ * @param value 날짜 문자열 (yyyy-MM-dd)
+ * @returns 월요일 (yyyy-MM-dd)
+ */
+export const getWeekStartKey = (value: string) => {
+  const date = parseDateString(value);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return toLocalDateString(date);
 };
 
 /**

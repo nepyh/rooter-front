@@ -1,7 +1,7 @@
-import { SUBJECT_CATEGORIES, type Category } from "@/constants/category";
+import { FALLBACK_SUBJECT_NAME, SUBJECT_CATEGORIES, type Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
-import type { DailyBusyTime } from "@/api/home/Home/busyTime";
-import type { PlanTask } from "@/api/common/planBoard";
+import type { BusyTimeItem, DailyBusyTime } from "@/api/home/Home/busyTime";
+import type { PlanTask, PlanTaskStatus } from "@/api/common/planBoard";
 import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
 // ================================
@@ -10,6 +10,13 @@ import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
 export type PlanStatus = "pending" | "done" | "failed";
 
+/**
+ * 계획 블록을 끄는 방식
+ * - move: 블록 전체를 옮김
+ * - resize: 위아래 손잡이로 시작·종료 시각을 바꿈
+ */
+export type DragMode = "move" | "resize";
+
 export interface PlanLine {
   icon: "book" | "history";
   text: string;
@@ -17,12 +24,17 @@ export interface PlanLine {
 
 /**
  * 타임라인에 그리는 계획 블록
+ * @param title 해야 할 일 (태스크 이름), 직접 만든 일정은 입력한 제목
+ * @param subject 블록 제목으로 쓸 과목 이름 (과목이 없으면 "기타"), 직접 만든 일정은 없음
+ * @param isManual 직접 만든 일정인지
  * @param start 타임라인 시작(00:00) 기준 오프셋(분)
  * @param duration 길이(분)
  */
 export interface Plan {
   id: string;
   title: string;
+  subject?: string;
+  isManual: boolean;
   category: Category;
   lines: PlanLine[];
   start: number;
@@ -32,7 +44,21 @@ export interface Plan {
 }
 
 /**
- * 수면·학교·불가능 시간 블록
+ * 끌고 있는 계획과, 지금 놓으면 들어갈 시작 위치·길이. 끄는 동안 주변 블록 칸 배치를 미리 계산할 때 씀
+ * @param id 끌고 있는 계획 id
+ * @param mode 옮기는 중인지, 길이를 바꾸는 중인지
+ * @param start 타임라인 시작 기준 오프셋(분), SNAP_MIN 단위로 맞춘 값
+ * @param duration 길이(분), SNAP_MIN 단위로 맞춘 값
+ */
+export interface DragPreview {
+  id: string;
+  mode: DragMode;
+  start: number;
+  duration: number;
+}
+
+/**
+ * 수면·등교 준비·학교·하교 후 귀가·식사·불가능 시간 블록
  * @param start 타임라인 시작 기준 오프셋(분)
  * @param duration 길이(분)
  */
@@ -62,14 +88,9 @@ export const WINDOW_START_MIN = 0;
 export const TIMELINE_HEIGHT = DAY_MIN;
 export const TIMELINE_LEFT = 52;
 export const POPOVER_HEIGHT = 92;
+export const SNAP_MIN = 15;
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
-
-const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
-  "SLEEP": "수면",
-  "SCHOOL": "학교",
-  "UNAVAILABLE": "불가능 시간",
-};
 
 // ================================
 // Functions
@@ -78,7 +99,45 @@ const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
 export const minutesSinceWindowStart = (date: Date) =>
   (date.getHours() * 60 + date.getMinutes() - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
 
-export const formatDateHeader = (date: Date) =>
+/**
+ * 끌어 놓은 계획의 시작 위치를 SNAP_MIN 단위로 맞추고, 타임라인 밖으로 나가지 않게 제한
+ * 제스처 콜백(UI 스레드)에서 부를 수 있도록 worklet 으로 만듦
+ * @param start 끌어 놓은 위치 (타임라인 시작 기준 분)
+ * @param duration 계획 길이(분)
+ */
+export const snapPlanStart = (start: number, duration: number) => {
+  "worklet";
+  const snapped = Math.round(start / SNAP_MIN) * SNAP_MIN;
+  return Math.min(Math.max(snapped, 0), TIMELINE_HEIGHT - duration);
+};
+
+/**
+ * 위 손잡이로 바꾼 시작 위치를 SNAP_MIN 단위로 맞춤. 종료 시각은 그대로 두고, 최소 SNAP_MIN 길이를 남김
+ * @param start 끌어 놓은 시작 위치 (타임라인 시작 기준 분)
+ * @param end 바뀌지 않는 종료 위치 (타임라인 시작 기준 분)
+ * @returns start(맞춘 시작 위치), duration(새 길이)
+ */
+export const snapResizeTop = (start: number, end: number) => {
+  "worklet";
+  const snapped = Math.round(start / SNAP_MIN) * SNAP_MIN;
+  const next = Math.min(Math.max(snapped, 0), end - SNAP_MIN);
+  return { start: next, duration: end - next };
+};
+
+/**
+ * 아래 손잡이로 바꾼 종료 위치를 SNAP_MIN 단위로 맞춤. 시작 시각은 그대로 두고, 최소 SNAP_MIN 길이를 남김
+ * @param start 바뀌지 않는 시작 위치 (타임라인 시작 기준 분)
+ * @param end 끌어 놓은 종료 위치 (타임라인 시작 기준 분)
+ * @returns start(그대로인 시작 위치), duration(새 길이)
+ */
+export const snapResizeBottom = (start: number, end: number) => {
+  "worklet";
+  const snapped = Math.round(end / SNAP_MIN) * SNAP_MIN;
+  const next = Math.min(Math.max(snapped, start + SNAP_MIN), TIMELINE_HEIGHT);
+  return { start, duration: next - start };
+};
+
+export const formatDateHeader =(date: Date) =>
   `${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAYS[date.getDay()]})`;
 
 export const formatDuration = (mins: number) => {
@@ -136,25 +195,21 @@ const toBusyBlocks = (key: string, title: string, startTime: string, endTime: st
  * 서버 바쁜 시간을 타임라인 블록으로 변환
  * - 할일(TASK)은 계획 블록으로 따로 그려서 제외
  * - 밤(23:00~24:00)과 아침(00:00~06:30)으로 나뉜 수면을 한 번의 잠으로 합침
- * - 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림
+ * - 블록 제목은 서버가 주는 label 을 그대로 사용
  * @param day 그날의 바쁜 시간
  */
 export const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   if (!day) return [];
+  const titleOf = (item: BusyTimeItem) => item.label?.trim()
   const morningSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00");
   const nightSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.endTime === "24:00");
-  const morningSleepEnd = morningSleep?.endTime;
   const mergedSleep = morningSleep && nightSleep
-    ? toBusyBlocks("sleep", BUSY_TITLES.SLEEP, nightSleep.startTime, morningSleep.endTime)
+    ? toBusyBlocks("sleep", titleOf(nightSleep), nightSleep.startTime, morningSleep.endTime)
     : [];
   return mergedSleep.concat(day.busyTimes.flatMap((item, i) => {
     if (item.type === "TASK") return [];
     if (mergedSleep.length > 0 && (item === morningSleep || item === nightSleep)) return [];
-    if (item.type === "SCHOOL") {
-      const start = morningSleepEnd && morningSleepEnd > item.startTime ? morningSleepEnd : item.startTime;
-      return toBusyBlocks(`school-${i}`, BUSY_TITLES.SCHOOL, start, item.endTime);
-    }
-    return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, BUSY_TITLES[item.type], item.startTime, item.endTime);
+    return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, titleOf(item), item.startTime, item.endTime);
   }));
 };
 
@@ -190,20 +245,46 @@ export const layoutColumns = (items: { id: string; start: number; duration: numb
   return result;
 };
 
+/**
+ * 끝난 시각이 지났는데 아직 완료하지 않은 계획을 실패로 바꿔 돌려줌
+ * @param plans 그날 계획 목록
+ * @param date 계획이 속한 날짜
+ * @param now 현재 시각
+ */
+export const markPastPlansFailed = (plans: Plan[], date: Date, now: Date): Plan[] => {
+  const dayStartMs = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
+  return plans.map((plan) => ({
+    ...plan,
+    status: plan.status === "pending" && isPast(plan) ? "failed" : plan.status,
+  }));
+};
+
+/** 백엔드 할일 status → 타임라인 블록 상태 (실패한 할일은 끌 수 없게 failed 로 둠) */
+const PLAN_STATUS: Record<PlanTaskStatus, PlanStatus> = {
+  PENDING: "pending",
+  DONE: "done",
+  FAILED: "failed",
+};
+
 export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
   const startMin = parseHHmm(task.startTime);
   const start = (startMin - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
+  const subjectName = task.subjectName?.trim();
+  const subject = task.isManual ? undefined : subjectName || FALLBACK_SUBJECT_NAME;
+  const timeLine: PlanLine = { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` };
+  const showTaskLine = !task.isManual && task.taskName.trim().length > 0;
 
   return {
     id: String(task.id),
     title: task.taskName,
-    category: (task.subjectName && SUBJECT_CATEGORIES[task.subjectName]) || "neutral",
+    subject,
+    isManual: task.isManual,
+    category: (subjectName && SUBJECT_CATEGORIES[subjectName]) || "neutral",
     start,
     duration: task.estimatedMinutes,
-    status: task.isCompleted ? "done" : "pending",
+    status: PLAN_STATUS[task.status],
     dailyPlanId: task.dailyPlanId,
-    lines: [
-      { icon: "history", text: `${task.startTime} - ${task.endTime} | ${formatDuration(task.estimatedMinutes)}` },
-    ],
+    lines: showTaskLine ? [{ icon: "book", text: task.taskName }, timeLine] : [timeLine],
   };
 };

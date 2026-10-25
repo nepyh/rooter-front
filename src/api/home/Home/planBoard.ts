@@ -1,4 +1,4 @@
-import { getPlanBoards } from '../../common/planBoard';
+import { fetchCachedPlanBoards } from '../../common/planBoard';
 import { toLocalDateString } from '@/utils/common/date';
 
 // ================================
@@ -11,7 +11,7 @@ import { toLocalDateString } from '@/utils/common/date';
  */
 export const getNextExamDate = async (): Promise<string | null> => {
   const today = toLocalDateString(new Date());
-  const boards = await getPlanBoards();
+  const boards = await fetchCachedPlanBoards();
   const upcoming = boards
     .map((board) => board.examDate)
     .filter((date): date is string => !!date && date >= today)

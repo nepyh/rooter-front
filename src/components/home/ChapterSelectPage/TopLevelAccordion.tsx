@@ -2,9 +2,17 @@ import { Pressable, View } from "react-native";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { ChapterNode } from "./ChapterNode";
+import { VerticalGradient } from "../common/VerticalGradient";
 import { Icon } from "@/assets";
 import type { ChapterTree } from "@/api/home/common/catalog";
 import { sortByChapterOrder } from "@/utils/home/chapter";
+import { color } from "@/constants/token/color";
+
+// ================================
+// Constants
+// ================================
+
+const CONTENT_SHADOW_END = 0.08446;
 
 // ================================
 // Types
@@ -59,6 +67,13 @@ export function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onTog
       </Pressable>
       {expanded && (
         <Stack gap="m" width="full" className="px-spacing-6 pt-spacing-5 pb-spacing-4">
+          <VerticalGradient
+            stops={[
+              { offset: 0, color: color.neutral["800"] },
+              { offset: CONTENT_SHADOW_END, color: color.neutral["700"] },
+            ]}
+            className="absolute inset-spacing-0"
+          />
           {sortByChapterOrder(node.children).map((child) => (
             <ChapterNode key={child.id} node={child} depth={1} selectedIds={selectedIds} onToggleLeaf={onToggleLeaf} />
           ))}

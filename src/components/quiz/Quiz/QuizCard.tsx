@@ -28,6 +28,7 @@ interface Props {
 export function QuizCard({ item, onPress }: Props) {
   const { task, subjectName, category } = item;
   const meta = [subjectName, `${task.startTime} - ${task.endTime}`].filter(Boolean).join(" | ");
+  const isDone = task.status === "DONE";
 
   return (
     <Pressable onPress={onPress} className="flex-row bg-neutral-700 rounded-radius-2 p-spacing-2 w-full" style={{ gap: getSpacing("spacing-3"), minHeight: 80 }}>
@@ -36,9 +37,9 @@ export function QuizCard({ item, onPress }: Props) {
         <Text
           variant="base-large"
           weight="medium"
-          color={task.isCompleted ? "disabled" : "primary"}
+          color={isDone ? "disabled" : "primary"}
           numberOfLines={1}
-          style={task.isCompleted ? COMPLETED_TITLE_STYLE : undefined}
+          style={isDone ? COMPLETED_TITLE_STYLE : undefined}
         >
           {task.taskName}
         </Text>

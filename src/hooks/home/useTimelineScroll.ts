@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { ScrollView } from "react-native";
+import { useAnimatedRef } from "react-native-reanimated";
 import { POPOVER_HEIGHT, TIMELINE_HEIGHT, minutesSinceWindowStart, type Plan } from "@/utils/home/timeline";
 
 // ================================
@@ -16,11 +17,12 @@ const MENU_GAP = 8;
 /**
  * useTimelineScroll — 홈 세로 타임라인의 스크롤 위치 관리
  * 처음 열면 현재 시각 조금 위로 스크롤하고, 액션 메뉴가 화면 밖에 뜨면 메뉴가 가운데 오도록 스크롤합니다.
+ * scrollRef 는 animated ref 라서 블록을 끌 때 UI 스레드에서 자동 스크롤(useAutoScroll)할 때도 함께 씁니다.
  * @param now 현재 시각
  * @returns scrollRef, scrollYRef, handleScrollY, handleViewportHeight, revealMenu
  */
 export function useTimelineScroll(now: Date) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useAnimatedRef<ScrollView>();
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
 

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -20,9 +21,9 @@ import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
-import { useUIStore } from "@/store";
+import { usePlanDraftStore, useUIStore } from "@/store";
 import { toLocalDateString } from "@/utils/common/date";
-import type { Plan } from "@/utils/home/timeline";
+import type { DragPreview, Plan } from "@/utils/home/timeline";
 
 /**
  * 홈 화면
@@ -36,6 +37,7 @@ export default function Home() {
   const isToday = dayOffset === 0;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -47,6 +49,7 @@ export default function Home() {
   const [showAiChat, setShowAiChat] = useState(false);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
+  const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
   const { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
@@ -57,6 +60,8 @@ export default function Home() {
     setDayOffset((prev) => prev + delta);
   };
   const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
+  const pagerGesture = useMemo(() => Gesture.Native(), []);
+  const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
@@ -70,11 +75,16 @@ export default function Home() {
     return () => setFullScreenModalOpen(false);
   }, [showAddPlan, showAiChat, setFullScreenModalOpen]);
 
-  const handleSelectPlan = (plan: Plan) => {
+  const handleLongPressPlan = (plan: Plan) => {
     if (plan.status !== "pending") return;
-    const nextId = plan.id === activeId ? null : plan.id;
-    setActiveId(nextId);
-    if (nextId) timeline.revealMenu(plan);
+    setActiveId(plan.id);
+    timeline.revealMenu(plan);
+  };
+
+  const handleDropPlan = (plan: Plan, start: number, duration: number) => {
+    setDragPreview(null);
+    if (start !== plan.start || duration !== plan.duration) savePlanEdit(plan.id, plan.title, start, duration);
+    timeline.revealMenu({ ...plan, start, duration });
   };
 
   const handleComplete = (plan: Plan) => {
@@ -122,6 +132,11 @@ export default function Home() {
     setShowAiChat(true);
   };
 
+  const startPlanCreation = () => {
+    resetPlanDraft();
+    router.push("/Home/ExamDatePage");
+  };
+
   const handlePlanCreated = () => {
     setShowAddPlan(false);
     reload();
@@ -139,41 +154,53 @@ export default function Home() {
 
       <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
 
-      <View className="flex-1" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
+      <View className="flex-1">
         {plans.length === 0 && !emptyNoticeClosed && (
-          <EmptyPlanNotice onCreate={() => router.push("/Home/ExamDatePage")} onClose={() => setEmptyNoticeClosed(true)} />
+          <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
-        {pager.pageWidth > 0 && (
-          <ScrollView
-            ref={pager.pagerRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: pager.pageWidth, y: 0 }}
-            onScrollBeginDrag={pager.syncNeighborOffset}
-            onMomentumScrollEnd={pager.handlePagerEnd}
-          >
-            <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-            <View style={{ width: pager.pageWidth }}>
-              <PlanTimeline
-                ref={timeline.scrollRef}
-                dateKey={selectedKey}
-                busyBlocks={busyBlocks}
-                plans={coloredPlans}
-                currentTime={isToday ? now : null}
-                activePlan={activePlan}
-                onSelectPlan={handleSelectPlan}
-                onComplete={handleComplete}
-                onFail={handleFail}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onScrollY={timeline.handleScrollY}
-                onViewportHeight={timeline.handleViewportHeight}
-              />
-            </View>
-            <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} />
-          </ScrollView>
-        )}
+        <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
+          {pager.pageWidth > 0 && (
+            <GestureDetector gesture={pagerGesture}>
+              <ScrollView
+                ref={pager.pagerRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                contentOffset={{ x: pager.pageWidth, y: 0 }}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={pager.handlePagerBeginDrag}
+                onScroll={pager.handlePagerScroll}
+                onMomentumScrollEnd={pager.handlePagerEnd}
+              >
+                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.prev)} now={now} />
+                <View className="px-spacing-7" style={{ width: pager.pageWidth }}>
+                  <PlanTimeline
+                    scrollRef={timeline.scrollRef}
+                    pagerGesture={pagerGesture}
+                    dateKey={selectedKey}
+                    busyBlocks={busyBlocks}
+                    plans={coloredPlans}
+                    currentTime={isToday ? now : null}
+                    activePlan={activePlan}
+                    dragPreview={dragPreview}
+                    onLongPressPlan={handleLongPressPlan}
+                    onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
+                    onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
+                    onDropPlan={handleDropPlan}
+                    onDismissMenu={() => setActiveId(null)}
+                    onComplete={handleComplete}
+                    onFail={handleFail}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onScrollY={timeline.handleScrollY}
+                    onViewportHeight={timeline.handleViewportHeight}
+                  />
+                </View>
+                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.next)} now={now} />
+              </ScrollView>
+            </GestureDetector>
+          )}
+        </View>
       </View>
 
       <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
@@ -199,7 +226,7 @@ export default function Home() {
           afterAddMenuClosedRef.current = null;
         }}
         onCreateSchedule={() => closeAddMenuThen(() => setShowAddPlan(true))}
-        onCreatePlan={() => closeAddMenuThen(() => router.push("/Home/ExamDatePage"))}
+        onCreatePlan={() => closeAddMenuThen(startPlanCreation)}
       />
 
       <AddPlanBoardModal
