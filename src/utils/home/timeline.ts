@@ -1,6 +1,6 @@
 import { FALLBACK_SUBJECT_NAME, SUBJECT_CATEGORIES, type Category } from "@/constants/category";
 import { WEEKDAYS } from "@/constants/date";
-import type { DailyBusyTime } from "@/api/home/Home/busyTime";
+import type { BusyTimeItem, DailyBusyTime } from "@/api/home/Home/busyTime";
 import type { PlanTask, PlanTaskStatus } from "@/api/common/planBoard";
 import { DAY_MIN, pad, parseHHmm } from "@/utils/common/time";
 
@@ -58,7 +58,7 @@ export interface DragPreview {
 }
 
 /**
- * 수면·학교·불가능 시간 블록
+ * 수면·등교 준비·학교·하교 후 귀가·식사·불가능 시간 블록
  * @param start 타임라인 시작 기준 오프셋(분)
  * @param duration 길이(분)
  */
@@ -91,12 +91,6 @@ export const POPOVER_HEIGHT = 92;
 export const SNAP_MIN = 15;
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
-
-const BUSY_TITLES: Record<"SLEEP" | "SCHOOL" | "UNAVAILABLE", string> = {
-  "SLEEP": "수면",
-  "SCHOOL": "학교",
-  "UNAVAILABLE": "불가능 시간",
-};
 
 // ================================
 // Functions
@@ -201,25 +195,21 @@ const toBusyBlocks = (key: string, title: string, startTime: string, endTime: st
  * 서버 바쁜 시간을 타임라인 블록으로 변환
  * - 할일(TASK)은 계획 블록으로 따로 그려서 제외
  * - 밤(23:00~24:00)과 아침(00:00~06:30)으로 나뉜 수면을 한 번의 잠으로 합침
- * - 학교는 서버가 00:00~하교로 주므로 아침 수면이 끝난 뒤부터 그림
+ * - 블록 제목은 서버가 주는 label 을 그대로 사용
  * @param day 그날의 바쁜 시간
  */
 export const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   if (!day) return [];
+  const titleOf = (item: BusyTimeItem) => item.label?.trim()
   const morningSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00");
   const nightSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.endTime === "24:00");
-  const morningSleepEnd = morningSleep?.endTime;
   const mergedSleep = morningSleep && nightSleep
-    ? toBusyBlocks("sleep", BUSY_TITLES.SLEEP, nightSleep.startTime, morningSleep.endTime)
+    ? toBusyBlocks("sleep", titleOf(nightSleep), nightSleep.startTime, morningSleep.endTime)
     : [];
   return mergedSleep.concat(day.busyTimes.flatMap((item, i) => {
     if (item.type === "TASK") return [];
     if (mergedSleep.length > 0 && (item === morningSleep || item === nightSleep)) return [];
-    if (item.type === "SCHOOL") {
-      const start = morningSleepEnd && morningSleepEnd > item.startTime ? morningSleepEnd : item.startTime;
-      return toBusyBlocks(`school-${i}`, BUSY_TITLES.SCHOOL, start, item.endTime);
-    }
-    return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, BUSY_TITLES[item.type], item.startTime, item.endTime);
+    return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, titleOf(item), item.startTime, item.endTime);
   }));
 };
 
