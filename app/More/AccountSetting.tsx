@@ -14,7 +14,8 @@ export default function AccountSettingPage() {
       <StatusBar style="light" />
       <MorePageHeader title="계정 설정" />
       <MenuGroup>
-        <MenuRow icon="logout" label="로그아웃" arrow="none" onPress={handleLogout} />
+        <MenuRow icon="logout" label="로그아웃" onPress={handleLogout} />
+        <MenuRow icon="withdraw" label="탈퇴하기" />
       </MenuGroup>
     </View>
   );
