@@ -41,7 +41,7 @@ interface Props {
 export function MenuRow({ label, icon, arrow = "default", onPress }: Props) {
   return (
     <Pressable onPress={onPress} className="flex-row items-center justify-between p-spacing-4 rounded-radius-3 w-full">
-      <Row gap="s" className="flex-1 items-center">
+      <Row gap="m" className="flex-1 items-center">
         {icon && <Icon name={icon} size={20} />}
         <Text variant="base-medium" weight="medium" className="text-text-primary">{label}</Text>
       </Row>

@@ -18,7 +18,7 @@ interface Props {
  */
 export function MorePageHeader({ title }: Props) {
   return (
-    <Row gap="s" className="items-center pb-spacing-5">
+    <Row gap="s" className="items-center pt-spacing-4 pb-spacing-7">
       <Pressable onPress={() => router.back()}>
         <Icon name="chevronLeft" size={28} />
       </Pressable>
