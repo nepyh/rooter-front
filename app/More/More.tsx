@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Row, Text, Toast, ProfileCard, MoreSection, MenuGroup, MenuRow, ContributionGraph } from "@/components";
 import { Icon } from "@/assets";
 import { useUserStore } from "@/store";
+import { useUserInfo } from "@/hooks/common/useUserInfo";
 import { useContributionLevels } from "@/hooks/more/useContributionLevels";
 
 // ================================
@@ -28,6 +29,7 @@ export default function SettingPage() {
   const router = useRouter();
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const user = useUserStore((state) => state.user);
+  const userInfo = useUserInfo();
   const [showToast, setShowToast] = useState(false);
   const today = new Date();
   const levels = useContributionLevels(today, CONTRIBUTION_WEEK_COUNT);
@@ -48,6 +50,7 @@ export default function SettingPage() {
         <ProfileCard
           username={user?.username ?? "게스트"}
           email={user?.email ?? "로그인이 필요합니다"}
+          imageUri={userInfo?.avatarUrl ?? undefined}
           onPress={() => router.push("/More/Profile")}
         />
 
