@@ -1,6 +1,8 @@
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { Image } from "expo-image";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
+import { toAvatarSource } from "@/utils/more/profile";
 
 // ================================
 // Components
@@ -23,7 +25,7 @@ export function ProfileAvatar({ imageUri, fallbackText, onPressCamera }: Props) 
     <View className="w-[100px] h-[100px]">
       <View className="w-[100px] h-[100px] rounded-radius-full overflow-hidden bg-neutral-700 items-center justify-center">
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={{ width: 100, height: 100 }} />
+          <Image source={toAvatarSource(imageUri)} cachePolicy="memory-disk" style={{ width: 100, height: 100 }} />
         ) : (
           <Text variant="title-small">{fallbackText}</Text>
         )}
