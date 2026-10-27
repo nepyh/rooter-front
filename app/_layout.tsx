@@ -6,9 +6,10 @@ import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { NavBar } from "@/components";
+import { NavBar, TermsAgreementSheet, Toast } from "@/components";
 import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "@/api/queryClient";
 import { useUIStore, useUserStore } from "@/store";
+import { useAgreementGate } from "@/hooks/common/useAgreementGate";
 import "../global.css";
 
 // ================================
@@ -16,6 +17,17 @@ import "../global.css";
 // ================================
 
 const TAB_PATHS = ["/Home/Home", "/Todo/Todo", "/Quiz/Quiz", "/Calendar/Calendar", "/More/More"];
+
+function AgreementGate() {
+  const gate = useAgreementGate();
+
+  return (
+    <>
+      {gate.visible && !gate.errorMessage && <TermsAgreementSheet {...gate.sheetProps} />}
+      {!!gate.errorMessage && <Toast text={gate.errorMessage} onClose={gate.clearError} />}
+    </>
+  );
+}
 
 function RootLayout() {
   const pathname = usePathname();
@@ -45,6 +57,7 @@ function RootLayout() {
           </View>
           {showNavBar && <NavBar />}
         </SafeAreaView>
+        <AgreementGate />
       </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
