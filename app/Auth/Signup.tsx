@@ -4,7 +4,9 @@ import { AuthScreen, EmailInput, PasswordInput, Input, Button, Toast, TermsAgree
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth/common';
 import { signup, getSignupError } from '@/api/auth/Signup';
+import type { AgreementDecision } from '@/api/common/agreement';
 import { useFormField } from '@/hooks/common/useFormField';
+import { useAgreementCatalog } from '@/hooks/common/useAgreements';
 import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/common/password';
 
 export default function Signup() {
@@ -16,6 +18,7 @@ export default function Signup() {
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
   const [toastMessage, setToastMessage] = useState("");
   const [termsVisible, setTermsVisible] = useState(false);
+  const agreementCatalog = useAgreementCatalog();
 
   const handleSubmit = async () => {
     setBtnVariant("disabled");
@@ -35,15 +38,21 @@ export default function Signup() {
     }
 
     setBtnVariant("primary");
+
+    if (!agreementCatalog) {
+      setToastMessage("약관을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
     setTermsVisible(true);
   };
 
-  const handleAgree = async () => {
+  const handleAgree = async (decisions: AgreementDecision[]) => {
     setTermsVisible(false);
     setBtnVariant("disabled");
 
     try {
-      await signup(username.value, email.value, password.value);
+      await signup(username.value, email.value, password.value, decisions);
       // 이후 학교/학년/반 저장 API가 로그인 토큰을 요구해서, 가입 직후 바로 로그인해둡니다.
       await login(email.value, password.value);
 
@@ -77,7 +86,7 @@ export default function Signup() {
         <>
           <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
           {!!toastMessage && <Toast text={toastMessage} onClose={() => setToastMessage("")} />}
-          <TermsAgreementSheet visible={termsVisible} onClose={() => setTermsVisible(false)} onNext={handleAgree} />
+          <TermsAgreementSheet visible={termsVisible} agreements={agreementCatalog ?? []}onClose={() => setTermsVisible(false)} onNext={handleAgree} />
         </>
       }
     >
