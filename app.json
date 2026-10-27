@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "icon": "./src/assets/app.icon",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "io.github.nepyh.rooter",
       "infoPlist": {
         "NSBonjourServices": [
