@@ -84,6 +84,10 @@ export const queryKeys = {
   users: {
     info: (userId: number) => ['users', userId] as const,
   },
+  agreements: {
+    catalog: ['agreements', 'catalog'] as const,
+    user: (userId: number) => ['agreements', 'user', userId] as const,
+  },
 };
 
 /**
