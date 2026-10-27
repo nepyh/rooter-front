@@ -56,19 +56,15 @@ export default function SettingPage() {
 
         <MoreSection title="일반">
           <MenuGroup>
-            <MenuRow icon="bell" label="알림" arrow="muted" onPress={() => router.push("/More/Notification")} />
+            {/* <MenuRow icon="bell" label="알림" arrow="muted" onPress={() => router.push("/More/Notification")} /> */}
             <MenuRow icon="lock" label="계정" arrow="muted" onPress={() => router.push("/More/AccountSetting")} />
-            <MenuRow icon="calendar" label="불가능 시간" arrow="muted" onPress={() => router.push("/More/UnavailableTimePage")} />
+            {/* <MenuRow icon="calendar" label="불가능 시간" arrow="muted" onPress={() => router.push("/More/UnavailableTimePage")} /> */}
           </MenuGroup>
         </MoreSection>
 
         <MoreSection title="데일리">
           <ContributionGraph today={today} weekCount={CONTRIBUTION_WEEK_COUNT} levels={levels} />
         </MoreSection>
-
-        <Row width="full" className="justify-end pt-spacing-9" pointerEvents="none">
-          <Icon name="mascotCharacter" size={120} />
-        </Row>
       </ScrollView>
 
       {showToast && toast && <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />}
