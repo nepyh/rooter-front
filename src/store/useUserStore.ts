@@ -10,7 +10,6 @@ interface User {
   username: string;
   email: string;
   bio?: string;
-  profileImageUri?: string;
 }
 
 interface UserState {
@@ -19,7 +18,7 @@ interface UserState {
   userId: number | null;
   isLogin: boolean;
   setUser: (user: User, token: string, userId: number) => void;
-  updateProfile: (patch: Partial<Pick<User, "bio" | "profileImageUri">>) => void;
+  updateProfile: (patch: Partial<Pick<User, "bio">>) => void;
   logout: () => void;
   restoreSession: () => Promise<void>;
 }
