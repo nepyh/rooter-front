@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { router } from "expo-router";
-import { AuthScreen, EmailInput, PasswordInput, Input, Button, Toast } from '@/components';
+import { AuthScreen, EmailInput, PasswordInput, Input, Button, Toast, TermsAgreementSheet } from '@/components';
 import type { Variant } from "@/components/ui/Button";
 import { login } from '@/api/auth/common';
 import { signup, getSignupError } from '@/api/auth/Signup';
@@ -15,6 +15,7 @@ export default function Signup() {
 
   const [btnVariant, setBtnVariant] = useState<Variant>("primary");
   const [toastMessage, setToastMessage] = useState("");
+  const [termsVisible, setTermsVisible] = useState(false);
 
   const handleSubmit = async () => {
     setBtnVariant("disabled");
@@ -32,6 +33,14 @@ export default function Signup() {
       setBtnVariant("primary");
       return;
     }
+
+    setBtnVariant("primary");
+    setTermsVisible(true);
+  };
+
+  const handleAgree = async () => {
+    setTermsVisible(false);
+    setBtnVariant("disabled");
 
     try {
       await signup(username.value, email.value, password.value);
@@ -68,6 +77,7 @@ export default function Signup() {
         <>
           <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>
           {!!toastMessage && <Toast text={toastMessage} onClose={() => setToastMessage("")} />}
+          <TermsAgreementSheet visible={termsVisible} onClose={() => setTermsVisible(false)} onNext={handleAgree} />
         </>
       }
     >
