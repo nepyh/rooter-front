@@ -42,6 +42,7 @@ export default function Login() {
     <AuthScreen
       title="로그인"
       description="로그인을 진행합니다."
+      keyboardAware
       footer={
         <>
           <Button variant={btnVariant} onPress={handleSubmit}> 로그인 </Button>
