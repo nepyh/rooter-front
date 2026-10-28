@@ -82,6 +82,7 @@ export default function Signup() {
     <AuthScreen
       title="회원가입"
       description="회원가입을 진행합니다."
+      keyboardAware
       footer={
         <>
           <Button variant={btnVariant} onPress={handleSubmit}> 회원가입 </Button>

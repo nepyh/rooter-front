@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { View, ViewProps } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { getSpacing } from "@/utils/common/token";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 
@@ -12,6 +14,7 @@ interface Props extends ViewProps {
   title: string;
   description: string;
   footer?: ReactNode;
+  keyboardAware?: boolean;
   className?: string;
 }
 
@@ -21,23 +24,37 @@ interface Props extends ViewProps {
  * @param description 제목 아래 설명 문구
  * @param children 제목 아래에 세로로 쌓을 입력칸들
  * @param footer 화면 맨 아래에 붙일 버튼 영역
+ * @param keyboardAware 입력칸을 누르면 키보드에 가려지지 않도록 화면을 스크롤할지 여부
  */
-export function AuthScreen({ title, description, footer, children, className = "", ...props }: Props) {
+export function AuthScreen({ title, description, footer, keyboardAware = false, children, className = "", ...props }: Props) {
+  const content = (
+    <Stack align="between" className="flex-1">
+      <Stack gap="xxl">
+        <Stack gap="s">
+          <Text variant="title-medium"> {title} </Text>
+          <Text color="secondary"> {description} </Text>
+        </Stack>
+        <Stack width="full" gap="m">
+          {children}
+        </Stack>
+      </Stack>
+      {footer}
+    </Stack>
+  );
+
   return (
     <View className={`flex-1 ${className}`} {...props}>
       <StatusBar style="auto" />
-      <Stack align="between" className="flex-1">
-        <Stack gap="xxl">
-          <Stack gap="s">
-            <Text variant="title-medium"> {title} </Text>
-            <Text color="secondary"> {description} </Text>
-          </Stack>
-          <Stack width="full" gap="m">
-            {children}
-          </Stack>
-        </Stack>
-        {footer}
-      </Stack>
+      {keyboardAware ? (
+        <KeyboardAwareScrollView
+          bottomOffset={getSpacing("spacing-11")}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          {content}
+        </KeyboardAwareScrollView>
+      ) : content}
     </View>
   );
 }
