@@ -1,10 +1,11 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ErrorBoundary as RouterErrorBoundary, Slot, usePathname } from "expo-router";
 import { Sentry } from "@/lib/monitoring";
-import { View } from "react-native";
+import { Keyboard, Pressable, View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { NavBar, TermsAgreementSheet, Toast } from "@/components";
 import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "@/api/queryClient";
@@ -50,15 +51,19 @@ function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE_MS }}>
-        <SafeAreaView className="flex-1 bg-background-primary">
-          <View className="px-spacing-7 flex-1 bg-background-primary">
-            <Slot />
-          </View>
-          {showNavBar && <NavBar />}
-        </SafeAreaView>
-        <AgreementGate />
-      </PersistQueryClientProvider>
+      <KeyboardProvider>
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE_MS }}>
+          <Pressable className="flex-1" accessible={false} onPress={Keyboard.dismiss}>
+            <SafeAreaView className="flex-1 bg-background-primary">
+              <View className="px-spacing-7 flex-1 bg-background-primary">
+                <Slot />
+              </View>
+              {showNavBar && <NavBar />}
+            </SafeAreaView>
+          </Pressable>
+          <AgreementGate />
+        </PersistQueryClientProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
