@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Row, Text, Toast, ProfileCard, MoreSection, MenuGroup, MenuRow, ContributionGraph } from "@/components";
@@ -7,6 +7,8 @@ import { Icon } from "@/assets";
 import { useUserStore } from "@/store";
 import { useUserInfo } from "@/hooks/common/useUserInfo";
 import { useContributionLevels } from "@/hooks/more/useContributionLevels";
+import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants
@@ -43,8 +45,11 @@ export default function SettingPage() {
       <StatusBar style="light" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
-        <Row width="full" className="items-center pb-spacing-5">
+        <Row width="full" align="between" className="items-center pb-spacing-5">
           <Text variant="header-large">마이페이지</Text>
+          <Pressable onPress={() => router.push("/More/NotificationList")} hitSlop={getSpacing("spacing-3")}>
+            <Icon name="bell" size={24} color={color.neutral["400"]} />
+          </Pressable>
         </Row>
 
         <ProfileCard
@@ -56,7 +61,7 @@ export default function SettingPage() {
 
         <MoreSection title="일반">
           <MenuGroup>
-            {/* <MenuRow icon="bell" label="알림" arrow="muted" onPress={() => router.push("/More/Notification")} /> */}
+            <MenuRow icon="bell" label="알림 설정" arrow="muted" onPress={() => router.push("/More/NotificationSetting")} />
             <MenuRow icon="lock" label="계정" arrow="muted" onPress={() => router.push("/More/AccountSetting")} />
             {/* <MenuRow icon="calendar" label="불가능 시간" arrow="muted" onPress={() => router.push("/More/UnavailableTimePage")} /> */}
           </MenuGroup>

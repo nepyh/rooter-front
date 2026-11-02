@@ -88,6 +88,12 @@ export const queryKeys = {
     catalog: ['agreements', 'catalog'] as const,
     user: (userId: number) => ['agreements', 'user', userId] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+    list: ['notifications', 'list'] as const,
+    unreadCount: ['notifications', 'unread-count'] as const,
+    settings: ['notifications', 'settings'] as const,
+  },
 };
 
 /**

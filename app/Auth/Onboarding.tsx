@@ -11,7 +11,6 @@ import { useUserStore } from '@/store';
 
 const TOAST_MESSAGES: Record<string, string> = {
   "success": "회원가입이 완료되었습니다.",
-  "password-changed": "비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해주세요.",
   "session-expired": "로그인이 만료되었습니다. 다시 로그인해주세요.",
 };
 

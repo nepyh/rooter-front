@@ -52,7 +52,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-image"
+      "expo-image",
+      "expo-notifications"
     ],
     "backgroundColor": "#33363F",
     "extra": {

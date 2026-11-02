@@ -1,6 +1,7 @@
 import api from '../../axios';
 import { useUserStore } from '@/store';
 import { decodeJwtPayload } from '@/utils/auth/jwt';
+import { syncPushToken } from '@/api/common/notification';
 
 /**
  * 로그인 API 함수
@@ -18,6 +19,7 @@ export const login = async (email: string, password: string) => {
     token,
     userId
   );
+  syncPushToken();
 
   return response.data;
 };

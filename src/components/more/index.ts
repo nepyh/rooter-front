@@ -3,4 +3,5 @@ export * from "./More";
 export * from "./Profile";
 export * from "./ChangePassword";
 export * from "./UnavailableTimePage";
-export * from "./Notification";
+export * from "./NotificationSetting";
+export * from "./NotificationList";
