@@ -57,16 +57,25 @@ function WheelColumn({ data, selectedIndex, onChange, loop = false }: WheelColum
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectRow = (row: number) => {
+  const commitRow = (row: number) => {
     const clamped = Math.max(0, Math.min(rowCount - 1, row));
     const index = clamped % data.length;
     if (loop && Math.floor(clamped / data.length) !== middleCycle) scrollToRow(toRow(index), false);
-    else scrollToRow(clamped);
-    onChange(index);
+    if (index !== selectedIndex) onChange(index);
+  };
+
+  const selectRow = (row: number) => {
+    scrollToRow(row);
+    commitRow(row);
+  };
+
+  const handleScrollEndDrag = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (event.nativeEvent.velocity?.y) return;
+    commitRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
   };
 
   const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    selectRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
+    commitRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
   };
 
   return (
@@ -77,7 +86,7 @@ function WheelColumn({ data, selectedIndex, onChange, loop = false }: WheelColum
       showsVerticalScrollIndicator={false}
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
-      onScrollEndDrag={handleMomentumEnd}
+      onScrollEndDrag={handleScrollEndDrag}
       onMomentumScrollEnd={handleMomentumEnd}
       onLayout={() => scrollToRow(toRow(selectedIndex), false)}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * WHEEL_PADDING_ROWS }}

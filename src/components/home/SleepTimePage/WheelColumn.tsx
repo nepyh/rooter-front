@@ -24,14 +24,23 @@ interface Props {
 export function WheelColumn({ data, selectedIndex, onChange, width = 64 }: Props) {
   const scrollRef = useRef<ScrollView>(null);
 
-  const selectRow = (row: number) => {
+  const commitRow = (row: number) => {
     const index = Math.max(0, Math.min(data.length - 1, row));
-    scrollRef.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated: true });
-    onChange(index);
+    if (index !== selectedIndex) onChange(index);
   };
 
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    selectRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
+  const selectRow = (row: number) => {
+    scrollRef.current?.scrollTo({ y: row * WHEEL_ITEM_HEIGHT, animated: true });
+    commitRow(row);
+  };
+
+  const handleScrollEndDrag = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (event.nativeEvent.velocity?.y) return;
+    commitRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
+  };
+
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    commitRow(Math.round(event.nativeEvent.contentOffset.y / WHEEL_ITEM_HEIGHT));
   };
 
   return (
@@ -41,8 +50,8 @@ export function WheelColumn({ data, selectedIndex, onChange, width = 64 }: Props
       showsVerticalScrollIndicator={false}
       snapToInterval={WHEEL_ITEM_HEIGHT}
       decelerationRate="fast"
-      onScrollEndDrag={handleScrollEnd}
-      onMomentumScrollEnd={handleScrollEnd}
+      onScrollEndDrag={handleScrollEndDrag}
+      onMomentumScrollEnd={handleMomentumEnd}
       onLayout={() => scrollRef.current?.scrollTo({ y: selectedIndex * WHEEL_ITEM_HEIGHT, animated: false })}
       contentContainerStyle={{ paddingVertical: WHEEL_ITEM_HEIGHT * WHEEL_PADDING_ROWS }}
     >
