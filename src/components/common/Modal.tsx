@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Pressable, Modal as RNModal, ModalProps } from "react-native";
 import { Row, Stack } from "../layout";
 import { Button } from "../ui/Button";
@@ -13,9 +14,10 @@ interface Props extends Omit<ModalProps, "children"> {
   confirmText: string;
   onCancel: () => void;
   onConfirm: () => void;
+  children?: ReactNode;
 }
 
-export function Modal({ title, description, cancelText = "취소", confirmText, onCancel, onConfirm, ...props }: Props) {
+export function Modal({ title, description, cancelText = "취소", confirmText, onCancel, onConfirm, children, ...props }: Props) {
   return (
     <RNModal transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onCancel} {...props}>
       <Pressable className="flex-1 bg-neutral-1000/40 items-center justify-center px-spacing-5" onPress={onCancel}>
@@ -25,6 +27,7 @@ export function Modal({ title, description, cancelText = "취소", confirmText, 
               <Text variant="header-medium">{title}</Text>
               {!!description && <Text variant="base-medium" color="secondary">{description}</Text>}
             </Stack>
+            {children}
             <Row gap="m" width="full">
               <Button variant="disabled" disabled={false} width="auto" style={BUTTON_STYLE} onPress={onCancel}>
                 {cancelText}

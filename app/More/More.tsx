@@ -61,7 +61,7 @@ export default function SettingPage() {
 
         <MoreSection title="일반">
           <MenuGroup>
-            {/* <MenuRow icon="bell" label="알림" arrow="muted" onPress={() => router.push("/More/Notification")} /> */}
+            <MenuRow icon="bell" label="알림 설정" arrow="muted" onPress={() => router.push("/More/NotificationSetting")} />
             <MenuRow icon="lock" label="계정" arrow="muted" onPress={() => router.push("/More/AccountSetting")} />
             {/* <MenuRow icon="calendar" label="불가능 시간" arrow="muted" onPress={() => router.push("/More/UnavailableTimePage")} /> */}
           </MenuGroup>

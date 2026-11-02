@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import { Text } from "../ui/Text";
 import { color } from "@/constants/token/color";
@@ -97,6 +97,43 @@ function WheelColumn({ data, selectedIndex, onChange, loop = false }: WheelColum
   );
 }
 
+/**
+ * 휠들을 감싸는 틀. 가운데 고른 줄에 강조 띠를 깔아 둠
+ * @param children 안에 둘 휠들
+ */
+function WheelFrame({ children }: { children: ReactNode }) {
+  return (
+    <View className="bg-neutral-800 rounded-radius-4 flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
+      <View
+        pointerEvents="none"
+        className="absolute left-spacing-0 right-spacing-0 rounded-radius-3"
+        style={{ top: WHEEL_ITEM_HEIGHT * WHEEL_PADDING_ROWS, height: WHEEL_ITEM_HEIGHT, backgroundColor: `${color.neutral["500"]}4D` }}
+      />
+      {children}
+    </View>
+  );
+}
+
+interface WheelPickerProps {
+  data: string[];
+  selectedIndex: number;
+  onChange: (index: number) => void;
+}
+
+/**
+ * 휠 한 줄로 값 하나를 고르는 피커
+ * @param data 보여줄 값 목록
+ * @param selectedIndex 고른 값의 위치
+ * @param onChange 값이 바뀔 때 호출
+ */
+export function WheelPicker({ data, selectedIndex, onChange }: WheelPickerProps) {
+  return (
+    <WheelFrame>
+      <WheelColumn data={data} selectedIndex={selectedIndex} onChange={onChange} />
+    </WheelFrame>
+  );
+}
+
 interface Props {
   value: Date;
   onChange: (date: Date) => void;
@@ -121,15 +158,10 @@ export function TimeWheelPicker({ value, onChange }: Props) {
   };
 
   return (
-    <View className="bg-neutral-800 rounded-radius-4 flex-row justify-center" style={{ height: WHEEL_HEIGHT }}>
-      <View
-        pointerEvents="none"
-        className="absolute left-spacing-0 right-spacing-0 rounded-radius-3"
-        style={{ top: WHEEL_ITEM_HEIGHT * WHEEL_PADDING_ROWS, height: WHEEL_ITEM_HEIGHT, backgroundColor: `${color.neutral["500"]}4D` }}
-      />
+    <WheelFrame>
       <WheelColumn data={HOUR_LABELS} selectedIndex={hour12 - 1} onChange={(i) => applyChange(i + 1, minute, meridiemIndex)} loop />
       <WheelColumn data={MINUTE_LABELS} selectedIndex={minute} onChange={(i) => applyChange(hour12, i, meridiemIndex)} loop />
       <WheelColumn data={MERIDIEM_LABELS} selectedIndex={meridiemIndex} onChange={(i) => applyChange(hour12, minute, i)} />
-    </View>
+    </WheelFrame>
   );
 }
