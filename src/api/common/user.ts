@@ -9,6 +9,11 @@ export interface ChangePasswordInput {
   newPassword: string;
 }
 
+export interface ChangePasswordResult {
+  message: string;
+  token: string;
+}
+
 export interface UpdateProfileInput {
   username?: string;
   bio?: string;
@@ -84,12 +89,12 @@ export interface UnavailableTime {
 }
 
 /**
- * 비밀번호 변경 API 함수
+ * 비밀번호 변경 API 함수. 성공하면 기존 토큰과 등록된 푸시 토큰이 모두 무효화됨
  * @param userId 유저 ID
  * @param input 현재 비밀번호와 새 비밀번호
- * @returns response.data
+ * @returns 교체해서 써야 하는 새 token
  */
-export const changePassword = async (userId: number, input: ChangePasswordInput) => {
+export const changePassword = async (userId: number, input: ChangePasswordInput): Promise<ChangePasswordResult> => {
   const response = await api.put(`/users/${userId}/password`, input);
   return response.data;
 };

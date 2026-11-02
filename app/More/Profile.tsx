@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Text, Input, Button, MorePageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField } from "@/components";
+import { Stack, Text, Input, Button, MorePageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField, Toast } from "@/components";
 import { useProfile } from "@/hooks/more/useProfile";
 import { useLogout } from "@/hooks/more/useLogout";
 import { formatGradeClass } from "@/utils/more/profile";
@@ -13,6 +13,7 @@ import { getSpacing } from "@/utils/common/token";
 export default function ProfilePage() {
   const { user, userInfo, schoolName, bio, setBio, profileImageUri, pickImage, saveBio } = useProfile();
   const handleLogout = useLogout();
+  const { toast } = useLocalSearchParams<{ toast?: string }>();
 
   const handleSave = async () => {
     if (await saveBio()) router.replace("/More/More");
@@ -52,6 +53,9 @@ export default function ProfilePage() {
       </ScrollView>
 
       <Button variant="primary" onPress={handleSave} className="mt-spacing-5">수정하기</Button>
+      {toast === "password-changed" && (
+        <Toast text="비밀번호가 변경되었습니다." onClose={() => router.setParams({ toast: undefined })} />
+      )}
     </View>
   );
 }

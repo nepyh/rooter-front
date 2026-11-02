@@ -18,6 +18,7 @@ interface UserState {
   userId: number | null;
   isLogin: boolean;
   setUser: (user: User, token: string, userId: number) => void;
+  setToken: (token: string) => void;
   updateProfile: (patch: Partial<Pick<User, "bio">>) => void;
   logout: () => void;
   restoreSession: () => Promise<void>;
@@ -33,7 +34,7 @@ const SESSION_KEY = "session";
 // Components
 // ================================
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   token: null,
   userId: null,
@@ -41,6 +42,11 @@ export const useUserStore = create<UserState>((set) => ({
 
   setUser: (user, token, userId) => {
     set({ user, token, userId, isLogin: true });
+    SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user, token, userId })).catch(() => {});
+  },
+  setToken: (token) => {
+    set({ token });
+    const { user, userId } = get();
     SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ user, token, userId })).catch(() => {});
   },
   updateProfile: (patch) => set((state) => (state.user ? { user: { ...state.user, ...patch } } : state)),

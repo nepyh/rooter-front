@@ -9,6 +9,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { NavBar, TermsAgreementSheet, Toast } from "@/components";
 import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "@/api/queryClient";
+import { syncPushToken } from "@/api/common/notification";
 import { useUIStore, useUserStore } from "@/store";
 import { useAgreementGate } from "@/hooks/common/useAgreementGate";
 import "../global.css";
@@ -43,7 +44,10 @@ function RootLayout() {
   const [sessionRestored, setSessionRestored] = useState(false);
   useEffect(() => {
     restoreSession()
-      .then(() => (useUserStore.getState().isLogin ? undefined : clearQueryCache()))
+      .then(() => {
+        if (useUserStore.getState().isLogin) syncPushToken();
+        else clearQueryCache();
+      })
       .finally(() => setSessionRestored(true));
   }, [restoreSession]);
 

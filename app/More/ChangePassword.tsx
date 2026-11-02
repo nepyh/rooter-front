@@ -2,6 +2,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { Button, Toast, PasswordInput, ChangePasswordScreen } from "@/components";
 import { changePassword } from "@/api/common/user";
+import { syncPushToken } from "@/api/common/notification";
 import { isWrongCurrentPassword } from "@/api/more/ChangePassword";
 import { useFormField } from "@/hooks/common/useFormField";
 import { useUserStore } from "@/store";
@@ -23,7 +24,7 @@ type Step = "verify" | "reset";
  */
 export default function ChangePasswordPage() {
   const userId = useUserStore((state) => state.userId);
-  const logout = useUserStore((state) => state.logout);
+  const setToken = useUserStore((state) => state.setToken);
   const [step, setStep] = useState<Step>("verify");
   const [toastMessage, setToastMessage] = useState("");
 
@@ -50,9 +51,10 @@ export default function ChangePasswordPage() {
     if (userId === null) return;
 
     try {
-      await changePassword(userId, { currentPassword: currentPassword.value, newPassword: newPassword.value });
-      logout();
-      router.replace({ pathname: "/Auth/Onboarding", params: { toast: "password-changed" } });
+      const { token } = await changePassword(userId, { currentPassword: currentPassword.value, newPassword: newPassword.value });
+      setToken(token);
+      syncPushToken();
+      router.dismissTo({ pathname: "/More/Profile", params: { toast: "password-changed" } });
     } catch (error) {
       if (isWrongCurrentPassword(error)) {
         setStep("verify");
