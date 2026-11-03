@@ -41,10 +41,8 @@ export default function SleepTimePage() {
 
   const handleNext = () => {
     router.push({
-      pathname: "/LearningSurvey/StudySurveyQuestion",
+      pathname: "/LearningSurvey/StudySurveyIntro",
       params: {
-        step: "1",
-        answers: "",
         plan: JSON.stringify({ examDate, subjects, wakeTime, sleepHours: SLEEP_HOURS[sleepHoursIndex] }),
       },
     });
