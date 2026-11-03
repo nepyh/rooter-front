@@ -22,6 +22,13 @@ export const getWeekStartKey = (value: string) => {
 };
 
 /**
+ * 며칠 앞뒤로 옮긴 날짜
+ * @param date 기준 날짜
+ * @param days 옮길 날 수 (음수면 이전)
+ */
+export const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+
+/**
  * 가운데 날짜 앞뒤 3일씩, 7일 날짜 목록
  * @param center 가운데에 둘 날짜
  */

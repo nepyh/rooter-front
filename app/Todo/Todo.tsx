@@ -8,7 +8,7 @@ import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
 import { toLocalDateString } from "@/utils/common/date";
-import { getWeekDates, isTaskEnded, parseDateString } from "@/utils/todo/date";
+import { addDays, isTaskEnded, parseDateString } from "@/utils/todo/date";
 import { groupTasksBySubject } from "@/utils/todo/task";
 import { getSpacing } from "@/utils/common/token";
 
@@ -21,7 +21,7 @@ export default function TodoPage() {
   const now = useNow(60_000);
   const { date } = useLocalSearchParams<{ date?: string }>();
   const [selectedDate, setSelectedDate] = useState(() => (date ? parseDateString(date) : now));
-  const weekDates = getWeekDates(date ? parseDateString(date) : now);
+  const centerDate = date ? parseDateString(date) : now;
   const selectedKey = toLocalDateString(selectedDate);
   const { loaded, tasks } = useWeeklyTasks(selectedKey);
 
@@ -42,7 +42,13 @@ export default function TodoPage() {
         <Text variant="header-large">할 일</Text>
       </Row>
 
-      <WeekDateStrip dates={weekDates} selectedDate={selectedDate} onSelect={setSelectedDate} />
+      <WeekDateStrip
+        key={toLocalDateString(centerDate)}
+        centerDate={centerDate}
+        selectedDate={selectedDate}
+        onSelect={setSelectedDate}
+        onChangeWeek={(weeks) => setSelectedDate((prev) => addDays(prev, weeks * 7))}
+      />
 
       {!loaded ? <LoadingView className="pb-[140px]" /> : (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: getSpacing("spacing-5"), paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
