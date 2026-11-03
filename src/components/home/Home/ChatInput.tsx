@@ -3,6 +3,7 @@ import { Pressable, TextInput, TextInputProps } from "react-native";
 import { Row } from "../../layout";
 import { Icon } from "@/assets";
 import { color } from "@/constants/token/color";
+import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Types
@@ -19,6 +20,7 @@ const INPUT_GAP = 10;
 const INPUT_LINE_HEIGHT = 24;
 const INPUT_MAX_HEIGHT = 124;
 const SEND_BUTTON_SIZE = 40;
+const SINGLE_LINE_HEIGHT = INPUT_LINE_HEIGHT + getSpacing("spacing-3") * 2;
 
 // ================================
 // Styles
@@ -63,7 +65,7 @@ export function ChatInput({ ref, value, onSend, sending = false, ...props }: Pro
         onSubmitEditing={onSend}
         returnKeyType="send"
         className="flex-1 text-lg font-medium text-text-primary py-spacing-3"
-        style={{ lineHeight: INPUT_LINE_HEIGHT, maxHeight: INPUT_MAX_HEIGHT }}
+        style={[{ lineHeight: INPUT_LINE_HEIGHT, maxHeight: INPUT_MAX_HEIGHT }, !value && { height: SINGLE_LINE_HEIGHT }]}
         {...props}
       />
       <Pressable

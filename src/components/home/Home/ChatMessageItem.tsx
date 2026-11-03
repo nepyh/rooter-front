@@ -1,4 +1,5 @@
-import { Pressable, View, ViewProps } from "react-native";
+import { useState } from "react";
+import { NativeSyntheticEvent, Pressable, TextLayoutEventData, View, ViewProps } from "react-native";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon, type IconName } from "@/assets";
@@ -37,11 +38,29 @@ const actionColors: Record<ActionState, string> = {
 // Components
 // ================================
 
+/**
+ * 사용자 메시지의 말풍선
+ * @param message 보여줄 메시지
+ */
 function UserMessage({ message }: { message: ChatMessage }) {
+  const [textWidth, setTextWidth] = useState<number>();
+
+  const handleTextLayout = (event: NativeSyntheticEvent<TextLayoutEventData>) => {
+    const { lines } = event.nativeEvent;
+    if (lines.length < 2) return;
+    setTextWidth(Math.ceil(Math.max(...lines.map((line) => line.width))) + 1);
+  };
+
   return (
     <View className="w-full items-end" style={{ gap: getSpacing("spacing-3") }}>
       <View className="bg-neutral-700 p-spacing-5 rounded-tl-radius-4 rounded-bl-radius-4 rounded-br-radius-4" style={{ maxWidth: "90%" }}>
-        <Text variant="base-large" className="text-right" style={{ lineHeight: MESSAGE_LINE_HEIGHT }} selectable>
+        <Text
+          variant="base-large"
+          className="text-right"
+          style={{ lineHeight: MESSAGE_LINE_HEIGHT, width: textWidth }}
+          onTextLayout={handleTextLayout}
+          selectable
+        >
           {message.text}
         </Text>
       </View>

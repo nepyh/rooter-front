@@ -52,16 +52,6 @@ export const sendChatMessage = async (dailyPlanId: number, message: string, sess
 };
 
 /**
- * 챗봇 대화 이력 조회 API 함수
- * @param dailyPlanId 일일 계획 ID
- * @returns 시간순 대화 목록
- */
-export const getChatHistory = async (dailyPlanId: number): Promise<ChatTurn[]> => {
-  const response = await api.get(`/daily-plans/${dailyPlanId}/chat`);
-  return response.data;
-};
-
-/**
  * 챗봇 세션(대화 목록) 조회 API 함수
  * @returns 최근 대화순 세션 목록
  */
@@ -98,4 +88,12 @@ export const createChatSession = async (): Promise<ChatSession> => {
 export const updateChatTurnFeedback = async (turnId: number, feedback: ChatTurnFeedback | null): Promise<ChatTurn> => {
   const response = await api.put(`/chat/turns/${turnId}/feedback`, { feedback });
   return response.data;
+};
+
+/**
+ * 챗봇 세션 삭제 API 함수
+ * @param sessionId 지울 세션 ID
+ */
+export const deleteChatSession = async (sessionId: number): Promise<void> => {
+  await api.delete(`/chat/sessions/${sessionId}`);
 };

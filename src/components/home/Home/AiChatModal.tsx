@@ -11,7 +11,7 @@ import { ChatSuggestions } from "./ChatSuggestions";
 import { ChatInput } from "./ChatInput";
 import {
   createChatSession,
-  getChatHistory,
+  deleteChatSession,
   getChatSessions,
   getChatSessionTurns,
   sendChatMessage,
@@ -21,6 +21,7 @@ import {
 import { getChatFeedbackErrorMessage, getChatSendErrorMessage } from "@/api/home/Home/errors";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
+import { parseServerDateTime } from "@/utils/common/date";
 import { normalizeLineBreaks, toChatMessage, type ChatFeedback, type ChatMessage } from "@/utils/home/chat";
 
 // ================================
@@ -40,6 +41,11 @@ interface Props {
 
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 const HEADER_HEIGHT = 44;
+const RESUME_WINDOW_MS = 15 * 60 * 1000;
+const MESSAGE_GAP = getSpacing("spacing-11");
+const INPUT_BOTTOM = getSpacing("spacing-11");
+const INPUT_DEFAULT_HEIGHT = 58;
+const INPUT_FADE_HEIGHT = getSpacing("spacing-9");
 
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
@@ -95,26 +101,69 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [inputHeight, setInputHeight] = useState(INPUT_DEFAULT_HEIGHT);
   const [creatingSession, setCreatingSession] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const turnsRequestRef = useRef(0);
   const feedbackPendingRef = useRef(new Set<number>());
+  const emptySessionRef = useRef<number | null>(null);
 
   const currentSession = sessions.find((session) => session.id === currentSessionId);
   const currentTitle = currentSession?.title ?? draftTitle ?? (messages.length > 0 ? UNTITLED_SESSION : null);
+  const inputAreaHeight = inputHeight + INPUT_BOTTOM;
+  const inputFadeHeight = inputAreaHeight + INPUT_FADE_HEIGHT;
+  const inputFadeStops = [
+    { offset: 0, color: color.chat["gradient-bottom"], opacity: 0 },
+    { offset: (INPUT_FADE_HEIGHT + inputHeight) / inputFadeHeight, color: color.chat["gradient-bottom"], opacity: 0.9 },
+    { offset: 1, color: color.chat["gradient-bottom"], opacity: 1 },
+  ];
 
   const clearError = useCallback(() => setErrorMessage(""), []);
 
-  const loadSessions = useCallback(() => {
+  const loadSessions = useCallback(async () => {
     setListStatus((prev) => (prev === "ready" ? prev : "loading"));
-    getChatSessions()
-      .then((list) => {
-        setSessions(list);
-        setListStatus("ready");
-      })
-      .catch(() => setListStatus("error"));
+    try {
+      const list = await getChatSessions();
+      setSessions(list);
+      setListStatus("ready");
+      return list;
+    } catch {
+      setListStatus("error");
+      return null;
+    }
   }, []);
+
+  /**
+   * 새 채팅으로 만들었지만 한 번도 보내지 않은 세션을 지움. 다른 채팅으로 옮기거나 화면을 나갈 때 호출
+   * @param nextSessionId 이제 열 세션 ID (같은 세션이면 지우지 않음)
+   */
+  const discardEmptySession = useCallback((nextSessionId: number | null = null) => {
+    const sessionId = emptySessionRef.current;
+    if (sessionId === null || sessionId === nextSessionId) return;
+    emptySessionRef.current = null;
+    setSessions((prev) => prev.filter((session) => session.id !== sessionId));
+    deleteChatSession(sessionId).catch(() => {});
+  }, []);
+
+  const loadTurns = useCallback((sessionId: number, requestId: number) => {
+    setCurrentSessionId(sessionId);
+    setDraftTitle(null);
+    setMessages([]);
+    setLoadingTurns(true);
+    getChatSessionTurns(sessionId)
+      .then((turns) => {
+        if (requestId === turnsRequestRef.current) setMessages(turns.map(toChatMessage));
+      })
+      .catch(() => {
+        if (requestId === turnsRequestRef.current) setErrorMessage(TURNS_ERROR_MESSAGE);
+      })
+      .finally(() => {
+        if (requestId === turnsRequestRef.current) setLoadingTurns(false);
+      });
+  }, []);
+
+  useEffect(() => () => discardEmptySession(), [discardEmptySession]);
 
   useEffect(() => {
     if (visible) {
@@ -128,26 +177,26 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   }, [visible, translateY]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      discardEmptySession();
+      return;
+    }
     const requestId = ++turnsRequestRef.current;
     setSessions([]);
     setListStatus("loading");
     setCurrentSessionId(null);
     setDraftTitle(null);
     setMessages([]);
+    setLoadingTurns(false);
     setShowList(false);
     setInput("");
-    loadSessions();
-    if (!dailyPlanId) return;
-    getChatHistory(dailyPlanId)
-      .then((turns) => {
-        const lastSessionId = turns.at(-1)?.sessionId;
-        if (lastSessionId === undefined || requestId !== turnsRequestRef.current) return;
-        setCurrentSessionId(lastSessionId);
-        setMessages(turns.filter((turn) => turn.sessionId === lastSessionId).map(toChatMessage));
-      })
-      .catch(() => {});
-  }, [visible, dailyPlanId, loadSessions]);
+    loadSessions().then((list) => {
+      const recent = list?.[0];
+      if (!recent || requestId !== turnsRequestRef.current) return;
+      if (Date.now() - parseServerDateTime(recent.updatedAt).getTime() > RESUME_WINDOW_MS) return;
+      loadTurns(recent.id, requestId);
+    });
+  }, [visible, loadSessions, loadTurns, discardEmptySession]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -171,10 +220,12 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       return;
     }
 
+    if (emptySessionRef.current === currentSessionId) emptySessionRef.current = null;
     const requestId = turnsRequestRef.current;
     setSending(true);
     try {
-      const result = await sendChatMessage(dailyPlanId, text, currentSessionId);
+      const sessionId = currentSessionId ?? (await createChatSession()).id;
+      const result = await sendChatMessage(dailyPlanId, text, sessionId);
       if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
       if (requestId !== turnsRequestRef.current) return;
 
@@ -238,7 +289,12 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     setCreatingSession(true);
     try {
       const session = await createChatSession();
-      if (requestId !== turnsRequestRef.current) return;
+      if (requestId !== turnsRequestRef.current) {
+        deleteChatSession(session.id).catch(() => {});
+        return;
+      }
+      discardEmptySession(session.id);
+      emptySessionRef.current = session.id;
       setSessions((prev) => [session, ...prev.filter((item) => item.id !== session.id)]);
       setCurrentSessionId(session.id);
       setDraftTitle(null);
@@ -257,26 +313,14 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     setShowList(false);
     if (sessionId === currentSessionId && messages.length > 0) return;
 
-    const requestId = ++turnsRequestRef.current;
-    setCurrentSessionId(sessionId);
-    setDraftTitle(null);
-    setMessages([]);
+    discardEmptySession(sessionId);
     setInput("");
-    setLoadingTurns(true);
-    getChatSessionTurns(sessionId)
-      .then((turns) => {
-        if (requestId === turnsRequestRef.current) setMessages(turns.map(toChatMessage));
-      })
-      .catch(() => {
-        if (requestId === turnsRequestRef.current) setErrorMessage(TURNS_ERROR_MESSAGE);
-      })
-      .finally(() => {
-        if (requestId === turnsRequestRef.current) setLoadingTurns(false);
-      });
+    loadTurns(sessionId, ++turnsRequestRef.current);
   };
 
   const handleDeleteAll = () => {
     if (sending) return;
+    discardEmptySession();
     turnsRequestRef.current += 1;
     setSessions([]);
     setCurrentSessionId(null);
@@ -302,7 +346,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
           >
             <View className="flex-1 rounded-t-radius-6 overflow-hidden">
               <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
-              <View className="flex-1 items-center pt-spacing-3 pb-spacing-11 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
+              <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
                 <View className="bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
 
                 <View className="flex-1 w-full">
@@ -313,11 +357,11 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                   />
 
                   {loadingTurns ? (
-                    <View className="flex-1 items-center justify-center">
+                    <View className="flex-1 items-center justify-center" style={{ paddingBottom: inputAreaHeight }}>
                       <Text variant="base-large" color="disabled">대화를 불러오는 중...</Text>
                     </View>
                   ) : messages.length === 0 && !sending ? (
-                    <View className="flex-1 justify-end pb-spacing-11">
+                    <View className="flex-1 justify-end" style={{ paddingBottom: inputAreaHeight + MESSAGE_GAP }}>
                       <ChatSuggestions onSelect={handleSelectSuggestion} />
                     </View>
                   ) : (
@@ -327,7 +371,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                         className="flex-1 w-full"
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
-                        contentContainerStyle={{ paddingTop: HEADER_FADE_HEIGHT + getSpacing("spacing-3"), paddingBottom: getSpacing("spacing-11"), gap: getSpacing("spacing-11") }}
+                        contentContainerStyle={{ paddingTop: HEADER_FADE_HEIGHT + getSpacing("spacing-3"), paddingBottom: inputAreaHeight + MESSAGE_GAP, gap: MESSAGE_GAP }}
                         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
                       >
                         {messages.map((message) => (
@@ -349,13 +393,27 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                     </View>
                   )}
 
-                  <ChatInput
-                    ref={inputRef}
-                    value={input}
-                    onChangeText={setInput}
-                    onSend={handleSend}
-                    sending={sending}
-                  />
+                  {messages.length > 0 && (
+                    <VerticalGradient
+                      className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0"
+                      style={{ height: inputFadeHeight }}
+                      stops={inputFadeStops}
+                    />
+                  )}
+
+                  <View
+                    className="absolute left-spacing-0 right-spacing-0"
+                    style={{ bottom: INPUT_BOTTOM }}
+                    onLayout={(event) => setInputHeight(event.nativeEvent.layout.height)}
+                  >
+                    <ChatInput
+                      ref={inputRef}
+                      value={input}
+                      onChangeText={setInput}
+                      onSend={handleSend}
+                      sending={sending}
+                    />
+                  </View>
 
                   {showList && (
                     <>
