@@ -1,4 +1,4 @@
-import { ScrollView } from "react-native";
+import { View } from "react-native";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { OptionRow } from "./OptionRow";
@@ -16,14 +16,14 @@ interface Props {
 }
 
 /**
- * 마스코트, 문항 제목, 보기 목록으로 된 설문 문항 한 개 (세로 스크롤)
+ * 마스코트, 문항 제목, 보기 목록으로 된 설문 문항 한 개
  * @param question 보여줄 문항
  * @param selectedIndex 고른 보기 위치, 안 골랐으면 null
  * @param onSelect 보기를 눌렀을 때 호출
  */
 export function SurveyQuestionView({ question, selectedIndex, onSelect }: Props) {
   return (
-    <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+    <View className="flex-1">
       <Stack gap="l" width="full">
         <Icon name="mascotFace" size={76} />
         <Stack gap="xxl" width="full">
@@ -35,6 +35,6 @@ export function SurveyQuestionView({ question, selectedIndex, onSelect }: Props)
           </Stack>
         </Stack>
       </Stack>
-    </ScrollView>
+    </View>
   );
 }

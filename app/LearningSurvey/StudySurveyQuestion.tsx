@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Button, SurveyProgressBar, SurveyQuestionView } from "@/components";
+import { Stack, Button, SurveyQuestionHeader, SurveyQuestionView } from "@/components";
 import { SURVEY_QUESTIONS } from "@/api/learningSurvey/StudySurveyQuestion";
 
 // ================================
@@ -52,10 +52,12 @@ export default function StudySurveyQuestion() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <Stack gap="xxl" className="flex-1" width="full">
-        <SurveyProgressBar total={SURVEY_QUESTIONS.length} currentIndex={stepIndex} />
-        <SurveyQuestionView question={SURVEY_QUESTIONS[stepIndex]} selectedIndex={selected} onSelect={setSelected} />
-        <Button variant={selected !== null ? "primary" : "disabled"} onPress={handleNext}> 다음 </Button>
+      <Stack gap="xl" className="flex-1" width="full">
+        <SurveyQuestionHeader total={SURVEY_QUESTIONS.length} currentIndex={stepIndex} onBack={() => router.back()} />
+        <Stack gap="xxl" className="flex-1" width="full">
+          <SurveyQuestionView question={SURVEY_QUESTIONS[stepIndex]} selectedIndex={selected} onSelect={setSelected} />
+          <Button variant={selected !== null ? "primary" : "disabled"} onPress={handleNext}> 다음 </Button>
+        </Stack>
       </Stack>
     </View>
   );
