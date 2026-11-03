@@ -9,7 +9,6 @@ import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { ChatInput } from "./ChatInput";
-import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import {
   createChatSession,
   deleteAllChatSessions,
@@ -105,7 +104,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [inputHeight, setInputHeight] = useState(INPUT_DEFAULT_HEIGHT);
-  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -323,15 +321,9 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     loadTurns(sessionId, ++turnsRequestRef.current);
   };
 
-  const handleRequestDeleteAll = () => {
-    if (sending) return;
-    setShowList(false);
-    setConfirmDeleteAll(true);
-  };
-
   const handleDeleteAll = async () => {
-    setConfirmDeleteAll(false);
     if (sending || deletingAll) return;
+    setShowList(false);
 
     setDeletingAll(true);
     try {
@@ -448,18 +440,9 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                         currentId={currentSessionId}
                         now={new Date()}
                         onSelect={handleSelectSession}
-                        onDeleteAll={handleRequestDeleteAll}
+                        onDeleteAll={handleDeleteAll}
                       />
                     </>
-                  )}
-
-                  {confirmDeleteAll && (
-                    <ConfirmDeleteModal
-                      title="채팅 목록을 모두 삭제할까요?"
-                      description={"삭제한 대화는 되돌릴 수 없어요.\n챗봇이 바꾼 일정은 그대로 남아요."}
-                      onCancel={() => setConfirmDeleteAll(false)}
-                      onConfirm={handleDeleteAll}
-                    />
                   )}
 
                   {!!errorMessage && <Toast text={errorMessage} onClose={clearError} />}
