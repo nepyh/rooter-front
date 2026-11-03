@@ -9,10 +9,19 @@ import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { ChatInput } from "./ChatInput";
-import { createChatSession, getChatHistory, getChatSessions, getChatSessionTurns, sendChatMessage, type ChatSession } from "@/api/home/Home/chat";
+import {
+  createChatSession,
+  getChatHistory,
+  getChatSessions,
+  getChatSessionTurns,
+  sendChatMessage,
+  updateChatTurnFeedback,
+  type ChatSession,
+} from "@/api/home/Home/chat";
+import { getChatFeedbackErrorMessage, getChatSendErrorMessage } from "@/api/home/Home/errors";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
-import { toChatMessage, type ChatFeedback, type ChatMessage } from "@/utils/home/chat";
+import { normalizeLineBreaks, toChatMessage, type ChatFeedback, type ChatMessage } from "@/utils/home/chat";
 
 // ================================
 // Types
@@ -33,7 +42,6 @@ const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 const HEADER_HEIGHT = 44;
 
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
-const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
 const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
 const CREATE_SESSION_ERROR_MESSAGE = "새 채팅을 만들지 못했어요";
 const UNTITLED_SESSION = "새 대화";
@@ -54,8 +62,9 @@ const HEADER_FADE_STOPS = [
 // Functions
 // ================================
 
-const createMessage = (role: ChatMessage["role"], text: string): ChatMessage => ({
+const createMessage = (role: ChatMessage["role"], text: string, turnId: number | null = null): ChatMessage => ({
   id: `${Date.now()}-${role}`,
+  turnId,
   role,
   text,
   createdAt: new Date(),
@@ -90,6 +99,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const turnsRequestRef = useRef(0);
+  const feedbackPendingRef = useRef(new Set<number>());
 
   const currentSession = sessions.find((session) => session.id === currentSessionId);
   const currentTitle = currentSession?.title ?? draftTitle ?? (messages.length > 0 ? UNTITLED_SESSION : null);
@@ -151,8 +161,9 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     const text = input.trim();
     if (!text || sending || loadingTurns || creatingSession) return;
 
+    const userMessage = createMessage("user", text);
     if (messages.length === 0 && !currentSession?.title) setDraftTitle(text);
-    appendMessage(createMessage("user", text));
+    appendMessage(userMessage);
     setInput("");
 
     if (!dailyPlanId) {
@@ -160,23 +171,57 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       return;
     }
 
+    const requestId = turnsRequestRef.current;
     setSending(true);
     try {
-      const result = await sendChatMessage(dailyPlanId, text);
-      appendMessage(createMessage("assistant", result.reply));
+      const result = await sendChatMessage(dailyPlanId, text, currentSessionId);
       if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
-    } catch {
-      appendMessage(createMessage("assistant", ERROR_MESSAGE));
+      if (requestId !== turnsRequestRef.current) return;
+
+      setMessages((prev) => [
+        ...prev.map((message) => (message.id === userMessage.id ? { ...message, turnId: result.userTurnId } : message)),
+        createMessage("assistant", normalizeLineBreaks(result.reply), result.assistantTurnId),
+      ]);
+      setCurrentSessionId(result.sessionId);
+      if (result.sessionTitle) setDraftTitle(null);
+      setSessions((prev) => {
+        const target = prev.find((session) => session.id === result.sessionId);
+        const now = new Date().toISOString();
+        const updated: ChatSession = {
+          id: result.sessionId,
+          title: result.sessionTitle ?? target?.title ?? null,
+          createdAt: target?.createdAt ?? now,
+          updatedAt: now,
+        };
+        return [updated, ...prev.filter((session) => session.id !== result.sessionId)];
+      });
+    } catch (error) {
+      if (requestId === turnsRequestRef.current) appendMessage(createMessage("assistant", getChatSendErrorMessage(error)));
     } finally {
       setSending(false);
     }
   };
 
-  const handleFeedback = (messageId: string, feedback: ChatFeedback) => {
-    setMessages((prev) => prev.map((message) => message.id !== messageId ? message : {
-      ...message,
-      feedback: message.feedback === feedback ? null : feedback,
-    }));
+  const handleFeedback = async (target: ChatMessage, feedback: ChatFeedback) => {
+    const { turnId } = target;
+    if (turnId === null || feedbackPendingRef.current.has(turnId)) return;
+
+    const previous = target.feedback;
+    const next = previous === feedback ? null : feedback;
+    const setTurnFeedback = (value: ChatFeedback | null) =>
+      setMessages((prev) => prev.map((message) => (message.turnId === turnId ? { ...message, feedback: value } : message)));
+
+    feedbackPendingRef.current.add(turnId);
+    setTurnFeedback(next);
+    try {
+      const updated = await updateChatTurnFeedback(turnId, next);
+      setTurnFeedback(updated.feedback);
+    } catch (error) {
+      setTurnFeedback(previous);
+      setErrorMessage(getChatFeedbackErrorMessage(error));
+    } finally {
+      feedbackPendingRef.current.delete(turnId);
+    }
   };
 
   const handleToggleList = () => {
@@ -289,7 +334,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                           <ChatMessageItem
                             key={message.id}
                             message={message}
-                            onFeedback={(feedback) => handleFeedback(message.id, feedback)}
+                            onFeedback={message.turnId === null ? undefined : (feedback) => handleFeedback(message, feedback)}
                           />
                         ))}
                         {sending && (

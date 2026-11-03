@@ -25,3 +25,34 @@ export const getEditErrorMessage = (error: unknown) => {
   const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
   return EDIT_ERROR_MESSAGES[code] ?? DEFAULT_EDIT_ERROR_MESSAGE;
 };
+
+const CHAT_SEND_ERROR_MESSAGES: Record<string, string> = {
+  "CHAT_SESSION_NOT_FOUND": "삭제되었거나 찾을 수 없는 대화예요. 새 채팅에서 다시 물어봐주세요.",
+};
+
+const DEFAULT_CHAT_SEND_ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
+
+const CHAT_FEEDBACK_ERROR_MESSAGES: Record<string, string> = {
+  "CHAT_TURN_NOT_FOUND": "삭제되었거나 찾을 수 없는 답변이에요.",
+  "CHAT_FEEDBACK_NOT_ALLOWED": "챗봇 답변에만 좋아요·싫어요를 누를 수 있어요.",
+};
+
+const DEFAULT_CHAT_FEEDBACK_ERROR_MESSAGE = "평가를 저장하지 못했어요. 잠시 후 다시 시도해주세요.";
+
+/**
+ * 챗봇 메시지 전송 실패 에러를 안내 문구로 변환 (백엔드 code 기준)
+ * @param error sendChatMessage() 가 던진 에러
+ */
+export const getChatSendErrorMessage = (error: unknown) => {
+  const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+  return CHAT_SEND_ERROR_MESSAGES[code] ?? DEFAULT_CHAT_SEND_ERROR_MESSAGE;
+};
+
+/**
+ * 챗봇 답변 좋아요/싫어요 실패 에러를 안내 문구로 변환 (백엔드 code 기준)
+ * @param error updateChatTurnFeedback() 가 던진 에러
+ */
+export const getChatFeedbackErrorMessage = (error: unknown) => {
+  const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+  return CHAT_FEEDBACK_ERROR_MESSAGES[code] ?? DEFAULT_CHAT_FEEDBACK_ERROR_MESSAGE;
+};

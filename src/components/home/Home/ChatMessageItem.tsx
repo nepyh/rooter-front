@@ -68,10 +68,10 @@ function AssistantMessage({ message, onCopy, onFeedback }: AssistantMessageProps
         <Pressable onPress={onCopy} hitSlop={6} accessibilityLabel="답변 복사">
           <Icon name="copy" size={ACTION_ICON_SIZE} color={actionColors.inactive} />
         </Pressable>
-        {FEEDBACK_ACTIONS.map((action) => (
+        {onFeedback && FEEDBACK_ACTIONS.map((action) => (
           <Pressable
             key={action.feedback}
-            onPress={() => onFeedback?.(action.feedback)}
+            onPress={() => onFeedback(action.feedback)}
             hitSlop={6}
             accessibilityLabel={action.label}
             accessibilityState={{ selected: message.feedback === action.feedback }}
@@ -98,7 +98,7 @@ interface Props extends ViewProps {
  * AI 채팅 메시지 한 개. 내 메시지는 오른쪽 말풍선 + 보낸 시각, 챗봇 답변은 본문 + 복사·좋음·싫음 버튼
  * @param message 보여줄 메시지
  * @param onCopy 챗봇 답변의 복사 버튼을 눌렀을 때 호출
- * @param onFeedback 챗봇 답변의 좋음/싫음 버튼을 눌렀을 때 호출
+ * @param onFeedback 챗봇 답변의 좋음/싫음 버튼을 눌렀을 때 호출. 없으면 좋음/싫음 버튼을 숨김 (서버에 저장되지 않은 안내 문구)
  */
 export function ChatMessageItem({ message, onCopy, onFeedback, ...props }: Props) {
   return (

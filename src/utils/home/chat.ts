@@ -9,6 +9,7 @@ export type ChatFeedback = "LIKE" | "DISLIKE";
 
 export interface ChatMessage {
   id: string;
+  turnId: number | null;
   role: "user" | "assistant";
   text: string;
   createdAt: Date;
@@ -67,13 +68,22 @@ export const formatSessionDate = (date: Date, now: Date) => {
 };
 
 /**
+ * 챗봇 답변의 줄바꿈을 화면에서 그대로 보이도록 정리
+ * \r\n·\r 은 \n 으로 바꾸고, 문자 그대로 들어온 "\n"(역슬래시 + n)도 실제 줄바꿈으로 바꿈. 앞뒤 빈 줄은 지움
+ * @param text 서버가 준 답변
+ */
+export const normalizeLineBreaks = (text: string) =>
+  text.replace(/\r\n?/g, "\n").replace(/\\n/g, "\n").trim();
+
+/**
  * 서버 대화 한 줄을 화면 메시지로 변환
  * @param turn 서버가 준 대화 한 줄
  */
 export const toChatMessage = (turn: ChatTurn): ChatMessage => ({
   id: `turn-${turn.id}`,
+  turnId: turn.id,
   role: turn.role.toLowerCase() === "user" ? "user" : "assistant",
-  text: turn.content,
+  text: normalizeLineBreaks(turn.content),
   createdAt: parseServerDateTime(turn.createdAt),
   feedback: turn.feedback,
 });

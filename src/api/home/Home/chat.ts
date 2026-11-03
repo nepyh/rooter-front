@@ -10,6 +10,10 @@ export interface ChatReply {
   planChanged: boolean;
   updatedTasks: PlanTask[] | null;
   movedTasks: PlanTask[] | null;
+  sessionId: number;
+  sessionTitle: string | null;
+  userTurnId: number;
+  assistantTurnId: number;
 }
 
 export type ChatTurnFeedback = 'LIKE' | 'DISLIKE';
@@ -33,12 +37,17 @@ export interface ChatSession {
 
 /**
  * 챗봇 메시지 전송 API 함수
- * @param dailyPlanId 일일 계획 ID
+ * @param dailyPlanId 일일 계획 ID (어느 날 계획을 보고 고칠지)
  * @param message 보낼 메시지
- * @returns AI 답변과 계획 변경 여부
+ * @param sessionId 메시지를 이어 붙일 세션 ID. null 이면 서버가 그날 마지막 세션에 붙이거나 새로 만듦
+ * @returns AI 답변, 계획 변경 여부, 세션 ID·제목, 방금 저장된 질문·답변 ID
  */
-export const sendChatMessage = async (dailyPlanId: number, message: string): Promise<ChatReply> => {
-  const response = await api.post(`/daily-plans/${dailyPlanId}/chat/message`, { message }, { timeout: AI_TIMEOUT_MS });
+export const sendChatMessage = async (dailyPlanId: number, message: string, sessionId: number | null): Promise<ChatReply> => {
+  const response = await api.post(
+    `/daily-plans/${dailyPlanId}/chat/message`,
+    { message, ...(sessionId !== null && { sessionId }) },
+    { timeout: AI_TIMEOUT_MS },
+  );
   return response.data;
 };
 
@@ -77,5 +86,16 @@ export const getChatSessionTurns = async (sessionId: number): Promise<ChatTurn[]
  */
 export const createChatSession = async (): Promise<ChatSession> => {
   const response = await api.post('/chat/sessions');
+  return response.data;
+};
+
+/**
+ * 챗봇 답변 좋아요/싫어요 API 함수
+ * @param turnId 챗봇 답변 ID (사용자 메시지에는 누를 수 없음)
+ * @param feedback LIKE / DISLIKE, null 이면 취소
+ * @returns 바뀐 메시지
+ */
+export const updateChatTurnFeedback = async (turnId: number, feedback: ChatTurnFeedback | null): Promise<ChatTurn> => {
+  const response = await api.put(`/chat/turns/${turnId}/feedback`, { feedback });
   return response.data;
 };
