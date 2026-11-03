@@ -3,11 +3,11 @@ import { ScrollView } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Row, Stack, Text, LoadingView, WeekDateStrip, TaskList } from "@/components";
+import { Row, Stack, Text, LoadingView, WeekDateStrip, TaskList, TodayButton } from "@/components";
 import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
-import { toLocalDateString } from "@/utils/common/date";
+import { isSameDay, toLocalDateString } from "@/utils/common/date";
 import { addDays, isTaskEnded, parseDateString } from "@/utils/todo/date";
 import { groupTasksBySubject } from "@/utils/todo/task";
 import { getSpacing } from "@/utils/common/token";
@@ -38,13 +38,15 @@ export default function TodoPage() {
     <Animated.View entering={date ? SlideInRight.duration(300) : undefined} style={{ flex: 1 }}>
       <StatusBar style="light" />
 
-      <Row width="full" className="items-center pb-spacing-5">
+      <Row width="full" gap="m" className="items-center pb-spacing-5">
         <Text variant="header-large">할 일</Text>
+        {!isSameDay(selectedDate, now) && <TodayButton onPress={() => setSelectedDate(now)} />}
       </Row>
 
       <WeekDateStrip
         key={toLocalDateString(centerDate)}
         centerDate={centerDate}
+        today={now}
         selectedDate={selectedDate}
         onSelect={setSelectedDate}
         onChangeWeek={(weeks) => setSelectedDate((prev) => addDays(prev, weeks * 7))}
