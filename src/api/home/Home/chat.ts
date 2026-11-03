@@ -97,3 +97,10 @@ export const updateChatTurnFeedback = async (turnId: number, feedback: ChatTurnF
 export const deleteChatSession = async (sessionId: number): Promise<void> => {
   await api.delete(`/chat/sessions/${sessionId}`);
 };
+
+/**
+ * 챗봇 세션 전체 삭제 API 함수
+ */
+export const deleteAllChatSessions = async (): Promise<void> => {
+  await api.delete('/chat/sessions');
+};

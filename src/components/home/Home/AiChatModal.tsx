@@ -9,8 +9,10 @@ import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { ChatInput } from "./ChatInput";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import {
   createChatSession,
+  deleteAllChatSessions,
   deleteChatSession,
   getChatSessions,
   getChatSessionTurns,
@@ -50,6 +52,7 @@ const INPUT_FADE_HEIGHT = getSpacing("spacing-9");
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
 const CREATE_SESSION_ERROR_MESSAGE = "새 채팅을 만들지 못했어요";
+const DELETE_ALL_ERROR_MESSAGE = "채팅 목록을 삭제하지 못했어요. 잠시 후 다시 시도해주세요.";
 const UNTITLED_SESSION = "새 대화";
 
 const GRADIENT_STOPS = [
@@ -102,6 +105,8 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [inputHeight, setInputHeight] = useState(INPUT_DEFAULT_HEIGHT);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
@@ -318,16 +323,33 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     loadTurns(sessionId, ++turnsRequestRef.current);
   };
 
-  const handleDeleteAll = () => {
+  const handleRequestDeleteAll = () => {
     if (sending) return;
-    discardEmptySession();
-    turnsRequestRef.current += 1;
-    setSessions([]);
-    setCurrentSessionId(null);
-    setDraftTitle(null);
-    setMessages([]);
-    setLoadingTurns(false);
     setShowList(false);
+    setConfirmDeleteAll(true);
+  };
+
+  const handleDeleteAll = async () => {
+    setConfirmDeleteAll(false);
+    if (sending || deletingAll) return;
+
+    setDeletingAll(true);
+    try {
+      await deleteAllChatSessions();
+      emptySessionRef.current = null;
+      turnsRequestRef.current += 1;
+      setSessions([]);
+      setListStatus("ready");
+      setCurrentSessionId(null);
+      setDraftTitle(null);
+      setMessages([]);
+      setLoadingTurns(false);
+      setInput("");
+    } catch {
+      setErrorMessage(DELETE_ALL_ERROR_MESSAGE);
+    } finally {
+      setDeletingAll(false);
+    }
   };
 
   const handleSelectSuggestion = (prompt: string) => {
@@ -426,9 +448,18 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                         currentId={currentSessionId}
                         now={new Date()}
                         onSelect={handleSelectSession}
-                        onDeleteAll={handleDeleteAll}
+                        onDeleteAll={handleRequestDeleteAll}
                       />
                     </>
+                  )}
+
+                  {confirmDeleteAll && (
+                    <ConfirmDeleteModal
+                      title="채팅 목록을 모두 삭제할까요?"
+                      description={"삭제한 대화는 되돌릴 수 없어요.\n챗봇이 바꾼 일정은 그대로 남아요."}
+                      onCancel={() => setConfirmDeleteAll(false)}
+                      onConfirm={handleDeleteAll}
+                    />
                   )}
 
                   {!!errorMessage && <Toast text={errorMessage} onClose={clearError} />}
