@@ -9,7 +9,7 @@ import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { ChatInput } from "./ChatInput";
-import { getChatHistory, getChatSessions, getChatSessionTurns, sendChatMessage, type ChatSession } from "@/api/home/Home/chat";
+import { createChatSession, getChatHistory, getChatSessions, getChatSessionTurns, sendChatMessage, type ChatSession } from "@/api/home/Home/chat";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 import { toChatMessage, type ChatFeedback, type ChatMessage } from "@/utils/home/chat";
@@ -35,6 +35,7 @@ const HEADER_HEIGHT = 44;
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
 const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
+const CREATE_SESSION_ERROR_MESSAGE = "새 채팅을 만들지 못했어요";
 const UNTITLED_SESSION = "새 대화";
 
 const GRADIENT_STOPS = [
@@ -85,12 +86,13 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [creatingSession, setCreatingSession] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const turnsRequestRef = useRef(0);
 
   const currentSession = sessions.find((session) => session.id === currentSessionId);
-  const currentTitle = currentSession ? currentSession.title ?? UNTITLED_SESSION : draftTitle;
+  const currentTitle = currentSession?.title ?? draftTitle ?? (messages.length > 0 ? UNTITLED_SESSION : null);
 
   const clearError = useCallback(() => setErrorMessage(""), []);
 
@@ -147,9 +149,9 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || sending || loadingTurns) return;
+    if (!text || sending || loadingTurns || creatingSession) return;
 
-    if (currentSessionId === null && messages.length === 0) setDraftTitle(text);
+    if (messages.length === 0 && !currentSession?.title) setDraftTitle(text);
     appendMessage(createMessage("user", text));
     setInput("");
 
@@ -182,15 +184,27 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     setShowList((prev) => !prev);
   };
 
-  const handleNewChat = () => {
-    if (sending) return;
-    turnsRequestRef.current += 1;
-    setCurrentSessionId(null);
-    setDraftTitle(null);
-    setMessages([]);
-    setLoadingTurns(false);
-    setInput("");
+  const handleNewChat = async () => {
+    if (sending || creatingSession) return;
     setShowList(false);
+    if (currentSessionId !== null && messages.length === 0 && !loadingTurns && !currentSession?.title) return;
+
+    const requestId = ++turnsRequestRef.current;
+    setCreatingSession(true);
+    try {
+      const session = await createChatSession();
+      if (requestId !== turnsRequestRef.current) return;
+      setSessions((prev) => [session, ...prev.filter((item) => item.id !== session.id)]);
+      setCurrentSessionId(session.id);
+      setDraftTitle(null);
+      setMessages([]);
+      setLoadingTurns(false);
+      setInput("");
+    } catch {
+      if (requestId === turnsRequestRef.current) setErrorMessage(CREATE_SESSION_ERROR_MESSAGE);
+    } finally {
+      setCreatingSession(false);
+    }
   };
 
   const handleSelectSession = (sessionId: number) => {

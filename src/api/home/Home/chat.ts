@@ -70,3 +70,12 @@ export const getChatSessionTurns = async (sessionId: number): Promise<ChatTurn[]
   const response = await api.get(`/chat/sessions/${sessionId}/turns`);
   return response.data;
 };
+
+/**
+ * 챗봇 새 세션(새 대화) 생성 API 함수
+ * @returns 만들어진 세션 (첫 메시지 전이라 title 은 null)
+ */
+export const createChatSession = async (): Promise<ChatSession> => {
+  const response = await api.post('/chat/sessions');
+  return response.data;
+};
