@@ -22,6 +22,24 @@ export const getWeekStartKey = (value: string) => {
 };
 
 /**
+ * 며칠 앞뒤로 옮긴 날짜
+ * @param date 기준 날짜
+ * @param days 옮길 날 수 (음수면 이전)
+ */
+export const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+
+/**
+ * 가운데 날짜 기준 7일씩 나눈 페이지에서, 그 날짜가 몇 페이지 떨어져 있는지
+ * @param center 0페이지의 가운데 날짜
+ * @param date 찾을 날짜
+ * @returns 페이지 차이 (이후면 양수, 이전이면 음수)
+ */
+export const getWeekOffset = (center: Date, date: Date) => {
+  const dayDiff = (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(center.getFullYear(), center.getMonth(), center.getDate())) / 86_400_000;
+  return Math.round(dayDiff / 7);
+};
+
+/**
  * 가운데 날짜 앞뒤 3일씩, 7일 날짜 목록
  * @param center 가운데에 둘 날짜
  */
