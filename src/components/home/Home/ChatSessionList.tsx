@@ -2,15 +2,18 @@ import { Pressable, ScrollView, ViewProps } from "react-native";
 import Animated, { Easing, Keyframe } from "react-native-reanimated";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
+import type { ChatSession } from "@/api/home/Home/chat";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
-import { formatSessionDate, type ChatSession } from "@/utils/home/chat";
+import { parseServerDateTime } from "@/utils/common/date";
+import { formatSessionDate } from "@/utils/home/chat";
 
 // ================================
 // Types
 // ================================
 
 type ItemState = "selected" | "default";
+export type ChatSessionListStatus = "loading" | "error" | "ready";
 
 // ================================
 // Constants
@@ -38,28 +41,36 @@ const itemStateStyles: Record<ItemState, string> = {
   "default": "",
 };
 
+const emptyMessages: Record<ChatSessionListStatus, string> = {
+  "loading": "채팅 목록을 불러오는 중...",
+  "error": "채팅 목록을 불러오지 못했어요",
+  "ready": "아직 대화가 없어요",
+};
+
 // ================================
 // Components
 // ================================
 
 interface Props extends ViewProps {
   sessions: ChatSession[];
-  currentId: string | null;
+  status: ChatSessionListStatus;
+  currentId: number | null;
   now: Date;
-  onSelect: (sessionId: string) => void;
+  onSelect: (sessionId: number) => void;
   onDeleteAll: () => void;
   className?: string;
 }
 
 /**
- * AI 채팅 목록 팝업. 최근 대화순으로 제목과 마지막 대화 날짜를 보여줌. 목록 버튼 쪽(왼쪽 위)에서 펼쳐지듯 나타나고 사라짐
- * @param sessions 보여줄 채팅 목록 (최근 대화순)
- * @param currentId 지금 열려 있는 채팅 ID (배경으로 강조함)
- * @param now 날짜 문구(오늘·어제·n일 전)를 계산할 기준 시각
+ * AI 채팅 목록 팝업
+ * @param sessions 보여줄 채팅 목록
+ * @param status 목록 조회 상태
+ * @param currentId 지금 열려 있는 채팅 ID
+ * @param now 날짜 문구 계산 기준 시각
  * @param onSelect 채팅을 눌렀을 때 호출
  * @param onDeleteAll 모두 삭제를 눌렀을 때 호출
  */
-export function ChatSessionList({ sessions, currentId, now, onSelect, onDeleteAll, className = "", style, ...props }: Props) {
+export function ChatSessionList({ sessions, status, currentId, now, onSelect, onDeleteAll, className = "", style, ...props }: Props) {
   return (
     <Animated.View
       entering={LIST_ENTERING}
@@ -77,7 +88,7 @@ export function ChatSessionList({ sessions, currentId, now, onSelect, onDeleteAl
 
       {sessions.length === 0 ? (
         <Text variant="base-large" color="disabled" className="px-spacing-5 py-spacing-4" style={{ lineHeight: ITEM_LINE_HEIGHT }}>
-          아직 대화가 없어요
+          {emptyMessages[status]}
         </Text>
       ) : (
         <ScrollView style={{ maxHeight: LIST_MAX_HEIGHT }} showsVerticalScrollIndicator={false} bounces={false}>
@@ -92,7 +103,7 @@ export function ChatSessionList({ sessions, currentId, now, onSelect, onDeleteAl
                 {session.title ?? "새 대화"}
               </Text>
               <Text variant="base-large" color="disabled" style={{ lineHeight: ITEM_LINE_HEIGHT }}>
-                {formatSessionDate(session.updatedAt, now)}
+                {formatSessionDate(parseServerDateTime(session.updatedAt), now)}
               </Text>
             </Pressable>
           ))}

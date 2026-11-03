@@ -12,10 +12,23 @@ export interface ChatReply {
   movedTasks: PlanTask[] | null;
 }
 
+export type ChatTurnFeedback = 'LIKE' | 'DISLIKE';
+
 export interface ChatTurn {
+  id: number;
+  sessionId: number;
+  dailyPlanId: number;
   role: string;
   content: string;
+  feedback: ChatTurnFeedback | null;
   createdAt: string;
+}
+
+export interface ChatSession {
+  id: number;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -36,5 +49,24 @@ export const sendChatMessage = async (dailyPlanId: number, message: string): Pro
  */
 export const getChatHistory = async (dailyPlanId: number): Promise<ChatTurn[]> => {
   const response = await api.get(`/daily-plans/${dailyPlanId}/chat`);
+  return response.data;
+};
+
+/**
+ * 챗봇 세션(대화 목록) 조회 API 함수
+ * @returns 최근 대화순 세션 목록
+ */
+export const getChatSessions = async (): Promise<ChatSession[]> => {
+  const response = await api.get('/chat/sessions');
+  return response.data;
+};
+
+/**
+ * 챗봇 세션의 대화 내용 조회 API 함수
+ * @param sessionId 세션 ID
+ * @returns 시간순 대화 목록
+ */
+export const getChatSessionTurns = async (sessionId: number): Promise<ChatTurn[]> => {
+  const response = await api.get(`/chat/sessions/${sessionId}/turns`);
   return response.data;
 };

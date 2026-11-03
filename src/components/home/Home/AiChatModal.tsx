@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Text } from "../../ui/Text";
+import { Toast } from "../../ui/Toast";
 import { VerticalGradient } from "../common";
 import { ChatHeader } from "./ChatHeader";
-import { ChatSessionList } from "./ChatSessionList";
+import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { ChatInput } from "./ChatInput";
-import { getChatHistory, sendChatMessage } from "@/api/home/Home/chat";
+import { getChatHistory, getChatSessions, getChatSessionTurns, sendChatMessage, type ChatSession } from "@/api/home/Home/chat";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
-import { parseServerDateTime } from "@/utils/common/date";
-import type { ChatFeedback, ChatMessage, ChatSession } from "@/utils/home/chat";
+import { toChatMessage, type ChatFeedback, type ChatMessage } from "@/utils/home/chat";
 
 // ================================
 // Types
@@ -34,6 +34,8 @@ const HEADER_HEIGHT = 44;
 
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
+const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
+const UNTITLED_SESSION = "새 대화";
 
 const GRADIENT_STOPS = [
   { offset: 0, color: color.background.primary },
@@ -74,15 +76,33 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const translateY = useSharedValue(SHEET_HEIGHT);
   const [isRendered, setIsRendered] = useState(visible);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [listStatus, setListStatus] = useState<ChatSessionListStatus>("loading");
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadingTurns, setLoadingTurns] = useState(false);
   const [showList, setShowList] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
+  const turnsRequestRef = useRef(0);
 
-  const currentSession = sessions.find((session) => session.id === currentId) ?? null;
-  const messages = currentSession?.messages ?? [];
+  const currentSession = sessions.find((session) => session.id === currentSessionId);
+  const currentTitle = currentSession ? currentSession.title ?? UNTITLED_SESSION : draftTitle;
+
+  const clearError = useCallback(() => setErrorMessage(""), []);
+
+  const loadSessions = useCallback(() => {
+    setListStatus((prev) => (prev === "ready" ? prev : "loading"));
+    getChatSessions()
+      .then((list) => {
+        setSessions(list);
+        setListStatus("ready");
+      })
+      .catch(() => setListStatus("error"));
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -97,98 +117,113 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
   useEffect(() => {
     if (!visible) return;
+    const requestId = ++turnsRequestRef.current;
     setSessions([]);
-    setCurrentId(null);
+    setListStatus("loading");
+    setCurrentSessionId(null);
+    setDraftTitle(null);
+    setMessages([]);
     setShowList(false);
     setInput("");
+    loadSessions();
     if (!dailyPlanId) return;
     getChatHistory(dailyPlanId)
       .then((turns) => {
-        if (turns.length === 0) return;
-        const history: ChatMessage[] = turns.map((turn, i) => ({
-          id: `${turn.createdAt}-${i}`,
-          role: turn.role.toLowerCase() === "user" ? "user" : "assistant",
-          text: turn.content,
-          createdAt: parseServerDateTime(turn.createdAt),
-          feedback: null,
-        }));
-        const session: ChatSession = {
-          id: `history-${dailyPlanId}`,
-          title: history.find((message) => message.role === "user")?.text ?? null,
-          updatedAt: history[history.length - 1].createdAt,
-          messages: history,
-        };
-        setSessions([session]);
-        setCurrentId(session.id);
+        const lastSessionId = turns.at(-1)?.sessionId;
+        if (lastSessionId === undefined || requestId !== turnsRequestRef.current) return;
+        setCurrentSessionId(lastSessionId);
+        setMessages(turns.filter((turn) => turn.sessionId === lastSessionId).map(toChatMessage));
       })
-      .catch(() => setSessions([]));
-  }, [visible, dailyPlanId]);
+      .catch(() => {});
+  }, [visible, dailyPlanId, loadSessions]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const appendMessage = (sessionId: string, message: ChatMessage) => {
-    setSessions((prev) => {
-      const target = prev.find((session) => session.id === sessionId) ?? { id: sessionId, title: message.text, updatedAt: message.createdAt, messages: [] };
-      const updated = { ...target, updatedAt: message.createdAt, messages: [...target.messages, message] };
-      return [updated, ...prev.filter((session) => session.id !== sessionId)];
-    });
+  const appendMessage = (message: ChatMessage) => {
+    setMessages((prev) => [...prev, message]);
   };
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || sending) return;
+    if (!text || sending || loadingTurns) return;
 
-    const sessionId = currentId ?? `local-${Date.now()}`;
-    setCurrentId(sessionId);
-    appendMessage(sessionId, createMessage("user", text));
+    if (currentSessionId === null && messages.length === 0) setDraftTitle(text);
+    appendMessage(createMessage("user", text));
     setInput("");
 
     if (!dailyPlanId) {
-      appendMessage(sessionId, createMessage("assistant", NO_PLAN_MESSAGE));
+      appendMessage(createMessage("assistant", NO_PLAN_MESSAGE));
       return;
     }
 
     setSending(true);
     try {
       const result = await sendChatMessage(dailyPlanId, text);
-      appendMessage(sessionId, createMessage("assistant", result.reply));
+      appendMessage(createMessage("assistant", result.reply));
       if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
     } catch {
-      appendMessage(sessionId, createMessage("assistant", ERROR_MESSAGE));
+      appendMessage(createMessage("assistant", ERROR_MESSAGE));
     } finally {
       setSending(false);
     }
   };
 
   const handleFeedback = (messageId: string, feedback: ChatFeedback) => {
-    setSessions((prev) => prev.map((session) => session.id !== currentId ? session : {
-      ...session,
-      messages: session.messages.map((message) => message.id !== messageId ? message : {
-        ...message,
-        feedback: message.feedback === feedback ? null : feedback,
-      }),
+    setMessages((prev) => prev.map((message) => message.id !== messageId ? message : {
+      ...message,
+      feedback: message.feedback === feedback ? null : feedback,
     }));
+  };
+
+  const handleToggleList = () => {
+    if (!showList) loadSessions();
+    setShowList((prev) => !prev);
   };
 
   const handleNewChat = () => {
     if (sending) return;
-    setCurrentId(null);
+    turnsRequestRef.current += 1;
+    setCurrentSessionId(null);
+    setDraftTitle(null);
+    setMessages([]);
+    setLoadingTurns(false);
     setInput("");
     setShowList(false);
   };
 
-  const handleSelectSession = (sessionId: string) => {
+  const handleSelectSession = (sessionId: number) => {
     if (sending) return;
-    setCurrentId(sessionId);
     setShowList(false);
+    if (sessionId === currentSessionId && messages.length > 0) return;
+
+    const requestId = ++turnsRequestRef.current;
+    setCurrentSessionId(sessionId);
+    setDraftTitle(null);
+    setMessages([]);
+    setInput("");
+    setLoadingTurns(true);
+    getChatSessionTurns(sessionId)
+      .then((turns) => {
+        if (requestId === turnsRequestRef.current) setMessages(turns.map(toChatMessage));
+      })
+      .catch(() => {
+        if (requestId === turnsRequestRef.current) setErrorMessage(TURNS_ERROR_MESSAGE);
+      })
+      .finally(() => {
+        if (requestId === turnsRequestRef.current) setLoadingTurns(false);
+      });
   };
 
   const handleDeleteAll = () => {
     if (sending) return;
+    turnsRequestRef.current += 1;
     setSessions([]);
-    setCurrentId(null);
+    setCurrentSessionId(null);
+    setDraftTitle(null);
+    setMessages([]);
+    setLoadingTurns(false);
     setShowList(false);
   };
 
@@ -213,12 +248,16 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
                 <View className="flex-1 w-full">
                   <ChatHeader
-                    title={currentSession?.title ?? null}
-                    onPressList={() => setShowList((prev) => !prev)}
+                    title={currentTitle}
+                    onPressList={handleToggleList}
                     onPressNewChat={handleNewChat}
                   />
 
-                  {messages.length === 0 && !sending ? (
+                  {loadingTurns ? (
+                    <View className="flex-1 items-center justify-center">
+                      <Text variant="base-large" color="disabled">대화를 불러오는 중...</Text>
+                    </View>
+                  ) : messages.length === 0 && !sending ? (
                     <View className="flex-1 justify-end pb-spacing-11">
                       <ChatSuggestions onSelect={handleSelectSuggestion} />
                     </View>
@@ -266,13 +305,16 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                         className="absolute left-spacing-0 right-spacing-0"
                         style={{ top: HEADER_HEIGHT + getSpacing("spacing-4") }}
                         sessions={sessions}
-                        currentId={currentId}
+                        status={listStatus}
+                        currentId={currentSessionId}
                         now={new Date()}
                         onSelect={handleSelectSession}
                         onDeleteAll={handleDeleteAll}
                       />
                     </>
                   )}
+
+                  {!!errorMessage && <Toast text={errorMessage} onClose={clearError} />}
                 </View>
               </View>
             </View>
