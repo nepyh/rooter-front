@@ -1,22 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming, Easing } from "react-native-reanimated";
-import { Stack, Row } from "@/components/layout";
-import { Text } from "@/components/ui";
-import { Icon } from "@/assets";
-import { getChatHistory, sendChatMessage } from "@/api/home/Home/chat";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
+import { Text } from "../../ui/Text";
+import { Toast } from "../../ui/Toast";
+import { VerticalGradient } from "../common";
+import { ChatHeader } from "./ChatHeader";
+import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
+import { ChatMessageItem } from "./ChatMessageItem";
+import { ChatSuggestions } from "./ChatSuggestions";
+import { ChatInput } from "./ChatInput";
+import {
+  createChatSession,
+  deleteAllChatSessions,
+  deleteChatSession,
+  getChatSessions,
+  getChatSessionTurns,
+  sendChatMessage,
+  updateChatTurnFeedback,
+  type ChatSession,
+} from "@/api/home/Home/chat";
+import { getChatFeedbackErrorMessage, getChatSendErrorMessage } from "@/api/home/Home/errors";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
+import { parseServerDateTime } from "@/utils/common/date";
+import { normalizeLineBreaks, toChatMessage, type ChatFeedback, type ChatMessage } from "@/utils/home/chat";
 
 // ================================
 // Types
 // ================================
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
-}
 
 interface Props {
   visible: boolean;
@@ -30,81 +41,47 @@ interface Props {
 // ================================
 
 const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
+const HEADER_HEIGHT = 44;
+const RESUME_WINDOW_MS = 15 * 60 * 1000;
+const MESSAGE_GAP = getSpacing("spacing-11");
+const INPUT_BOTTOM = getSpacing("spacing-11");
+const INPUT_DEFAULT_HEIGHT = 58;
+const INPUT_FADE_HEIGHT = getSpacing("spacing-9");
 
-const GREETING: Message = { id: "greeting", role: "assistant", text: "일정 변경이 필요하거나 궁금한 점이 있다면\n저에게 물어봐주세요." };
 const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
-const ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
+const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
+const CREATE_SESSION_ERROR_MESSAGE = "새 채팅을 만들지 못했어요";
+const DELETE_ALL_ERROR_MESSAGE = "채팅 목록을 삭제하지 못했어요. 잠시 후 다시 시도해주세요.";
+const UNTITLED_SESSION = "새 대화";
+
+const GRADIENT_STOPS = [
+  { offset: 0, color: color.background.primary },
+  { offset: 0.5, color: color.background.primary },
+  { offset: 1, color: color.chat["gradient-bottom"] },
+];
+
+const HEADER_FADE_HEIGHT = getSpacing("spacing-6");
+const HEADER_FADE_STOPS = [
+  { offset: 0, color: color.background.primary },
+  { offset: 1, color: color.background.primary, opacity: 0 },
+];
+
+// ================================
+// Functions
+// ================================
+
+const createMessage = (role: ChatMessage["role"], text: string, turnId: number | null = null): ChatMessage => ({
+  id: `${Date.now()}-${role}`,
+  turnId,
+  role,
+  text,
+  createdAt: new Date(),
+  feedback: null,
+});
 
 // ================================
 // Components
 // ================================
-
-const bubbleGap = (messages: Message[], index: number) => {
-  if (index === 0) return 0;
-  return messages[index - 1].role === messages[index].role ? 8 : 20;
-};
-
-const splitSentences = (text: string) =>
-  text
-    .replace(/([.!?])\s+/g, "$1\n")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-const BUBBLE_LINE_HEIGHT = 28;
-
-function Bubble({ message, marginTop = 0 }: { message: Message; marginTop?: number }) {
-  const isUser = message.role === "user";
-  const lines = isUser ? [message.text] : splitSentences(message.text);
-  return (
-    <Row align={isUser ? "end" : "start"} width="full" style={{ marginTop }}>
-      <View
-        className={`px-spacing-5 py-spacing-4 rounded-radius-5 ${isUser ? "bg-primary-500" : "bg-neutral-700"}`}
-        style={{ maxWidth: "85%", gap: getSpacing("spacing-2") }}
-      >
-        {lines.map((line, i) => (
-          <Text key={i} variant="base-large" className="text-text-primary" style={{ lineHeight: BUBBLE_LINE_HEIGHT }}>{line}</Text>
-        ))}
-      </View>
-    </Row>
-  );
-}
-
-const TYPING_DOT_DELAY_MS = 160;
-const SLOW_REPLY_MS = 3_000;
-
-function TypingDot({ index }: { index: number }) {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withDelay(
-      index * TYPING_DOT_DELAY_MS,
-      withRepeat(withSequence(withTiming(1, { duration: 300 }), withTiming(0, { duration: 300 }), withTiming(0, { duration: 240 })), -1),
-    );
-  }, [index, progress]);
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.4 + progress.value * 0.6,
-    transform: [{ translateY: -4 * progress.value }],
-  }));
-  return <Animated.View className="w-spacing-3 h-spacing-3 rounded-radius-full" style={[{ backgroundColor: color.neutral["400"] }, style]} />;
-}
-
-function TypingBubble({ marginTop }: { marginTop: number }) {
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setSlow(true), SLOW_REPLY_MS);
-    return () => clearTimeout(timer);
-  }, []);
-  return (
-    <Stack gap="xs" width="full" style={{ marginTop }}>
-      <Row align="start" width="full">
-        <Row className="px-spacing-5 rounded-radius-5 bg-neutral-700 items-center" style={{ height: 44, gap: getSpacing("spacing-3") }}>
-          {[0, 1, 2].map((i) => <TypingDot key={i} index={i} />)}
-        </Row>
-      </Row>
-      {slow && <Text variant="base-small" color="disabled" className="pl-spacing-3">답변을 만들고 있어요. 조금만 기다려주세요</Text>}
-    </Stack>
-  );
-}
 
 /**
  * AI 채팅 모달
@@ -116,11 +93,80 @@ function TypingBubble({ marginTop }: { marginTop: number }) {
 export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
   const [isRendered, setIsRendered] = useState(visible);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [listStatus, setListStatus] = useState<ChatSessionListStatus>("loading");
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadingTurns, setLoadingTurns] = useState(false);
+  const [showList, setShowList] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [inputHeight, setInputHeight] = useState(INPUT_DEFAULT_HEIGHT);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [creatingSession, setCreatingSession] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  const [inputHeight, setInputHeight] = useState(52);
+  const inputRef = useRef<TextInput>(null);
+  const turnsRequestRef = useRef(0);
+  const feedbackPendingRef = useRef(new Set<number>());
+  const emptySessionRef = useRef<number | null>(null);
+
+  const currentSession = sessions.find((session) => session.id === currentSessionId);
+  const currentTitle = currentSession?.title ?? draftTitle ?? (messages.length > 0 ? UNTITLED_SESSION : null);
+  const inputAreaHeight = inputHeight + INPUT_BOTTOM;
+  const inputFadeHeight = inputAreaHeight + INPUT_FADE_HEIGHT;
+  const inputFadeStops = [
+    { offset: 0, color: color.chat["gradient-bottom"], opacity: 0 },
+    { offset: (INPUT_FADE_HEIGHT + inputHeight) / inputFadeHeight, color: color.chat["gradient-bottom"], opacity: 0.9 },
+    { offset: 1, color: color.chat["gradient-bottom"], opacity: 1 },
+  ];
+
+  const clearError = useCallback(() => setErrorMessage(""), []);
+
+  const loadSessions = useCallback(async () => {
+    setListStatus((prev) => (prev === "ready" ? prev : "loading"));
+    try {
+      const list = await getChatSessions();
+      setSessions(list);
+      setListStatus("ready");
+      return list;
+    } catch {
+      setListStatus("error");
+      return null;
+    }
+  }, []);
+
+  /**
+   * 새 채팅으로 만들었지만 한 번도 보내지 않은 세션을 지움. 다른 채팅으로 옮기거나 화면을 나갈 때 호출
+   * @param nextSessionId 이제 열 세션 ID (같은 세션이면 지우지 않음)
+   */
+  const discardEmptySession = useCallback((nextSessionId: number | null = null) => {
+    const sessionId = emptySessionRef.current;
+    if (sessionId === null || sessionId === nextSessionId) return;
+    emptySessionRef.current = null;
+    setSessions((prev) => prev.filter((session) => session.id !== sessionId));
+    deleteChatSession(sessionId).catch(() => {});
+  }, []);
+
+  const loadTurns = useCallback((sessionId: number, requestId: number) => {
+    setCurrentSessionId(sessionId);
+    setDraftTitle(null);
+    setMessages([]);
+    setLoadingTurns(true);
+    getChatSessionTurns(sessionId)
+      .then((turns) => {
+        if (requestId === turnsRequestRef.current) setMessages(turns.map(toChatMessage));
+      })
+      .catch(() => {
+        if (requestId === turnsRequestRef.current) setErrorMessage(TURNS_ERROR_MESSAGE);
+      })
+      .finally(() => {
+        if (requestId === turnsRequestRef.current) setLoadingTurns(false);
+      });
+  }, []);
+
+  useEffect(() => () => discardEmptySession(), [discardEmptySession]);
 
   useEffect(() => {
     if (visible) {
@@ -134,50 +180,173 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   }, [visible, translateY]);
 
   useEffect(() => {
-    if (!visible) return;
-    setMessages([GREETING]);
+    if (!visible) {
+      discardEmptySession();
+      return;
+    }
+    const requestId = ++turnsRequestRef.current;
+    setSessions([]);
+    setListStatus("loading");
+    setCurrentSessionId(null);
+    setDraftTitle(null);
+    setMessages([]);
+    setLoadingTurns(false);
+    setShowList(false);
     setInput("");
-    if (!dailyPlanId) return;
-    getChatHistory(dailyPlanId)
-      .then((turns) => setMessages([GREETING, ...turns.map((turn, i): Message => ({
-        id: `${turn.createdAt}-${i}`,
-        role: turn.role.toLowerCase() === "user" ? "user" : "assistant",
-        text: turn.content,
-      }))]))
-      .catch(() => setMessages([GREETING]));
-  }, [visible, dailyPlanId]);
+    loadSessions().then((list) => {
+      const recent = list?.[0];
+      if (!recent || requestId !== turnsRequestRef.current) return;
+      if (Date.now() - parseServerDateTime(recent.updatedAt).getTime() > RESUME_WINDOW_MS) return;
+      loadTurns(recent.id, requestId);
+    });
+  }, [visible, loadSessions, loadTurns, discardEmptySession]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const addAssistantMessage = (text: string) => {
-    setMessages((prev) => [...prev, { id: `${Date.now()}-assistant`, role: "assistant", text }]);
+  const appendMessage = (message: ChatMessage) => {
+    setMessages((prev) => [...prev, message]);
   };
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || sending) return;
+    if (!text || sending || loadingTurns || creatingSession) return;
 
-    const userMessage: Message = { id: `${Date.now()}-user`, role: "user", text };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = createMessage("user", text);
+    if (messages.length === 0 && !currentSession?.title) setDraftTitle(text);
+    appendMessage(userMessage);
     setInput("");
 
     if (!dailyPlanId) {
-      addAssistantMessage(NO_PLAN_MESSAGE);
+      appendMessage(createMessage("assistant", NO_PLAN_MESSAGE));
       return;
     }
 
+    if (emptySessionRef.current === currentSessionId) emptySessionRef.current = null;
+    const requestId = turnsRequestRef.current;
     setSending(true);
     try {
-      const result = await sendChatMessage(dailyPlanId, text);
-      addAssistantMessage(result.reply);
+      const sessionId = currentSessionId ?? (await createChatSession()).id;
+      const result = await sendChatMessage(dailyPlanId, text, sessionId);
       if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
-    } catch {
-      addAssistantMessage(ERROR_MESSAGE);
+      if (requestId !== turnsRequestRef.current) return;
+
+      setMessages((prev) => [
+        ...prev.map((message) => (message.id === userMessage.id ? { ...message, turnId: result.userTurnId } : message)),
+        createMessage("assistant", normalizeLineBreaks(result.reply), result.assistantTurnId),
+      ]);
+      setCurrentSessionId(result.sessionId);
+      if (result.sessionTitle) setDraftTitle(null);
+      setSessions((prev) => {
+        const target = prev.find((session) => session.id === result.sessionId);
+        const now = new Date().toISOString();
+        const updated: ChatSession = {
+          id: result.sessionId,
+          title: result.sessionTitle ?? target?.title ?? null,
+          createdAt: target?.createdAt ?? now,
+          updatedAt: now,
+        };
+        return [updated, ...prev.filter((session) => session.id !== result.sessionId)];
+      });
+    } catch (error) {
+      if (requestId === turnsRequestRef.current) appendMessage(createMessage("assistant", getChatSendErrorMessage(error)));
     } finally {
       setSending(false);
     }
+  };
+
+  const handleFeedback = async (target: ChatMessage, feedback: ChatFeedback) => {
+    const { turnId } = target;
+    if (turnId === null || feedbackPendingRef.current.has(turnId)) return;
+
+    const previous = target.feedback;
+    const next = previous === feedback ? null : feedback;
+    const setTurnFeedback = (value: ChatFeedback | null) =>
+      setMessages((prev) => prev.map((message) => (message.turnId === turnId ? { ...message, feedback: value } : message)));
+
+    feedbackPendingRef.current.add(turnId);
+    setTurnFeedback(next);
+    try {
+      const updated = await updateChatTurnFeedback(turnId, next);
+      setTurnFeedback(updated.feedback);
+    } catch (error) {
+      setTurnFeedback(previous);
+      setErrorMessage(getChatFeedbackErrorMessage(error));
+    } finally {
+      feedbackPendingRef.current.delete(turnId);
+    }
+  };
+
+  const handleToggleList = () => {
+    if (!showList) loadSessions();
+    setShowList((prev) => !prev);
+  };
+
+  const handleNewChat = async () => {
+    if (sending || creatingSession) return;
+    setShowList(false);
+    if (currentSessionId !== null && messages.length === 0 && !loadingTurns && !currentSession?.title) return;
+
+    const requestId = ++turnsRequestRef.current;
+    setCreatingSession(true);
+    try {
+      const session = await createChatSession();
+      if (requestId !== turnsRequestRef.current) {
+        deleteChatSession(session.id).catch(() => {});
+        return;
+      }
+      discardEmptySession(session.id);
+      emptySessionRef.current = session.id;
+      setSessions((prev) => [session, ...prev.filter((item) => item.id !== session.id)]);
+      setCurrentSessionId(session.id);
+      setDraftTitle(null);
+      setMessages([]);
+      setLoadingTurns(false);
+      setInput("");
+    } catch {
+      if (requestId === turnsRequestRef.current) setErrorMessage(CREATE_SESSION_ERROR_MESSAGE);
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
+  const handleSelectSession = (sessionId: number) => {
+    if (sending) return;
+    setShowList(false);
+    if (sessionId === currentSessionId && messages.length > 0) return;
+
+    discardEmptySession(sessionId);
+    setInput("");
+    loadTurns(sessionId, ++turnsRequestRef.current);
+  };
+
+  const handleDeleteAll = async () => {
+    if (sending || deletingAll) return;
+    setShowList(false);
+
+    setDeletingAll(true);
+    try {
+      await deleteAllChatSessions();
+      emptySessionRef.current = null;
+      turnsRequestRef.current += 1;
+      setSessions([]);
+      setListStatus("ready");
+      setCurrentSessionId(null);
+      setDraftTitle(null);
+      setMessages([]);
+      setLoadingTurns(false);
+      setInput("");
+    } catch {
+      setErrorMessage(DELETE_ALL_ERROR_MESSAGE);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
+  const handleSelectSuggestion = (prompt: string) => {
+    setInput(prompt);
+    inputRef.current?.focus();
   };
 
   return (
@@ -185,56 +354,102 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
-            <KeyboardAvoidingView
-              className="flex-1"
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
-            >
-              <Stack gap="xl" width="full" align="center" className="bg-background-primary pt-spacing-3 pb-spacing-9 px-spacing-7 rounded-t-radius-6 flex-1">
-                <View className="self-center bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
+          <KeyboardAvoidingView
+            className="flex-1"
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <View className="flex-1 rounded-t-radius-6 overflow-hidden">
+              <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
+              <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
+                <View className="bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
 
-                <ScrollView
-                  ref={scrollRef}
-                  className="flex-1 w-full"
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-start", paddingBottom: inputHeight + getSpacing("spacing-6") }}
-                  onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-                >
-                  {messages.map((message, i) => (
-                    <Bubble key={message.id} message={message} marginTop={bubbleGap(messages, i)} />
-                  ))}
-                  {sending && (
-                    <TypingBubble marginTop={messages.at(-1)?.role === "assistant" ? 8 : 20} />
-                  )}
-                </ScrollView>
-
-                <Row
-                  align="between"
-                  className="absolute left-spacing-7 right-spacing-7 bottom-spacing-9 z-10 items-end bg-neutral-700 pl-spacing-6 pr-spacing-2 py-spacing-2 rounded-radius-full"
-                  onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
-                >
-                  <TextInput
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="채팅..."
-                    placeholderTextColor="#8B919E"
-                    multiline
-                    submitBehavior="submit"
-                    onSubmitEditing={handleSend}
-                    returnKeyType="send"
-                    className="flex-1 text-base font-medium text-text-primary py-spacing-4 pr-spacing-3"
-                    style={{ maxHeight: 124 }}
+                <View className="flex-1 w-full">
+                  <ChatHeader
+                    title={currentTitle}
+                    onPressList={handleToggleList}
+                    onPressNewChat={handleNewChat}
                   />
-                  <Pressable
-                    onPress={handleSend}
-                    disabled={!input.trim() || sending}
-                    className={`items-center justify-center rounded-radius-full ${input.trim() && !sending ? "bg-primary-500" : "bg-neutral-600"}`}
-                    style={{ width: 44, height: 44 }}
+
+                  {loadingTurns ? (
+                    <View className="flex-1 items-center justify-center" style={{ paddingBottom: inputAreaHeight }}>
+                      <Text variant="base-large" color="disabled">대화를 불러오는 중...</Text>
+                    </View>
+                  ) : messages.length === 0 && !sending ? (
+                    <View className="flex-1 justify-end" style={{ paddingBottom: inputAreaHeight + MESSAGE_GAP }}>
+                      <ChatSuggestions onSelect={handleSelectSuggestion} />
+                    </View>
+                  ) : (
+                    <View className="flex-1 w-full" style={{ marginTop: -HEADER_FADE_HEIGHT }}>
+                      <ScrollView
+                        ref={scrollRef}
+                        className="flex-1 w-full"
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        contentContainerStyle={{ paddingTop: HEADER_FADE_HEIGHT + getSpacing("spacing-3"), paddingBottom: inputAreaHeight + MESSAGE_GAP, gap: MESSAGE_GAP }}
+                        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+                      >
+                        {messages.map((message) => (
+                          <ChatMessageItem
+                            key={message.id}
+                            message={message}
+                            onFeedback={message.turnId === null ? undefined : (feedback) => handleFeedback(message, feedback)}
+                          />
+                        ))}
+                        {sending && (
+                          <Text variant="base-large" color="disabled" style={{ lineHeight: 24 }}>답변 생성 중...</Text>
+                        )}
+                      </ScrollView>
+                      <VerticalGradient
+                        className="absolute top-spacing-0 left-spacing-0 right-spacing-0"
+                        style={{ height: HEADER_FADE_HEIGHT }}
+                        stops={HEADER_FADE_STOPS}
+                      />
+                    </View>
+                  )}
+
+                  {messages.length > 0 && (
+                    <VerticalGradient
+                      className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0"
+                      style={{ height: inputFadeHeight }}
+                      stops={inputFadeStops}
+                    />
+                  )}
+
+                  <View
+                    className="absolute left-spacing-0 right-spacing-0"
+                    style={{ bottom: INPUT_BOTTOM }}
+                    onLayout={(event) => setInputHeight(event.nativeEvent.layout.height)}
                   >
-                    <Icon name="arrowUp" size={24} color="#FFFFFF" />
-                  </Pressable>
-                </Row>
-              </Stack>
-            </KeyboardAvoidingView>
+                    <ChatInput
+                      ref={inputRef}
+                      value={input}
+                      onChangeText={setInput}
+                      onSend={handleSend}
+                      sending={sending}
+                    />
+                  </View>
+
+                  {showList && (
+                    <>
+                      <Pressable className="absolute inset-spacing-0" onPress={() => setShowList(false)} />
+                      <ChatSessionList
+                        className="absolute left-spacing-0 right-spacing-0"
+                        style={{ top: HEADER_HEIGHT + getSpacing("spacing-4") }}
+                        sessions={sessions}
+                        status={listStatus}
+                        currentId={currentSessionId}
+                        now={new Date()}
+                        onSelect={handleSelectSession}
+                        onDeleteAll={handleDeleteAll}
+                      />
+                    </>
+                  )}
+
+                  {!!errorMessage && <Toast text={errorMessage} onClose={clearError} />}
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
         </Animated.View>
       </View>
     </Modal>

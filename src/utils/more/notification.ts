@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import type { AppNotification } from "@/api/more/NotificationList";
-import { isSameDay, toLocalDateString } from "@/utils/common/date";
+import { isSameDay, parseServerDateTime, toLocalDateString } from "@/utils/common/date";
 
 // ================================
 // Types
@@ -23,12 +23,6 @@ const DAY_MS = 24 * HOUR_MS;
 // ================================
 // Functions
 // ================================
-
-/**
- * 서버 시각 문자열을 Date 로 변환. 마이크로초(소수 6자리)는 밀리초까지만 남겨 파싱함
- * @param value 오프셋이 포함된 ISO 시각 (예: 2026-10-29T02:37:16.728625Z)
- */
-export const parseServerDateTime = (value: string) => new Date(value.replace(/(\.\d{3})\d+/, "$1"));
 
 /**
  * 날짜 묶음 제목. 오늘·어제가 아니면 M월 d일, 올해가 아니면 yyyy년 M월 d일

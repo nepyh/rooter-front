@@ -5,7 +5,8 @@ import { LoadingView, MorePageHeader, NotificationCard, Text, Toast, UnreadCount
 import type { AppNotification } from "@/api/more/NotificationList";
 import { useNow } from "@/hooks/common/useNow";
 import { useNotifications } from "@/hooks/more/useNotifications";
-import { formatRelativeTime, getNotificationHref, groupNotificationsByDay, parseServerDateTime } from "@/utils/more/notification";
+import { formatRelativeTime, getNotificationHref, groupNotificationsByDay } from "@/utils/more/notification";
+import { parseServerDateTime } from "@/utils/common/date";
 import { getSpacing } from "@/utils/common/token";
 
 // ================================

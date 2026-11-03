@@ -7,6 +7,12 @@ const pad = (n: number) => String(n).padStart(2, "0");
  */
 export const toLocalDateString = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
+/**
+ * 서버 시각 문자열을 Date 로 변환. 마이크로초(소수 6자리)는 밀리초까지만 남겨 파싱함
+ * @param value 오프셋이 포함된 ISO 시각 (예: 2026-10-29T02:37:16.728625Z)
+ */
+export const parseServerDateTime = (value: string) => new Date(value.replace(/(\.\d{3})\d+/, "$1"));
+
 export const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
