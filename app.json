@@ -11,18 +11,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "io.github.nepyh.rooter",
       "infoPlist": {
-        "NSBonjourServices": [
-          "_expo._tcp",
-          "_expo._tcp"
-        ],
-        "NSAppTransportSecurity": {
-          "NSExceptionDomains": {
-            "54.180.112.158": {
-              "NSExceptionAllowsInsecureHTTPLoads": true,
-              "NSIncludesSubdomains": false
-            }
-          }
-        },
+        "NSBonjourServices": ["_expo._tcp", "_expo._tcp"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
