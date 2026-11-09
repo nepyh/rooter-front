@@ -72,6 +72,15 @@ export interface StudentProfileResult {
   classNumber: number;
 }
 
+export interface SleepTimeInput {
+  sleepTime: string;
+  wakeTime: string;
+}
+
+export interface SleepTime extends SleepTimeInput {
+  isDefault: boolean;
+}
+
 export const DAY_OF_WEEK_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 export const DAY_OF_WEEK_NAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 
@@ -160,6 +169,27 @@ export const uploadAvatar = async (userId: number, input: AvatarUploadInput): Pr
  */
 export const createStudentProfile = async (userId: number, input: StudentProfileInput): Promise<StudentProfileResult> => {
   const response = await api.post(`/users/${userId}/profile`, input);
+  return response.data;
+};
+
+/**
+ * 수면 시간 조회 API 함수
+ * @param userId 유저 ID
+ * @returns 취침·기상 시각 ("HH:mm"), 저장한 적 없으면 isDefault true 와 기본값
+ */
+export const getSleepTime = async (userId: number): Promise<SleepTime> => {
+  const response = await api.get(`/users/${userId}/sleep-time`);
+  return response.data;
+};
+
+/**
+ * 수면 시간 저장 API 함수. 이후 만드는 계획부터 반영되고 이미 있는 일정은 옮기지 않음
+ * @param userId 유저 ID
+ * @param input 취침·기상 시각 ("HH:mm")
+ * @returns 저장된 수면 시간
+ */
+export const updateSleepTime = async (userId: number, input: SleepTimeInput): Promise<SleepTime> => {
+  const response = await api.put(`/users/${userId}/sleep-time`, input);
   return response.data;
 };
 
