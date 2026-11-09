@@ -9,11 +9,20 @@ const button_style = { width: 150, height: 52, borderRadius: getRadius("radius-4
 interface Props {
   title: string;
   description?: string;
+  confirmText?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-export function ConfirmDeleteModal({ title, description, onCancel, onConfirm }: Props) {
+/**
+ * 되돌릴 수 없는 동작을 한 번 더 묻는 확인창
+ * @param title 제목
+ * @param description 설명
+ * @param confirmText 확인 버튼 문구
+ * @param onCancel 취소하거나 바깥을 눌렀을 때 호출
+ * @param onConfirm 확인 버튼을 눌렀을 때 호출
+ */
+export function ConfirmDeleteModal({ title, description, confirmText = "삭제", onCancel, onConfirm }: Props) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable className="flex-1 bg-neutral-1000/40 items-center justify-center px-spacing-5" onPress={onCancel}>
@@ -28,7 +37,7 @@ export function ConfirmDeleteModal({ title, description, onCancel, onConfirm }: 
                 취소
               </Button>
               <Button variant="primary" width="auto" style={button_style} onPress={onConfirm}>
-                삭제
+                {confirmText}
               </Button>
             </Row>
           </Stack>
