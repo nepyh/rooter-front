@@ -40,6 +40,7 @@ export default function Home() {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
+  const [failTarget, setFailTarget] = useState<Plan | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showNoPlanChatNotice, setShowNoPlanChatNotice] = useState(false);
@@ -51,7 +52,7 @@ export default function Home() {
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
-  const { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan } = usePlans(selectedDate, selectedKey, now);
+  const { plans, coloredPlans, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
   const timeline = useTimelineScroll(now);
 
@@ -98,8 +99,14 @@ export default function Home() {
 
   const handleFail = (plan: Plan) => {
     if (plan.status !== "pending") return;
-    setPlanStatus(plan.id, "failed");
     setActiveId(null);
+    setFailTarget(plan);
+  };
+
+  const confirmFail = () => {
+    if (!failTarget) return;
+    failPlan(failTarget);
+    setFailTarget(null);
   };
 
   const handleEdit = (plan: Plan) => {
@@ -212,6 +219,16 @@ export default function Home() {
           title={`'${deleteTarget.title}' 일정을 삭제할까요?`}
           onCancel={() => setDeleteTarget(null)}
           onConfirm={confirmDelete}
+        />
+      )}
+
+      {failTarget && (
+        <ConfirmDeleteModal
+          title={`'${failTarget.title}' 일정을 실패로 처리할까요?`}
+          description="실패로 처리하면 되돌릴 수 없어요."
+          confirmText="실패"
+          onCancel={() => setFailTarget(null)}
+          onConfirm={confirmFail}
         />
       )}
 

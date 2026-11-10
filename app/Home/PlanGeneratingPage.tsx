@@ -7,22 +7,40 @@ import { generatePlan } from "@/api/home/common/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
 import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
 import { saveStudyStyleAnswers } from "@/api/common";
-import { invalidatePlanQueries } from "@/api/queryClient";
+import { updateSleepTime } from "@/api/common/user";
+import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
+import { useUserStore } from "@/store";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
+import { toSleepTimeInput } from "@/utils/home/sleepTime";
 
 /**
- * 플랜 생성 중 화면, 설문 답변 저장 뒤 AI 계획 생성
+ * 플랜 생성 중 화면, 설문 답변·수면 시간 저장 뒤 AI 계획 생성
+ * 수면 시간은 AI 가 일정을 배치할 때 쓰므로 생성 전에 저장하고, 저장에 실패해도 생성은 진행
  */
 export default function PlanGeneratingPage() {
   const { plan, answers } = useLocalSearchParams<{ plan: string; answers?: string }>();
+  const userId = useUserStore((state) => state.userId);
   const leftRef = useRef(false);
 
   useEffect(() => {
-    const { examDate, subjects } = JSON.parse(plan ?? "{}") as { examDate?: string; subjects?: string };
+    const { examDate, subjects, wakeTime, sleepHours } = JSON.parse(plan ?? "{}") as {
+      examDate?: string;
+      subjects?: string;
+      wakeTime?: string;
+      sleepHours?: number;
+    };
+
+    const saveSleepTime = async () => {
+      if (userId === null || !wakeTime || !sleepHours) return;
+      await updateSleepTime(userId, toSleepTimeInput(wakeTime, sleepHours))
+        .then((saved) => queryClient.setQueryData(queryKeys.users.sleepTime(userId), saved))
+        .catch(() => {});
+    };
 
     const run = async () => {
       if (answers) await saveStudyStyleAnswers(answers);
+      await saveSleepTime();
       try {
         await generatePlan({
           title: examDate ? `${examDate} 시험 대비` : "새 학습 계획",

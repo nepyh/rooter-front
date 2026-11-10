@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Alert } from "react-native";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
@@ -13,7 +12,6 @@ import {
   markPastPlansFailed,
   toClockString,
   type Plan,
-  type PlanStatus,
 } from "@/utils/home/timeline";
 
 // ================================
@@ -49,11 +47,11 @@ export const dailyPlansQueryOptions = (date: string) =>
 /**
  * usePlans — 홈 타임라인에 그릴 그날의 일정 조회·수정·삭제
  * 캐시에 있으면 바로 보여주고, 화면에 다시 들어왔을 때 캐시가 오래됐으면 다시 불러옵니다.
- * 수정·삭제는 캐시를 먼저 고쳐 바로 반영하고, 서버 반영에 실패하면 그날 목록을 다시 불러옵니다.
+ * 수정·삭제·실패 처리는 캐시를 먼저 고쳐 바로 반영하고, 서버 반영에 실패하면 그날 목록을 다시 불러옵니다.
  * @param selectedDate 보고 있는 날짜
  * @param selectedKey 보고 있는 날짜 (YYYY-MM-DD)
  * @param now 현재 시각, 끝난 시각이 지난 미완료 일정을 실패로 표시할 때 씀
- * @returns plans(원본), coloredPlans(실패·과목 색 반영), chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan
+ * @returns plans(원본), coloredPlans(실패·과목 색 반영), chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan
  */
 export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const dailyKey = queryKeys.tasks.daily(selectedKey);
@@ -62,13 +60,8 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
 
   useRefetchOnFocus([dailyKey]);
 
-  const [statusById, setStatusById] = useState<Map<string, PlanStatus>>(new Map());
-
   const daily = dailyQuery.isError ? null : dailyQuery.data;
-  const plans = (daily?.plans ?? []).map((plan) => {
-    const status = statusById.get(plan.id);
-    return status ? { ...plan, status } : plan;
-  });
+  const plans = daily?.plans ?? [];
   const chatDailyPlanId = daily?.chatDailyPlanId ?? null;
 
   const setPlans = (update: (prev: Plan[]) => Plan[]) => {
@@ -83,10 +76,6 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   };
 
   const coloredPlans = markPastPlansFailed(plans, selectedDate, now);
-
-  const setPlanStatus = (id: string, status: PlanStatus) => {
-    setStatusById((prev) => new Map(prev).set(id, status));
-  };
 
   const savePlanEdit = (id: string, title: string, start: number, duration: number) => {
     const startMin = (start + WINDOW_START_MIN) % DAY_MIN;
@@ -122,5 +111,16 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     }
   };
 
-  return { plans, coloredPlans, chatDailyPlanId, reload, setPlanStatus, savePlanEdit, deletePlan };
+  const failPlan = async (target: Plan) => {
+    setPlans((prev) => prev.map((plan) => (plan.id === target.id ? { ...plan, status: "failed" } : plan)));
+    try {
+      await updatePlanTask(Number(target.id), { status: "FAILED" });
+      invalidateTaskQueries();
+    } catch {
+      reloadDaily();
+      Alert.alert("처리 실패", "일정을 실패로 바꾸지 못했습니다. 잠시 후 다시 시도해주세요.");
+    }
+  };
+
+  return { plans, coloredPlans, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan };
 }
