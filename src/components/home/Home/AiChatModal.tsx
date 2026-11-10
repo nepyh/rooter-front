@@ -111,6 +111,8 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   const turnsRequestRef = useRef(0);
   const feedbackPendingRef = useRef(new Set<number>());
   const emptySessionRef = useRef<number | null>(null);
+  const visibleRef = useRef(visible);
+  const failedSessionsRef = useRef(new Set<number>());
 
   const currentSession = sessions.find((session) => session.id === currentSessionId);
   const currentTitle = currentSession?.title ?? draftTitle ?? (messages.length > 0 ? UNTITLED_SESSION : null);
@@ -138,16 +140,44 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   }, []);
 
   /**
+   * 빈 세션을 목록과 서버에서 지움.
+   * 전송에 실패한 적이 있는 세션은 타임아웃이어도 서버에 메시지가 저장됐을 수 있어서, 메시지가 없을 때만 지움.
+   * 한 번도 보내지 않은 세션은 확인 없이 바로 지움
+   * @param sessionId 지울 세션 ID
+   */
+  const removeEmptySession = useCallback((sessionId: number) => {
+    const remove = () => {
+      setSessions((prev) => prev.filter((session) => session.id !== sessionId));
+      return deleteChatSession(sessionId);
+    };
+
+    if (!failedSessionsRef.current.has(sessionId)) {
+      remove().catch(() => {});
+      return;
+    }
+
+    failedSessionsRef.current.delete(sessionId);
+    getChatSessionTurns(sessionId)
+      .then((turns) => {
+        if (turns.length > 0) return;
+        return remove();
+      })
+      .catch(() => {});
+  }, []);
+
+  /**
    * 새 채팅으로 만들었지만 한 번도 보내지 않은 세션을 지움. 다른 채팅으로 옮기거나 화면을 나갈 때 호출
    * @param nextSessionId 이제 열 세션 ID (같은 세션이면 지우지 않음)
    */
-  const discardEmptySession = useCallback((nextSessionId: number | null = null) => {
-    const sessionId = emptySessionRef.current;
-    if (sessionId === null || sessionId === nextSessionId) return;
-    emptySessionRef.current = null;
-    setSessions((prev) => prev.filter((session) => session.id !== sessionId));
-    deleteChatSession(sessionId).catch(() => {});
-  }, []);
+  const discardEmptySession = useCallback(
+    (nextSessionId: number | null = null) => {
+      const sessionId = emptySessionRef.current;
+      if (sessionId === null || sessionId === nextSessionId) return;
+      emptySessionRef.current = null;
+      removeEmptySession(sessionId);
+    },
+    [removeEmptySession],
+  );
 
   const loadTurns = useCallback((sessionId: number, requestId: number) => {
     setCurrentSessionId(sessionId);
@@ -166,7 +196,17 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       });
   }, []);
 
-  useEffect(() => () => discardEmptySession(), [discardEmptySession]);
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
+
+  useEffect(
+    () => () => {
+      visibleRef.current = false;
+      discardEmptySession();
+    },
+    [discardEmptySession],
+  );
 
   useEffect(() => {
     if (visible) {
@@ -223,12 +263,16 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       return;
     }
 
-    if (emptySessionRef.current === currentSessionId) emptySessionRef.current = null;
+    // 전송 중에 모달을 닫아도 보내는 세션이 지워지지 않도록 정리 대상에서 잠시 뺌. 실패하면 다시 넣음
+    const wasEmptySession = currentSessionId !== null && emptySessionRef.current === currentSessionId;
+    if (wasEmptySession) emptySessionRef.current = null;
     const requestId = turnsRequestRef.current;
+    let sessionId = currentSessionId;
     setSending(true);
     try {
-      const sessionId = currentSessionId ?? (await createChatSession()).id;
+      if (sessionId === null) sessionId = (await createChatSession()).id;
       const result = await sendChatMessage(dailyPlanId, text, sessionId);
+      failedSessionsRef.current.delete(sessionId);
       if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
       if (requestId !== turnsRequestRef.current) return;
 
@@ -250,10 +294,30 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
         return [updated, ...prev.filter((session) => session.id !== result.sessionId)];
       });
     } catch (error) {
+      const isNewSession = sessionId !== null && sessionId !== currentSessionId;
+      if (sessionId !== null && (wasEmptySession || isNewSession)) keepFailedSession(sessionId, requestId);
       if (requestId === turnsRequestRef.current) appendMessage(createMessage("assistant", getChatSendErrorMessage(error)));
     } finally {
       setSending(false);
     }
+  };
+
+  /**
+   * 첫 메시지 전송에 실패한 세션을 처리함.
+   * 화면에 그대로 있으면 현재 세션으로 두고 정리 대상에 넣어, 다시 보내면 같은 세션을 쓰고 떠나면 지워지게 함.
+   * 이미 모달을 닫았거나 다시 열었으면 바로 지움
+   * @param sessionId 전송에 실패한 세션 ID
+   * @param requestId 전송을 시작할 때의 요청 번호
+   */
+  const keepFailedSession = (sessionId: number, requestId: number) => {
+    failedSessionsRef.current.add(sessionId);
+    if (!visibleRef.current || requestId !== turnsRequestRef.current) {
+      removeEmptySession(sessionId);
+      return;
+    }
+    discardEmptySession(sessionId);
+    emptySessionRef.current = sessionId;
+    setCurrentSessionId(sessionId);
   };
 
   const handleFeedback = async (target: ChatMessage, feedback: ChatFeedback) => {
@@ -329,6 +393,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     try {
       await deleteAllChatSessions();
       emptySessionRef.current = null;
+      failedSessionsRef.current.clear();
       turnsRequestRef.current += 1;
       setSessions([]);
       setListStatus("ready");
