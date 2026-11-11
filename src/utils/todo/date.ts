@@ -57,3 +57,10 @@ export const isTaskEnded = (task: PlanTask, dateKey: string) => {
   const endTime = task.endTime === "24:00" ? "23:59" : task.endTime;
   return new Date(`${dateKey}T${endTime}:00`).getTime() <= Date.now();
 };
+
+/**
+ * 할 일이 실패했는지 (실패로 저장됐거나, 완료하지 않은 채 끝나는 시각이 지남. 홈과 같은 기준)
+ * @param task 할 일
+ * @param dateKey 할 일 날짜 (yyyy-MM-dd)
+ */
+export const isTaskFailed = (task: PlanTask, dateKey: string) => task.status === "FAILED" || (task.status === "PENDING" && isTaskEnded(task, dateKey));
