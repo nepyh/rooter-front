@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, View } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -24,6 +24,7 @@ export default function TodoPage() {
   const centerDate = date ? parseDateString(date) : now;
   const selectedKey = toLocalDateString(selectedDate);
   const { loaded, tasks } = useWeeklyTasks(selectedKey);
+  const allFailed = tasks.length > 0 && tasks.every((task) => task.status === "FAILED" || (task.status === "PENDING" && isTaskEnded(task, selectedKey)));
 
   useEffect(() => {
     if (date) setSelectedDate(parseDateString(date));
@@ -52,9 +53,14 @@ export default function TodoPage() {
         onChangeWeek={(weeks) => setSelectedDate((prev) => addDays(prev, weeks * 7))}
       />
 
-      {!loaded ? <LoadingView className="pb-[140px]" /> : (
+      {!loaded ? <LoadingView className="pb-[140px]" /> : tasks.length === 0 ? (
+        <View className="flex-1 items-center justify-center pb-[140px]">
+          <Text color="secondary">현재 계획이 없어요</Text>
+        </View>
+      ) : (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: getSpacing("spacing-5"), paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
           <Stack gap="l">
+            {allFailed && <Text color="secondary" className="text-center">계획을 다 실패했어요</Text>}
             {groupTasksBySubject(tasks).map((group) => (
               <TaskList
                 key={group.subjectName}
