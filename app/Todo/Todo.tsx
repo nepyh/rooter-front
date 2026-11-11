@@ -3,12 +3,12 @@ import { ScrollView } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Row, Stack, Text, LoadingView, WeekDateStrip, TaskList, TodayButton } from "@/components";
+import { Row, Stack, Text, LoadingView, WeekDateStrip, TaskList, TodayButton, type TaskRowStatus } from "@/components";
 import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
 import { isSameDay, toLocalDateString } from "@/utils/common/date";
-import { addDays, isTaskEnded, parseDateString } from "@/utils/todo/date";
+import { addDays, isTaskEnded, isTaskFailed, parseDateString } from "@/utils/todo/date";
 import { groupTasksBySubject } from "@/utils/todo/task";
 import { getSpacing } from "@/utils/common/token";
 
@@ -28,6 +28,11 @@ export default function TodoPage() {
   useEffect(() => {
     if (date) setSelectedDate(parseDateString(date));
   }, [date]);
+
+  const getStatus = (task: PlanTask): TaskRowStatus => {
+    if (task.status === "DONE") return "done";
+    return isTaskFailed(task, selectedKey) ? "failed" : "pending";
+  };
 
   const handleToggle = (task: PlanTask) => {
     if (task.status === "DONE" || isTaskEnded(task, selectedKey)) return;
@@ -61,6 +66,7 @@ export default function TodoPage() {
                 subjectName={group.subjectName}
                 category={group.category}
                 tasks={group.tasks}
+                getStatus={getStatus}
                 onToggleTask={handleToggle}
               />
             ))}
