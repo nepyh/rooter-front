@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Dimensions, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, KeyboardEvents } from "react-native-keyboard-controller";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Text } from "../../ui/Text";
 import { Toast } from "../../ui/Toast";
@@ -220,6 +221,12 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     }
   }, [visible, translateY]);
 
+  // 키보드가 올라오면 맨 아래 메시지가 가려지지 않게 끝으로 스크롤
+  useEffect(() => {
+    const subscription = KeyboardEvents.addListener("keyboardDidShow", () => scrollRef.current?.scrollToEnd({ animated: true }));
+    return () => subscription.remove();
+  }, []);
+
   useEffect(() => {
     if (!visible) {
       discardEmptySession();
@@ -420,10 +427,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
-          <KeyboardAvoidingView
-            className="flex-1"
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-          >
+          <KeyboardAvoidingView className="flex-1" behavior="padding">
             <DismissKeyboardView className="flex-1 rounded-t-radius-6 overflow-hidden">
               <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
               <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
