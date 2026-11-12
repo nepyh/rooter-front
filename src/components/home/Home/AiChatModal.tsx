@@ -42,7 +42,10 @@ interface Props {
 // Constants
 // ================================
 
-const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
+const WINDOW_HEIGHT = Dimensions.get("window").height;
+const SHEET_HEIGHT = Math.round(WINDOW_HEIGHT * 0.9);
+// 시트 위쪽 빈 공간 높이, 키보드를 피할 때 시트가 화면 맨 위가 아닌 만큼 보정
+const SHEET_TOP_GAP = WINDOW_HEIGHT - SHEET_HEIGHT;
 const HEADER_HEIGHT = 44;
 const RESUME_WINDOW_MS = 15 * 60 * 1000;
 const MESSAGE_GAP = getSpacing("spacing-11");
@@ -427,7 +430,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
-          <KeyboardAvoidingView className="flex-1" behavior="padding">
+          <KeyboardAvoidingView className="flex-1" behavior="padding" keyboardVerticalOffset={SHEET_TOP_GAP}>
             <DismissKeyboardView className="flex-1 rounded-t-radius-6 overflow-hidden">
               <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
               <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
