@@ -35,8 +35,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.EXPO_PUBLIC_API_BASE_URL,
   );
 
+  // 안드로이드 릴리스 빌드는 HTTP 요청을 막으므로, 백엔드가 http 일 때만 허용
+  const usesCleartextTraffic =
+    process.env.EXPO_PUBLIC_API_BASE_URL?.startsWith("http://") ?? false;
+
   return {
     ...(config as ExpoConfig),
+    plugins: [
+      ...(config.plugins ?? []),
+      ["expo-build-properties", { android: { usesCleartextTraffic } }],
+    ],
     ios: {
       ...config.ios,
       infoPlist: {
