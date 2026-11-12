@@ -23,6 +23,16 @@ const getAppTransportSecurity = (apiBaseUrl?: string) => {
   };
 };
 
+/**
+ * 원스토어(안드로이드) 빌드에 쓰는 EAS 프로젝트
+ * iOS 는 app.json 의 프로젝트를 그대로 쓰고, 안드로이드만 이 프로젝트에서 빌드·서명합니다.
+ * eas.json 의 onestore 프로필이 EAS_TARGET=onestore 를 넘깁니다.
+ */
+const ONESTORE_EAS_PROJECT = {
+  owner: "hyphen-team",
+  projectId: "e090e687-ac64-4f70-9436-1c9fa65bae92",
+};
+
 // ================================
 // Config
 // ================================
@@ -35,8 +45,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.EXPO_PUBLIC_API_BASE_URL,
   );
 
+  const isOnestore = process.env.EAS_TARGET === "onestore";
+
   return {
     ...(config as ExpoConfig),
+    ...(isOnestore && {
+      owner: ONESTORE_EAS_PROJECT.owner,
+      extra: {
+        ...config.extra,
+        eas: {
+          ...config.extra?.eas,
+          projectId: ONESTORE_EAS_PROJECT.projectId,
+        },
+      },
+    }),
     ios: {
       ...config.ios,
       infoPlist: {
