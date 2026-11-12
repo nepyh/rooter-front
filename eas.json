@@ -14,6 +14,12 @@
     "production": {
       "autoIncrement": true,
       "environment": "production"
+    },
+    "onestore": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
