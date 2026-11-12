@@ -4,6 +4,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing
 import { Text } from "../../ui/Text";
 import { Toast } from "../../ui/Toast";
 import { VerticalGradient } from "../common";
+import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 import { ChatHeader } from "./ChatHeader";
 import { ChatSessionList, type ChatSessionListStatus } from "./ChatSessionList";
 import { ChatMessageItem } from "./ChatMessageItem";
@@ -423,7 +424,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
             className="flex-1"
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View className="flex-1 rounded-t-radius-6 overflow-hidden">
+            <DismissKeyboardView className="flex-1 rounded-t-radius-6 overflow-hidden">
               <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
               <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
                 <View className="bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
@@ -513,7 +514,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
                   {!!errorMessage && <Toast text={errorMessage} onClose={clearError} />}
                 </View>
               </View>
-            </View>
+            </DismissKeyboardView>
           </KeyboardAvoidingView>
         </Animated.View>
       </View>
