@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Pressable, type ViewStyle } from "react-native";
+import { Pressable, type TextStyle, type ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
@@ -21,16 +21,18 @@ const TODO_CHECKBOX_STYLE = { borderWidth: 1, borderColor: color.neutral["400"] 
 
 const COMPLETED_TITLE_STYLE = { textDecorationLine: "line-through" as const };
 
+const FAILED_TITLE_STYLE = { textDecorationLine: "line-through" as const, color: color.utility["error-primary"] };
+
 const titleColors: Record<TaskRowStatus, "primary" | "disabled"> = {
   "pending": "primary",
   "done": "disabled",
-  "failed": "disabled",
+  "failed": "primary",
 };
 
-const titleStyles: Record<TaskRowStatus, typeof COMPLETED_TITLE_STYLE | undefined> = {
+const titleStyles: Record<TaskRowStatus, TextStyle | undefined> = {
   "pending": undefined,
   "done": COMPLETED_TITLE_STYLE,
-  "failed": undefined,
+  "failed": FAILED_TITLE_STYLE,
 };
 
 // ================================
