@@ -44,12 +44,16 @@ interface Props {
 
 const WINDOW_HEIGHT = Dimensions.get("window").height;
 const SHEET_HEIGHT = Math.round(WINDOW_HEIGHT * 0.9);
-// 시트 위쪽 빈 공간 높이, 키보드를 피할 때 시트가 화면 맨 위가 아닌 만큼 보정
+// 시트 위쪽 빈 공간 높이
 const SHEET_TOP_GAP = WINDOW_HEIGHT - SHEET_HEIGHT;
 const HEADER_HEIGHT = 44;
 const RESUME_WINDOW_MS = 15 * 60 * 1000;
 const MESSAGE_GAP = getSpacing("spacing-11");
 const INPUT_BOTTOM = getSpacing("spacing-11");
+// 키보드가 올라왔을 때 입력창과 키보드 사이 간격
+const KEYBOARD_INPUT_GAP = getSpacing("spacing-3");
+// 시트 위쪽 빈 공간만큼 보정하고, 키보드 위에서는 입력창 아래 여백을 간격만큼만 남김
+const KEYBOARD_OFFSET = SHEET_TOP_GAP - (INPUT_BOTTOM - KEYBOARD_INPUT_GAP);
 const INPUT_DEFAULT_HEIGHT = 58;
 const INPUT_FADE_HEIGHT = getSpacing("spacing-9");
 
@@ -430,9 +434,11 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
-          <KeyboardAvoidingView className="flex-1" behavior="padding" keyboardVerticalOffset={SHEET_TOP_GAP}>
+          <View className="absolute inset-spacing-0 rounded-t-radius-6 overflow-hidden">
+            <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
+          </View>
+          <KeyboardAvoidingView className="flex-1" behavior="padding" keyboardVerticalOffset={KEYBOARD_OFFSET}>
             <DismissKeyboardView className="flex-1 rounded-t-radius-6 overflow-hidden">
-              <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
               <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
                 <View className="bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
 
