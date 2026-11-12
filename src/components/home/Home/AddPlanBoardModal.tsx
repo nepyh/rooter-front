@@ -8,6 +8,7 @@ import { Icon } from "@/assets";
 import { TextbookPicker } from "./TextbookPicker";
 import { ChapterPicker } from "./ChapterPicker";
 import { TimeWheelPicker } from "../../common/TimeWheelPicker";
+import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 import type { TextbookWithSubject } from "./TextbookPicker";
 import { color } from "@/constants/token/color";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/common/planBoard";
@@ -264,6 +265,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
             <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <DismissKeyboardView className="flex-1">
             <Stack gap="xxl" width="full" className="bg-background-primary p-spacing-7 rounded-t-radius-6 flex-1">
               <Row width="full" align="between" className="items-center">
               <Pressable onPress={onClose} className="w-spacing-9 h-spacing-9 items-center justify-center">
@@ -367,6 +369,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
               </Stack>
             </ScrollView>
           </Stack>
+            </DismissKeyboardView>
             </KeyboardAvoidingView>
         </Animated.View>
       </View>
