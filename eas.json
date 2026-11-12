@@ -17,6 +17,9 @@
     },
     "onestore": {
       "extends": "production",
+      "env": {
+        "EAS_TARGET": "onestore"
+      },
       "android": {
         "buildType": "apk"
       }
