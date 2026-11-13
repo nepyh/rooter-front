@@ -8,14 +8,14 @@ import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
 import { isSameDay, toLocalDateString } from "@/utils/common/date";
-import { addDays, isTaskEnded, isTaskFailed, parseDateString } from "@/utils/todo/date";
+import { addDays, isTaskFailed, parseDateString } from "@/utils/todo/date";
 import { groupTasksBySubject } from "@/utils/todo/task";
 import { getSpacing } from "@/utils/common/token";
 
 /**
  * 할 일 화면
  * 홈에서 글자를 숨긴 짧은 블록을 누르면 date 파라미터로 그 날짜를 열고, 그때만 옆으로 밀려 들어옴
- * 할 일 체크는 완료 처리 대신 퀴즈를 열고(완료는 퀴즈 통과 시 서버가 처리), 완료했거나 끝난 할 일은 반응하지 않음
+ * 할 일 체크는 완료 처리 대신 퀴즈를 열고(완료는 퀴즈 통과 시 서버가 처리), 완료·실패한 할 일(실패로 저장됐거나 끝난 할 일)은 반응하지 않음
  */
 export default function TodoPage() {
   const now = useNow(60_000);
@@ -35,7 +35,7 @@ export default function TodoPage() {
   };
 
   const handleToggle = (task: PlanTask) => {
-    if (task.status === "DONE" || isTaskEnded(task, selectedKey)) return;
+    if (getStatus(task) !== "pending") return;
     router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
