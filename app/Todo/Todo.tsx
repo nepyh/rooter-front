@@ -23,7 +23,9 @@ export default function TodoPage() {
   const [selectedDate, setSelectedDate] = useState(() => (date ? parseDateString(date) : now));
   const centerDate = date ? parseDateString(date) : now;
   const selectedKey = toLocalDateString(selectedDate);
-  const { loaded, tasks } = useWeeklyTasks(selectedKey);
+  const { loaded, tasks, isError, isPlaceholder } = useWeeklyTasks(selectedKey);
+  // 새 주를 불러오는 중에는 빈 목록이어도 '계획 없음'을 띄우지 않음 (주를 넘길 때 깜빡임 방지)
+  const emptyMessage = isError ? "할 일을 불러오지 못했어요" : tasks.length === 0 && !isPlaceholder ? "현재 계획이 없어요" : null;
   const allFailed = tasks.length > 0 && tasks.every((task) => task.status === "FAILED" || (task.status === "PENDING" && isTaskEnded(task, selectedKey)));
 
   useEffect(() => {
@@ -53,9 +55,9 @@ export default function TodoPage() {
         onChangeWeek={(weeks) => setSelectedDate((prev) => addDays(prev, weeks * 7))}
       />
 
-      {!loaded ? <LoadingView className="pb-[140px]" /> : tasks.length === 0 ? (
+      {!loaded ? <LoadingView className="pb-[140px]" /> : emptyMessage ? (
         <View className="flex-1 items-center justify-center pb-[140px]">
-          <Text color="secondary">현재 계획이 없어요</Text>
+          <Text color="secondary">{emptyMessage}</Text>
         </View>
       ) : (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: getSpacing("spacing-5"), paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
