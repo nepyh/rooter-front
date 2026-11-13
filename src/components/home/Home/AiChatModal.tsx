@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
-import { KeyboardAvoidingView, KeyboardEvents } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, KeyboardEvents, useWindowDimensions } from "react-native-keyboard-controller";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Text } from "../../ui/Text";
 import { Toast } from "../../ui/Toast";
@@ -42,18 +42,13 @@ interface Props {
 // Constants
 // ================================
 
-const WINDOW_HEIGHT = Dimensions.get("window").height;
-const SHEET_HEIGHT = Math.round(WINDOW_HEIGHT * 0.9);
-// 시트 위쪽 빈 공간 높이
-const SHEET_TOP_GAP = WINDOW_HEIGHT - SHEET_HEIGHT;
+const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 const HEADER_HEIGHT = 44;
 const RESUME_WINDOW_MS = 15 * 60 * 1000;
 const MESSAGE_GAP = getSpacing("spacing-11");
 const INPUT_BOTTOM = getSpacing("spacing-11");
 // 키보드가 올라왔을 때 입력창과 키보드 사이 간격
 const KEYBOARD_INPUT_GAP = getSpacing("spacing-3");
-// 시트 위쪽 빈 공간만큼 보정하고, 키보드 위에서는 입력창 아래 여백을 간격만큼만 남김
-const KEYBOARD_OFFSET = SHEET_TOP_GAP - (INPUT_BOTTOM - KEYBOARD_INPUT_GAP);
 const INPUT_DEFAULT_HEIGHT = 58;
 const INPUT_FADE_HEIGHT = getSpacing("spacing-9");
 
@@ -101,6 +96,11 @@ const createMessage = (role: ChatMessage["role"], text: string, turnId: number |
  */
 export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Props) {
   const translateY = useSharedValue(SHEET_HEIGHT);
+  // 키보드 높이는 keyboard-controller 가 잰 화면 높이 기준이라, 시트 위쪽 빈 공간도 같은 높이로 계산
+  // (RN Dimensions 는 안드로이드 edge-to-edge 에서 상태바만큼 다를 수 있음)
+  const { height: screenHeight } = useWindowDimensions();
+  // 시트 위쪽 빈 공간만큼 보정하고, 키보드 위에서는 입력창 아래 여백을 간격만큼만 남김
+  const keyboardOffset = screenHeight - SHEET_HEIGHT - (INPUT_BOTTOM - KEYBOARD_INPUT_GAP);
   const [isRendered, setIsRendered] = useState(visible);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [listStatus, setListStatus] = useState<ChatSessionListStatus>("loading");
@@ -437,7 +437,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
           <View className="absolute inset-spacing-0 rounded-t-radius-6 overflow-hidden">
             <VerticalGradient className="absolute inset-spacing-0" stops={GRADIENT_STOPS} />
           </View>
-          <KeyboardAvoidingView className="flex-1" behavior="padding" keyboardVerticalOffset={KEYBOARD_OFFSET}>
+          <KeyboardAvoidingView className="flex-1" behavior="padding" keyboardVerticalOffset={keyboardOffset}>
             <DismissKeyboardView className="flex-1 rounded-t-radius-6 overflow-hidden">
               <View className="flex-1 items-center pt-spacing-3 px-spacing-7" style={{ gap: getSpacing("spacing-7") }}>
                 <View className="bg-neutral-600 rounded-radius-full" style={{ width: 104, height: 4 }} />
