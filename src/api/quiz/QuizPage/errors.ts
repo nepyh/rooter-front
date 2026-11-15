@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 
 // ================================
 // Constants
@@ -9,6 +10,7 @@ const QUIZ_ERROR_MESSAGES: Record<string, string> = {
   "TASK_QUIZ_ALREADY_SUBMITTED": "이미 채점이 끝난 퀴즈예요.",
   "TASK_QUIZ_INCOMPLETE_ANSWERS": "아직 풀지 않은 문제가 있어요.",
   "TASK_QUIZ_INVALID_ANSWER": "보기를 다시 선택해주세요.",
+  "TASK_NOT_STARTED": TASK_NOT_STARTED_MESSAGE,
 };
 
 // ================================

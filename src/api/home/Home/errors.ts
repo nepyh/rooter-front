@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 
 // ================================
 // Constants
@@ -24,6 +25,21 @@ const DEFAULT_EDIT_ERROR_MESSAGE = "일정 수정에 실패했습니다. 잠시 
 export const getEditErrorMessage = (error: unknown) => {
   const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
   return EDIT_ERROR_MESSAGES[code] ?? DEFAULT_EDIT_ERROR_MESSAGE;
+};
+
+const FAIL_ERROR_MESSAGES: Record<string, string> = {
+  "TASK_NOT_STARTED": TASK_NOT_STARTED_MESSAGE,
+};
+
+const DEFAULT_FAIL_ERROR_MESSAGE = "일정을 실패로 바꾸지 못했습니다. 잠시 후 다시 시도해주세요.";
+
+/**
+ * 일정 실패 처리 에러를 안내 문구로 변환 (백엔드 code 기준)
+ * @param error updatePlanTask(status: FAILED) 가 던진 에러
+ */
+export const getFailErrorMessage = (error: unknown) => {
+  const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
+  return FAIL_ERROR_MESSAGES[code] ?? DEFAULT_FAIL_ERROR_MESSAGE;
 };
 
 const CHAT_SEND_ERROR_MESSAGES: Record<string, string> = {
