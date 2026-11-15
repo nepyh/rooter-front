@@ -3,11 +3,13 @@ import { ScrollView, View } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Row, Stack, Text, LoadingView, WeekDateStrip, TaskList, TodayButton, type TaskRowStatus } from "@/components";
+import { Row, Stack, Text, Toast, LoadingView, WeekDateStrip, TaskList, TodayButton, type TaskRowStatus } from "@/components";
 import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
+import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { isSameDay, toLocalDateString } from "@/utils/common/date";
+import { hasTaskStarted } from "@/utils/common/time";
 import { addDays, isTaskFailed, parseDateString } from "@/utils/todo/date";
 import { groupTasksBySubject } from "@/utils/todo/task";
 import { getSpacing } from "@/utils/common/token";
@@ -16,17 +18,19 @@ import { getSpacing } from "@/utils/common/token";
  * 할 일 화면
  * 홈에서 글자를 숨긴 짧은 블록을 누르면 date 파라미터로 그 날짜를 열고, 그때만 옆으로 밀려 들어옴
  * 할 일 체크는 완료 처리 대신 퀴즈를 열고(완료는 퀴즈 통과 시 서버가 처리), 완료·실패한 할 일(실패로 저장됐거나 끝난 할 일)은 반응하지 않음
+ * 시작 시각 전인 할 일은 퀴즈를 열지 않고 안내만 띄움
  */
 export default function TodoPage() {
   const now = useNow(60_000);
   const { date } = useLocalSearchParams<{ date?: string }>();
   const [selectedDate, setSelectedDate] = useState(() => (date ? parseDateString(date) : now));
+  const [showNotStartedNotice, setShowNotStartedNotice] = useState(false);
   const centerDate = date ? parseDateString(date) : now;
   const selectedKey = toLocalDateString(selectedDate);
   const { loaded, tasks, isError, isPlaceholder } = useWeeklyTasks(selectedKey);
   // 새 주를 불러오는 중에는 빈 목록이어도 '계획 없음'을 띄우지 않음 (주를 넘길 때 깜빡임 방지)
   const emptyMessage = isError ? "할 일을 불러오지 못했어요" : tasks.length === 0 && !isPlaceholder ? "현재 계획이 없어요" : null;
-  const allFailed = tasks.length > 0 && tasks.every((task) => task.status === "FAILED" || (task.status === "PENDING" && isTaskEnded(task, selectedKey)));
+  const allFailed = tasks.length > 0 && tasks.every((task) => isTaskFailed(task, selectedKey));
 
   useEffect(() => {
     if (date) setSelectedDate(parseDateString(date));
@@ -39,6 +43,10 @@ export default function TodoPage() {
 
   const handleToggle = (task: PlanTask) => {
     if (getStatus(task) !== "pending") return;
+    if (!hasTaskStarted(selectedKey, task.startTime, new Date())) {
+      setShowNotStartedNotice(true);
+      return;
+    }
     router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
   };
 
@@ -81,6 +89,8 @@ export default function TodoPage() {
           </Stack>
         </ScrollView>
       )}
+
+      {showNotStartedNotice && <Toast text={TASK_NOT_STARTED_MESSAGE} onClose={() => setShowNotStartedNotice(false)} />}
     </Animated.View>
   );
 }
