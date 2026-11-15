@@ -22,8 +22,9 @@ import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
+import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
-import type { DragPreview, Plan } from "@/utils/home/timeline";
+import { isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
 
 /**
  * 홈 화면
@@ -44,6 +45,7 @@ export default function Home() {
   const [showToast, setShowToast] = useState(false);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showNoPlanChatNotice, setShowNoPlanChatNotice] = useState(false);
+  const [showNotStartedNotice, setShowNotStartedNotice] = useState(false);
   const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -65,6 +67,7 @@ export default function Home() {
   const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
+  const activePlanStarted = activePlan ? isPlanStarted(activePlan, selectedKey, now) : false;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
 
   useEffect(() => {
@@ -88,9 +91,19 @@ export default function Home() {
     timeline.revealMenu({ ...plan, start, duration });
   };
 
-  const handleComplete = (plan: Plan) => {
-    if (plan.status !== "pending") return;
+  /**
+   * 완료·실패를 할 수 있는 계획인지. 시작 시각 전이면 안내를 띄우고 false
+   */
+  const canResolve = (plan: Plan) => {
+    if (plan.status !== "pending") return false;
     setActiveId(null);
+    if (isPlanStarted(plan, selectedKey, now)) return true;
+    setShowNotStartedNotice(true);
+    return false;
+  };
+
+  const handleComplete = (plan: Plan) => {
+    if (!canResolve(plan)) return;
     router.push({
       pathname: "/Quiz/QuizPage",
       params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
@@ -98,8 +111,7 @@ export default function Home() {
   };
 
   const handleFail = (plan: Plan) => {
-    if (plan.status !== "pending") return;
-    setActiveId(null);
+    if (!canResolve(plan)) return;
     setFailTarget(plan);
   };
 
@@ -189,6 +201,7 @@ export default function Home() {
                     plans={coloredPlans}
                     currentTime={isToday ? now : null}
                     activePlan={activePlan}
+                    activePlanStarted={activePlanStarted}
                     dragPreview={dragPreview}
                     onLongPressPlan={handleLongPressPlan}
                     onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
@@ -234,6 +247,7 @@ export default function Home() {
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
       {showNoPlanChatNotice && <Toast text="계획이 있어야 AI와 대화할 수 있어요" onClose={() => setShowNoPlanChatNotice(false)} />}
+      {showNotStartedNotice && <Toast text={TASK_NOT_STARTED_MESSAGE} onClose={() => setShowNotStartedNotice(false)} />}
 
       <AddMenu
         visible={showAddMenu}

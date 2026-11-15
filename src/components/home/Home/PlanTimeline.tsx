@@ -38,6 +38,7 @@ interface Props {
   plans: Plan[];
   currentTime: Date | null;
   activePlan: Plan | null;
+  activePlanStarted: boolean;
   dragPreview: DragPreview | null;
   onLongPressPlan: (plan: Plan) => void;
   onDragStart: (plan: Plan, mode: DragMode) => void;
@@ -63,6 +64,7 @@ interface Props {
  * @param plans 계획 목록
  * @param currentTime 현재 시각 선을 그릴 시각, 오늘이 아니면 null
  * @param activePlan 꾹 눌러 옮길 준비가 된 계획, 이 계획에 액션 메뉴를 띄움
+ * @param activePlanStarted activePlan 의 시작 시각이 지났는지, 아니면 액션 메뉴의 완료·실패를 흐리게 표시
  * @param dragPreview 끌고 있는 계획과 지금 놓으면 들어갈 시작 위치·길이, 끌고 있지 않으면 null (끄는 동안에는 액션 메뉴를 숨김)
  * @param onLongPressPlan 계획 블록을 꾹 눌렀을 때 호출
  * @param onDragStart 계획 블록을 옮기거나 손잡이로 길이를 바꾸기 시작했을 때 호출
@@ -84,6 +86,7 @@ export function PlanTimeline({
   plans,
   currentTime,
   activePlan,
+  activePlanStarted,
   dragPreview,
   onLongPressPlan,
   onDragStart,
@@ -164,6 +167,7 @@ export function PlanTimeline({
             <ActionMenu
               key={activePlan.id}
               plan={activePlan}
+              canResolve={activePlanStarted}
               onComplete={() => onComplete(activePlan)}
               onFail={() => onFail(activePlan)}
               onEdit={() => onEdit(activePlan)}
