@@ -4,6 +4,9 @@
 
 export const DAY_MIN = 24 * 60;
 
+/** 한국 시간(Asia/Seoul)의 UTC 오프셋(분). 서머타임이 없어 고정 */
+const KST_OFFSET_MIN = 9 * 60;
+
 // ================================
 // Functions
 // ================================
@@ -26,15 +29,16 @@ export const parseHHmm = (value: string) => {
 };
 
 /**
- * 계획의 시작 시각(날짜 + 시작 시간, 기기 시간 기준)이 지났는지. 완료(퀴즈)·실패는 시작한 계획만 할 수 있음
- * 서버(TASK_NOT_STARTED)와 같은 기준이라, 오늘 계획도 시작 시간 전이면 false
+ * 계획의 시작 시각(날짜 + 시작 시간, 한국 시간 기준)이 지났는지. 완료(퀴즈)·실패는 시작한 계획만 할 수 있음
+ * 서버(TASK_NOT_STARTED)와 같은 기준이라 기기 시간대와 상관없이 한국 시간으로 비교하고, 오늘 계획도 시작 시간 전이면 false
  * @param dateKey 계획 날짜 (yyyy-MM-dd)
  * @param startTime 시작 시각 ("HH:MM")
  * @param now 현재 시각
  */
 export const hasTaskStarted = (dateKey: string, startTime: string, now: Date) => {
   const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, month - 1, day, 0, parseHHmm(startTime)).getTime() <= now.getTime();
+  const startUtc = Date.UTC(year, month - 1, day, 0, parseHHmm(startTime)) - KST_OFFSET_MIN * 60_000;
+  return startUtc <= now.getTime();
 };
 
 /**
