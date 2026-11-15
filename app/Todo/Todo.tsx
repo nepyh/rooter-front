@@ -26,7 +26,7 @@ export default function TodoPage() {
   const { loaded, tasks, isError, isPlaceholder } = useWeeklyTasks(selectedKey);
   // 새 주를 불러오는 중에는 빈 목록이어도 '계획 없음'을 띄우지 않음 (주를 넘길 때 깜빡임 방지)
   const emptyMessage = isError ? "할 일을 불러오지 못했어요" : tasks.length === 0 && !isPlaceholder ? "현재 계획이 없어요" : null;
-  const allFailed = tasks.length > 0 && tasks.every((task) => task.status === "FAILED" || (task.status === "PENDING" && isTaskEnded(task, selectedKey)));
+  const allFailed = tasks.length > 0 && tasks.every((task) => isTaskFailed(task, selectedKey));
 
   useEffect(() => {
     if (date) setSelectedDate(parseDateString(date));
