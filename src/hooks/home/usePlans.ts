@@ -1,7 +1,7 @@
 import { Alert } from "react-native";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/planBoard";
-import { getEditErrorMessage } from "@/api/home/Home";
+import { getEditErrorMessage, getFailErrorMessage } from "@/api/home/Home";
 import { invalidatePlanQueries, invalidateTaskQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { useRefetchOnFocus } from "@/hooks/common/useRefetchOnFocus";
 import { DAY_MIN } from "@/utils/common/time";
@@ -116,9 +116,9 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     try {
       await updatePlanTask(Number(target.id), { status: "FAILED" });
       invalidateTaskQueries();
-    } catch {
+    } catch (error) {
       reloadDaily();
-      Alert.alert("처리 실패", "일정을 실패로 바꾸지 못했습니다. 잠시 후 다시 시도해주세요.");
+      Alert.alert("처리 실패", getFailErrorMessage(error));
     }
   };
 
