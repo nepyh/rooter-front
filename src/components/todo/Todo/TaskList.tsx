@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Text } from "../../ui/Text";
-import { TaskRow } from "./TaskRow";
+import { TaskRow, type TaskRowStatus } from "./TaskRow";
 import type { PlanTask } from "@/api/common/planBoard";
 import { CATEGORY_COLORS, type Category } from "@/constants/category";
 
@@ -13,6 +13,7 @@ interface Props {
   subjectName: string;
   category: Category;
   tasks: PlanTask[];
+  getStatus: (task: PlanTask) => TaskRowStatus;
   onToggleTask: (task: PlanTask) => void;
 }
 
@@ -21,9 +22,10 @@ interface Props {
  * @param subjectName 상자 맨 위에 보여줄 과목 이름
  * @param category 막대와 완료 체크박스에 쓸 과목 색
  * @param tasks 보여줄 할 일
+ * @param getStatus 할 일마다 보여줄 상태
  * @param onToggleTask 할 일을 눌렀을 때 호출
  */
-export function TaskList({ subjectName, category, tasks, onToggleTask }: Props) {
+export function TaskList({ subjectName, category, tasks, getStatus, onToggleTask }: Props) {
   const accentColor = CATEGORY_COLORS[category].bar;
 
   return (
@@ -33,7 +35,7 @@ export function TaskList({ subjectName, category, tasks, onToggleTask }: Props) 
         <Text variant="base-medium" weight="medium">{subjectName}</Text>
         <Stack gap="m">
           {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} accentColor={accentColor} onToggle={() => onToggleTask(task)} />
+            <TaskRow key={task.id} task={task} status={getStatus(task)} accentColor={accentColor} onToggle={() => onToggleTask(task)} />
           ))}
         </Stack>
       </Stack>

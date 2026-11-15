@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 // ================================
 // Types
@@ -18,7 +18,10 @@ export interface AuthError<Target extends string> {
 // Constants
 // ================================
 
-export const SERVER_ERROR: AuthError<'toast'> = { target: 'toast', message: '서버 에러가 발생하였습니다.' };
+export const SERVER_ERROR: AuthError<"toast"> = {
+  target: "toast",
+  message: "서버 에러가 발생하였습니다.",
+};
 
 // ================================
 // Functions
@@ -30,11 +33,6 @@ export const SERVER_ERROR: AuthError<'toast'> = { target: 'toast', message: '서
  */
 export const getStatus = (error: unknown) => {
   if (!axios.isAxiosError(error)) return undefined;
-
-  console.log('==============================');
-  console.log('status:', error.response?.status);
-  console.log('data:', error.response?.data);
-  console.log('message:', error.response?.data?.message);
 
   return error.response?.status;
 };

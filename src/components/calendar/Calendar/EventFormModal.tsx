@@ -4,6 +4,7 @@ import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Text } from "../../ui/Text";
+import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 
 // ================================
 // Components
@@ -43,7 +44,7 @@ export function EventFormModal({ visible, date, initial, submitLabel, onClose, o
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
-      <View className="flex-1 bg-neutral-1000/50 justify-end">
+      <DismissKeyboardView className="flex-1 bg-neutral-1000/50 justify-end">
         <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
           <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${submitLabel}`}</Text>
           <Input label="제목" value={title} onChangeText={setTitle} />
@@ -57,7 +58,7 @@ export function EventFormModal({ visible, date, initial, submitLabel, onClose, o
             </View>
           </Row>
         </Stack>
-      </View>
+      </DismissKeyboardView>
     </Modal>
   );
 }

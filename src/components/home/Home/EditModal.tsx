@@ -4,6 +4,7 @@ import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Text } from "../../ui/Text";
+import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 import { color } from "@/constants/token/color";
 import { WINDOW_START_MIN, parseClock, type Plan } from "@/utils/home/timeline";
 import { DAY_MIN } from "@/utils/common/time";
@@ -47,7 +48,7 @@ export function EditModal({ plan, onSave, onClose }: Props) {
 
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-neutral-1000/50 justify-end">
+      <DismissKeyboardView className="flex-1 bg-neutral-1000/50 justify-end">
         <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
           <Text variant="header-medium">일정 수정</Text>
           <Input label="제목" value={title} onChangeText={setTitle} />
@@ -69,7 +70,7 @@ export function EditModal({ plan, onSave, onClose }: Props) {
             </View>
           </Row>
         </Stack>
-      </View>
+      </DismissKeyboardView>
     </Modal>
   );
 }
