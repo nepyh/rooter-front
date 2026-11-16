@@ -21,7 +21,8 @@ export type ChatTurnFeedback = 'LIKE' | 'DISLIKE';
 export interface ChatTurn {
   id: number;
   sessionId: number;
-  dailyPlanId: number;
+  /** 계획 없이 나눈 대화는 null. 한 세션 안에 숫자와 null 이 섞일 수 있음 */
+  dailyPlanId: number | null;
   role: string;
   content: string;
   feedback: ChatTurnFeedback | null;
@@ -37,14 +38,15 @@ export interface ChatSession {
 
 /**
  * 챗봇 메시지 전송 API 함수
- * @param dailyPlanId 일일 계획 ID (어느 날 계획을 보고 고칠지)
+ * 계획이 없으면 계획 없이 보내는 API(/chat/message)를 씀. 이때 챗봇은 질문·잡담에만 답하고 계획은 바꾸지 않음 (planChanged 항상 false)
+ * @param dailyPlanId 일일 계획 ID (어느 날 계획을 보고 고칠지), 그날 계획이 없으면 null
  * @param message 보낼 메시지
  * @param sessionId 메시지를 이어 붙일 세션 ID. null 이면 서버가 그날 마지막 세션에 붙이거나 새로 만듦
  * @returns AI 답변, 계획 변경 여부, 세션 ID·제목, 방금 저장된 질문·답변 ID
  */
-export const sendChatMessage = async (dailyPlanId: number, message: string, sessionId: number | null): Promise<ChatReply> => {
+export const sendChatMessage = async (dailyPlanId: number | null, message: string, sessionId: number | null): Promise<ChatReply> => {
   const response = await api.post(
-    `/daily-plans/${dailyPlanId}/chat/message`,
+    dailyPlanId === null ? '/chat/message' : `/daily-plans/${dailyPlanId}/chat/message`,
     { message, ...(sessionId !== null && { sessionId }) },
     { timeout: AI_TIMEOUT_MS },
   );
