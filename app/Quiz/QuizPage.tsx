@@ -24,9 +24,15 @@ import { SUBJECT_LABELS } from "@/utils/quiz/quiz";
  * 퀴즈가 없으면 서버가 AI 로 만드느라 몇 초 걸려서 전체 화면 로딩으로 기다리고, 기다리다 나가면 퀴즈 화면을 닫음
  */
 export default function QuizPage() {
-  const { taskId, dailyPlanId, category } = useLocalSearchParams<{ taskId?: string; dailyPlanId?: string; category?: Category }>();
+  const { taskId, dailyPlanId, category, date, startTime } = useLocalSearchParams<{
+    taskId?: string;
+    dailyPlanId?: string;
+    category?: Category;
+    date?: string;
+    startTime?: string;
+  }>();
   const username = useUserStore((state) => state.user?.username);
-  const quiz = useTaskQuiz(taskId);
+  const quiz = useTaskQuiz(taskId, date && startTime ? { date, startTime } : undefined);
   const subjectLabel = quiz.serverSubject ?? (category ? SUBJECT_LABELS[category] : undefined);
   const { phase, current, error, checking, isLast } = quiz;
 

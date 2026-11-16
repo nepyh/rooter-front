@@ -10,6 +10,8 @@ import {
   type TaskQuizResult,
 } from "@/api/quiz/QuizPage";
 import { invalidateTaskQueries } from "@/api/queryClient";
+import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
+import { hasTaskStarted } from "@/utils/common/time";
 import { getOptionState, pickCorrectMessage } from "@/utils/quiz/quiz";
 
 // ================================
@@ -17,6 +19,16 @@ import { getOptionState, pickCorrectMessage } from "@/utils/quiz/quiz";
 // ================================
 
 export type QuizPhase = "intro" | "answering" | "review" | "score";
+
+/**
+ * 퀴즈를 풀 할일의 시작 시각
+ * @param date 할일 날짜 (yyyy-MM-dd)
+ * @param startTime 시작 시각 ("HH:MM")
+ */
+export interface TaskStart {
+  date: string;
+  startTime: string;
+}
 
 // ================================
 // Hooks
@@ -26,9 +38,11 @@ export type QuizPhase = "intro" | "answering" | "review" | "score";
  * useTaskQuiz — 할일 완료 확인 퀴즈의 진행 상태 관리
  * 시작 → 문제마다 [확인]으로 바로 채점 → 마지막 문제 뒤 전체 제출 → 풀이 보기 → 점수 순으로 진행합니다.
  * 시작 화면을 보는 동안 퀴즈를 미리 불러오고, 이미 답한 문제는 건너뛰고 안 푼 문제부터 이어 풉니다.
+ * 시작 시각을 받으면 시작 전에는 퀴즈를 부르지 않고 안내를 띄움 (어느 화면에서 들어와도 막는 안전장치, 없으면 서버 TASK_NOT_STARTED 로 막힘)
  * @param taskId 할일 ID (문자열)
+ * @param taskStart 할일 시작 시각
  */
-export function useTaskQuiz(taskId: string | undefined) {
+export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
   const [phase, setPhase] = useState<QuizPhase>("intro");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,13 +63,18 @@ export function useTaskQuiz(taskId: string | undefined) {
   const currentGrade = current ? graded[current.id] : undefined;
   const reviewResult = phase === "review" && current ? result?.results.find((r) => r.questionId === current.id) : undefined;
 
+  const startDate = taskStart?.date;
+  const startTime = taskStart?.startTime;
+  const isNotStarted = () => !!startDate && !!startTime && !hasTaskStarted(startDate, startTime, new Date());
+
   useEffect(() => {
     const id = Number(taskId);
     if (!id) return;
+    if (startDate && startTime && !hasTaskStarted(startDate, startTime, new Date())) return;
     const request = getTaskQuiz(id);
     prefetchRef.current = request;
     request.then((data) => setServerSubject(data.subject?.subjectName ?? null)).catch(() => {});
-  }, [taskId]);
+  }, [taskId, startDate, startTime]);
 
   const getCorrectMessage = (questionId: number) => {
     correctMessagesRef.current[questionId] ??= pickCorrectMessage();
@@ -82,6 +101,10 @@ export function useTaskQuiz(taskId: string | undefined) {
     setPhase("answering");
     if (!id) {
       setError("퀴즈를 풀 할 일을 찾지 못했어요.");
+      return;
+    }
+    if (isNotStarted()) {
+      setError(TASK_NOT_STARTED_MESSAGE);
       return;
     }
     setLoading(true);
