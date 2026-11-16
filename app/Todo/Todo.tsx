@@ -47,7 +47,7 @@ export default function TodoPage() {
       setShowNotStartedNotice(true);
       return;
     }
-    router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId) } });
+    router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId), date: selectedKey, startTime: task.startTime } });
   };
 
   return (
