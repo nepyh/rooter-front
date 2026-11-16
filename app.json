@@ -15,6 +15,9 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+    "android": {
+      "package": "io.github.nepyh.rooter"
+    },
     "scheme": "rooter",
     "web": {
       "bundler": "metro"
