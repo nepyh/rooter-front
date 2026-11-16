@@ -52,7 +52,6 @@ const KEYBOARD_INPUT_GAP = getSpacing("spacing-3");
 const INPUT_DEFAULT_HEIGHT = 58;
 const INPUT_FADE_HEIGHT = getSpacing("spacing-9");
 
-const NO_PLAN_MESSAGE = "오늘 계획이 있어야 일정을 조정할 수 있어요. 먼저 할 일을 추가해주세요.";
 const TURNS_ERROR_MESSAGE = "대화 내용을 불러오지 못했어요";
 const CREATE_SESSION_ERROR_MESSAGE = "새 채팅을 만들지 못했어요";
 const DELETE_ALL_ERROR_MESSAGE = "채팅 목록을 삭제하지 못했어요. 잠시 후 다시 시도해주세요.";
@@ -90,7 +89,7 @@ const createMessage = (role: ChatMessage["role"], text: string, turnId: number |
 /**
  * AI 채팅 모달
  * @param visible 모달 표시 여부를 설정합니다.
- * @param dailyPlanId 대화할 일일 계획 ID를 설정합니다.
+ * @param dailyPlanId 대화할 일일 계획 ID를 설정합니다. 계획이 없으면 null 이고, 이때도 질문·잡담은 할 수 있습니다.
  * @param onClose 모달을 닫을 때 실행할 행동을 입력합니다.
  * @param onPlanChanged AI가 계획을 바꿨을 때 실행할 행동을 입력합니다.
  */
@@ -272,11 +271,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     if (messages.length === 0 && !currentSession?.title) setDraftTitle(text);
     appendMessage(userMessage);
     setInput("");
-
-    if (!dailyPlanId) {
-      appendMessage(createMessage("assistant", NO_PLAN_MESSAGE));
-      return;
-    }
 
     // 전송 중에 모달을 닫아도 보내는 세션이 지워지지 않도록 정리 대상에서 잠시 뺌. 실패하면 다시 넣음
     const wasEmptySession = currentSessionId !== null && emptySessionRef.current === currentSessionId;
