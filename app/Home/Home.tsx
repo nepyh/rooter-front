@@ -44,7 +44,6 @@ export default function Home() {
   const [failTarget, setFailTarget] = useState<Plan | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
-  const [showNoPlanChatNotice, setShowNoPlanChatNotice] = useState(false);
   const [showNotStartedNotice, setShowNotStartedNotice] = useState(false);
   const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
   const [showAddPlan, setShowAddPlan] = useState(false);
@@ -150,14 +149,6 @@ export default function Home() {
     if (await deletePlan(target)) setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`);
   };
 
-  const handleOpenAiChat = () => {
-    if (plans.length === 0) {
-      setShowNoPlanChatNotice(true);
-      return;
-    }
-    setShowAiChat(true);
-  };
-
   const startPlanCreation = () => {
     resetPlanDraft();
     router.push("/Home/ExamDatePage");
@@ -230,7 +221,7 @@ export default function Home() {
         </View>
       </View>
 
-      <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
+      <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={() => setShowAiChat(true)} />
 
       {editingPlan && <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />}
 
@@ -253,7 +244,6 @@ export default function Home() {
       )}
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
-      {showNoPlanChatNotice && <Toast text="계획이 있어야 AI와 대화할 수 있어요" onClose={() => setShowNoPlanChatNotice(false)} />}
       {showNotStartedNotice && <Toast text={TASK_NOT_STARTED_MESSAGE} onClose={() => setShowNotStartedNotice(false)} />}
 
       <AddMenu
