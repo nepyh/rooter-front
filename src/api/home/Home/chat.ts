@@ -41,7 +41,7 @@ export interface ChatSession {
  * 계획이 없으면 계획 없이 보내는 API(/chat/message)를 씀. 이때 챗봇은 질문·잡담에만 답하고 계획은 바꾸지 않음 (planChanged 항상 false)
  * @param dailyPlanId 일일 계획 ID (어느 날 계획을 보고 고칠지), 그날 계획이 없으면 null
  * @param message 보낼 메시지
- * @param sessionId 메시지를 이어 붙일 세션 ID. null 이면 서버가 그날 마지막 세션에 붙이거나 새로 만듦
+ * @param sessionId 메시지를 이어 붙일 세션 ID. null 이면 계획이 있을 때는 서버가 그날 마지막 세션에 붙이거나 새로 만들고, 계획이 없을 때는 새로 만듦
  * @returns AI 답변, 계획 변경 여부, 세션 ID·제목, 방금 저장된 질문·답변 ID
  */
 export const sendChatMessage = async (dailyPlanId: number | null, message: string, sessionId: number | null): Promise<ChatReply> => {
