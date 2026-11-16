@@ -39,7 +39,7 @@ interface Props {
  */
 export function ActionButton({ icon, label, disabled = false, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} className={`w-[54px] items-center justify-center gap-spacing-2 p-spacing-3 rounded-radius-3 ${stateStyles[disabled ? "disabled" : "enabled"]}`}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ disabled }} className={`w-[54px] items-center justify-center gap-spacing-2 p-spacing-3 rounded-radius-3 ${stateStyles[disabled ? "disabled" : "enabled"]}`}>
       <Icon name={icon} size={20} color={color.neutral["0"]} />
       <Text variant="base-caption" className="text-text-primary">{label}</Text>
     </Pressable>
