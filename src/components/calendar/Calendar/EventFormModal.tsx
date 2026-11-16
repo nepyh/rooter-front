@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
@@ -21,6 +21,7 @@ interface Props {
 
 /**
  * 개인 일정 제목·메모를 입력하는 아래쪽 모달 (추가·수정 겸용)
+ * 키보드가 올라오면 시트를 키보드 위로 올려 입력칸이 가려지지 않게 함
  * @param visible 모달을 띄울지
  * @param date 일정 날짜, null 이면 그리지 않음
  * @param initial 열릴 때 채워 둘 제목·메모 (수정할 때)
@@ -44,21 +45,23 @@ export function EventFormModal({ visible, date, initial, submitLabel, onClose, o
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
-      <DismissKeyboardView className="flex-1 bg-neutral-1000/50 justify-end">
-        <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
-          <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${submitLabel}`}</Text>
-          <Input label="제목" value={title} onChangeText={setTitle} />
-          <Input label="메모" value={memo} onChangeText={setMemo} multiline style={{ height: 80, textAlignVertical: "top" }} />
-          <Row gap="m" width="full">
-            <View className="flex-1">
-              <Button variant="disabled" disabled={false} onPress={onClose}> 취소 </Button>
-            </View>
-            <View className="flex-1">
-              <Button variant={title.trim() ? "primary" : "disabled"} onPress={() => onSubmit(title.trim(), memo.trim())}> {submitLabel} </Button>
-            </View>
-          </Row>
-        </Stack>
-      </DismissKeyboardView>
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <DismissKeyboardView className="flex-1 bg-neutral-1000/50 justify-end">
+          <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
+            <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${submitLabel}`}</Text>
+            <Input label="제목" value={title} onChangeText={setTitle} />
+            <Input label="메모" value={memo} onChangeText={setMemo} multiline style={{ height: 80, textAlignVertical: "top" }} />
+            <Row gap="m" width="full">
+              <View className="flex-1">
+                <Button variant="disabled" disabled={false} onPress={onClose}> 취소 </Button>
+              </View>
+              <View className="flex-1">
+                <Button variant={title.trim() ? "primary" : "disabled"} onPress={() => onSubmit(title.trim(), memo.trim())}> {submitLabel} </Button>
+              </View>
+            </Row>
+          </Stack>
+        </DismissKeyboardView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
