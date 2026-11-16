@@ -49,11 +49,12 @@ export default function Home() {
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAiChat, setShowAiChat] = useState(false);
+  const [showPlansNotLoadedNotice, setShowPlansNotLoadedNotice] = useState(false);
   const afterAddMenuClosedRef = useRef<(() => void) | null>(null);
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
-  const { plans, coloredPlans, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
+  const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
   const timeline = useTimelineScroll(now);
 
@@ -149,6 +150,18 @@ export default function Home() {
     if (await deletePlan(target)) setDeleteToast(`'${target.title}' 일정이 삭제되었습니다.`);
   };
 
+  /**
+   * AI 채팅을 엶. 계획이 없어도 열지만, 그날 할 일을 아직 못 불러왔으면 계획이 있는지 몰라 안내만 띄움
+   * (못 불러온 채로 열면 계획이 있는 날도 계획 없는 채팅으로 보내져 일정을 못 바꿈)
+   */
+  const handleOpenAiChat = () => {
+    if (!plansLoaded) {
+      setShowPlansNotLoadedNotice(true);
+      return;
+    }
+    setShowAiChat(true);
+  };
+
   const startPlanCreation = () => {
     resetPlanDraft();
     router.push("/Home/ExamDatePage");
@@ -221,7 +234,7 @@ export default function Home() {
         </View>
       </View>
 
-      <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={() => setShowAiChat(true)} />
+      <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
 
       {editingPlan && <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />}
 
@@ -245,6 +258,7 @@ export default function Home() {
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
       {showNotStartedNotice && <Toast text={TASK_NOT_STARTED_MESSAGE} onClose={() => setShowNotStartedNotice(false)} />}
+      {showPlansNotLoadedNotice && <Toast text="계획을 아직 불러오지 못했어요. 잠시 후 다시 시도해주세요." onClose={() => setShowPlansNotLoadedNotice(false)} />}
 
       <AddMenu
         visible={showAddMenu}
