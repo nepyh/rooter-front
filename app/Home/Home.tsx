@@ -24,7 +24,7 @@ import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
-import { isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
+import { getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
 
 /**
  * 홈 화면
@@ -92,26 +92,33 @@ export default function Home() {
   };
 
   /**
-   * 완료·실패를 할 수 있는 계획인지. 시작 시각 전이면 안내를 띄우고 false
+   * 완료·실패를 시작해 보고 할 수 있는지 돌려줌. 액션 메뉴를 닫고, 시작 시각 전이면 안내를 띄우고 false
+   * 30초마다 바뀌는 now 대신 누른 순간의 시각으로 판단해, 막 시작한 계획을 잘못 막지 않음
    */
-  const canResolve = (plan: Plan) => {
+  const tryResolve = (plan: Plan) => {
     if (plan.status !== "pending") return false;
     setActiveId(null);
-    if (isPlanStarted(plan, selectedKey, now)) return true;
+    if (isPlanStarted(plan, selectedKey, new Date())) return true;
     setShowNotStartedNotice(true);
     return false;
   };
 
   const handleComplete = (plan: Plan) => {
-    if (!canResolve(plan)) return;
+    if (!tryResolve(plan)) return;
     router.push({
       pathname: "/Quiz/QuizPage",
-      params: { taskId: plan.id, dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "", category: plan.category },
+      params: {
+        taskId: plan.id,
+        dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "",
+        category: plan.category,
+        date: selectedKey,
+        startTime: getPlanStartTime(plan),
+      },
     });
   };
 
   const handleFail = (plan: Plan) => {
-    if (!canResolve(plan)) return;
+    if (!tryResolve(plan)) return;
     setFailTarget(plan);
   };
 
