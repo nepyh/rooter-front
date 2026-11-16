@@ -261,13 +261,18 @@ export const markPastPlansFailed = (plans: Plan[], date: Date, now: Date): Plan[
 };
 
 /**
+ * 타임라인 계획의 시작 시각 ("HH:MM")
+ * @param plan 계획
+ */
+export const getPlanStartTime = (plan: Plan) => toClockString((plan.start + WINDOW_START_MIN) % DAY_MIN);
+
+/**
  * 타임라인 계획의 시작 시각이 지났는지 (완료·실패 버튼을 열어 둘지)
  * @param plan 계획
  * @param dateKey 계획이 속한 날짜 (yyyy-MM-dd)
  * @param now 현재 시각
  */
-export const isPlanStarted = (plan: Plan, dateKey: string, now: Date) =>
-  hasTaskStarted(dateKey, toClockString((plan.start + WINDOW_START_MIN) % DAY_MIN), now);
+export const isPlanStarted = (plan: Plan, dateKey: string, now: Date) => hasTaskStarted(dateKey, getPlanStartTime(plan), now);
 
 /** 백엔드 할일 status → 타임라인 블록 상태 (실패한 할일은 끌 수 없게 failed 로 둠) */
 const PLAN_STATUS: Record<PlanTaskStatus, PlanStatus> = {
