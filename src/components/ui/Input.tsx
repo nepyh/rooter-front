@@ -1,8 +1,31 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from "react";
-import { View, TextInput, TextInputProps, Pressable, Platform } from "react-native";
+import { View, TextInput, TextInputProps, Pressable, Platform, type TextStyle } from "react-native";
 import { Text } from "./Text";
 import { Row, Stack } from "../layout";
 import { Icon } from "@/assets";
+import { getFontStyleWithoutLineHeight } from "@/utils/common/token";
+
+// ================================
+// Types
+// ================================
+
+type Lines = "single" | "multi";
+
+// ================================
+// Styles
+// ================================
+
+// 한 줄 칸은 lineHeight 없이 글자 크기만 줌. lineHeight 가 있으면 iOS 에서 포커스가 없을 때 긴 글자가 단어 단위로 잘려 첫 단어만 보임
+// 여러 줄 칸(메모 등)은 줄 간격이 필요해서 text-lg 토큰 그대로 씀
+const linesClassNames: Record<Lines, string> = {
+  "single": "",
+  "multi": "text-lg",
+};
+
+const linesStyles: Record<Lines, TextStyle> = {
+  "single": getFontStyleWithoutLineHeight("lg"),
+  "multi": {},
+};
 
 // ================================
 // Components
@@ -21,7 +44,8 @@ interface Props extends TextInputProps{
  * @param label Input label을 추가합니다.
  */
 export const Input = forwardRef<TextInput, Props>(
-  ({ label, errorMessage, className = "", onChangeText, onKeyPress, value, secureTextEntry, ...props }, ref) => {
+  ({ label, errorMessage, className = "", onChangeText, onKeyPress, value, secureTextEntry, style, ...props }, ref) => {
+    const lines: Lines = props.multiline ? "multi" : "single";
     const [focused, setFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const inputRef = useRef<TextInput>(null);
@@ -85,9 +109,10 @@ export const Input = forwardRef<TextInput, Props>(
               placeholderTextColor="#C9CDD6"
               secureTextEntry={secureTextEntry && !showPassword}
               className={`
-                flex-1 text-lg text-text-primary
+                flex-1 text-text-primary ${linesClassNames[lines]}
                 ${className}
               `}
+              style={[linesStyles[lines], style]}
               {...props}
             />
             {secureTextEntry && (
