@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
-import { TextInput } from "react-native";
-import { router } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { BackHandler, TextInput } from "react-native";
+import { router, useFocusEffect } from "expo-router";
 import { AuthScreen, SchoolSearchInput, ClassInfoInputs, SchoolInquiryLink, Stack, Button } from "@/components";
 import type { School } from "@/api/auth/SchoolSelect";
+import { useLogout } from "@/hooks/more/useLogout";
 
 // ================================
 // Components
@@ -10,6 +11,7 @@ import type { School } from "@/api/auth/SchoolSelect";
 
 /**
  * 학교 선택 및 정보 입력 화면
+ * 이미 로그인된 상태로 오는 화면이라, 뒤로 가면(헤더·안드로이드 뒤로가기) 로그아웃 후 첫 화면으로 보냄
  */
 export default function SchoolSelect() {
   const [query, setQuery] = useState("");
@@ -19,6 +21,16 @@ export default function SchoolSelect() {
   const [classNum, setClassNum] = useState("");
 
   const schoolRef = useRef<TextInput>(null);
+  const logout = useLogout();
+
+  // 안드로이드 뒤로가기도 헤더 뒤로가기(app/Auth/_layout.tsx)와 똑같이 로그아웃
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      logout();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [logout]));
 
   const btnVariant = selected && grade && classNum ? "primary" : "disabled";
 
