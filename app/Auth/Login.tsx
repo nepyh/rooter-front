@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { router } from "expo-router";
 import { AuthScreen, EmailInput, PasswordInput, Button, Toast } from '@/components';
 import type { Variant } from "@/components/ui/Button";
-import { login } from '@/api/auth/common';
+import { login, getStartPath } from '@/api/auth/common';
 import { getLoginError } from '@/api/auth/Login';
 import { useFormField } from '@/hooks/common/useFormField';
+import { useUserStore } from '@/store';
 
 export default function Login() {
   const email = useFormField();
@@ -18,7 +19,8 @@ export default function Login() {
 
     try {
       await login(email.value, password.value);
-      router.replace("/Home/Home");
+      const userId = useUserStore.getState().userId;
+      router.replace(userId === null ? "/Home/Home" : await getStartPath(userId));
     } catch (error) {
       const authError = getLoginError(error);
 

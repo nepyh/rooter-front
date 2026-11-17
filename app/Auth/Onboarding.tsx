@@ -3,6 +3,7 @@ import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { RooterLogo, Stack, Button, Text, Toast } from '@/components';
+import { getStartPath } from '@/api/auth/common';
 import { useUserStore } from '@/store';
 
 // ================================
@@ -19,6 +20,9 @@ export default function Onboarding() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const isLogin = useUserStore((state) => state.isLogin);
+  const userId = useUserStore((state) => state.userId);
+  // 로그인 정보가 남아 있을 때 보낼 화면, 학교 정보를 확인하는 동안은 null
+  const [startPath, setStartPath] = useState<Awaited<ReturnType<typeof getStartPath>> | null>(null);
 
   useEffect(() => {
     if (toast && TOAST_MESSAGES[toast]) {
@@ -26,8 +30,16 @@ export default function Onboarding() {
     }
   }, [toast]);
 
-  // 로그인 정보가 남아 있으면 첫 화면 건너뛰고 Home
-  if (isLogin) return <Redirect href="/Home/Home" />;
+  useEffect(() => {
+    if (!isLogin || userId === null) return;
+    let cancelled = false;
+    getStartPath(userId).then((path) => { if (!cancelled) setStartPath(path); });
+    return () => { cancelled = true; };
+  }, [isLogin, userId]);
+
+  // 로그인 정보가 남아 있으면 첫 화면 건너뛰고 Home, 학교를 아직 안 정했으면 학교 선택
+  if (isLogin && userId === null) return <Redirect href="/Home/Home" />;
+  if (isLogin) return startPath ? <Redirect href={startPath} /> : null;
 
   return (
     <View className="flex-1 pb-spacing-11 justify-end">
