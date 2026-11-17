@@ -98,6 +98,16 @@ export interface UnavailableTime {
 }
 
 /**
+ * 현재 비밀번호 확인 API 함수. 비밀번호 변경 첫 단계에서 쓰고, 아무것도 바꾸지 않음
+ * 틀리면 401 WRONG_CURRENT_PASSWORD 로 실패함 (isWrongCurrentPassword 로 구분)
+ * @param userId 유저 ID
+ * @param currentPassword 사용자가 입력한 현재 비밀번호
+ */
+export const verifyPassword = async (userId: number, currentPassword: string): Promise<void> => {
+  await api.post(`/users/${userId}/password/verify`, { currentPassword });
+};
+
+/**
  * 비밀번호 변경 API 함수. 성공하면 기존 토큰과 등록된 푸시 토큰이 모두 무효화됨
  * @param userId 유저 ID
  * @param input 현재 비밀번호와 새 비밀번호
