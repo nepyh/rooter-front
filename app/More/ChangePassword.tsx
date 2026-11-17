@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Button, Toast, PasswordInput, ChangePasswordScreen } from "@/components";
-import { changePassword } from "@/api/common/user";
+import { changePassword, verifyPassword } from "@/api/common/user";
 import { syncPushToken } from "@/api/common/notification";
 import { isWrongCurrentPassword } from "@/api/more/ChangePassword";
 import { useFormField } from "@/hooks/common/useFormField";
@@ -20,22 +20,42 @@ type Step = "verify" | "reset";
 
 /**
  * 비밀번호 변경 화면
- * 현재 비밀번호는 따로 확인하지 않고, 새 비밀번호와 함께 변경 API 를 부를 때 서버가 검증함
+ * 현재 비밀번호를 서버에서 확인한 뒤에만 새 비밀번호 단계로 넘어감
+ * 변경 API 도 현재 비밀번호를 다시 검증하므로, 그 사이 비밀번호가 바뀌면 첫 단계로 돌아감
  */
 export default function ChangePasswordPage() {
   const userId = useUserStore((state) => state.userId);
   const setToken = useUserStore((state) => state.setToken);
   const [step, setStep] = useState<Step>("verify");
   const [toastMessage, setToastMessage] = useState("");
+  // 서버 확인 중에는 버튼을 막아 두 번 눌러 요청이 겹치지 않게 함
+  const [submitting, setSubmitting] = useState(false);
 
   const currentPassword = useFormField();
   const newPassword = useFormField();
   const confirmPassword = useFormField();
 
   const isFilled = step === "verify" ? !!currentPassword.value : !!newPassword.value && !!confirmPassword.value;
-  const btnVariant = isFilled ? "primary" : "disabled";
+  const btnVariant = isFilled && !submitting ? "primary" : "disabled";
 
-  const handleVerify = () => setStep("reset");
+  const handleVerify = async () => {
+    if (userId === null || submitting) return;
+
+    setSubmitting(true);
+    try {
+      await verifyPassword(userId, currentPassword.value);
+      setStep("reset");
+    } catch (error) {
+      if (isWrongCurrentPassword(error)) {
+        currentPassword.setError("현재 비밀번호가 일치하지 않습니다.");
+        currentPassword.focus(true);
+        return;
+      }
+      setToastMessage("현재 비밀번호를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleReset = async () => {
     if (!isValidPassword(newPassword.value)) {
@@ -83,7 +103,7 @@ export default function ChangePasswordPage() {
           label="현재 비밀번호"
           placeholder="현재 비밀번호를 입력해주세요"
           returnKeyType="done"
-          onSubmitEditing={() => { if (isFilled) handleVerify(); }}
+          onSubmitEditing={() => { if (isFilled && !submitting) handleVerify(); }}
         />
       ) : (
         <>
