@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Redirect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { RooterLogo, Stack, Button, Text, Toast } from '@/components';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PhoneMockup, Stack, Button, Text, Toast, VerticalGradient } from '@/components';
+import { color } from '@/constants/token/color';
 import { getStartPath } from '@/api/auth/common';
 import { useUserStore } from '@/store';
 
@@ -15,8 +17,14 @@ const TOAST_MESSAGES: Record<string, string> = {
   "session-expired": "로그인이 만료되었습니다. 다시 로그인해주세요.",
 };
 
+const BACKGROUND_STOPS = [
+  { offset: 0, color: color.onboarding["gradient-top"] },
+  { offset: 1, color: color.background.primary },
+];
+
 export default function Onboarding() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { toast } = useLocalSearchParams<{ toast?: string }>();
   const [showToast, setShowToast] = useState(false);
   const isLogin = useUserStore((state) => state.isLogin);
@@ -42,13 +50,22 @@ export default function Onboarding() {
   if (isLogin) return startPath ? <Redirect href={startPath} /> : null;
 
   return (
-    <View className="flex-1 pb-spacing-11 justify-end">
-      <StatusBar style="auto" />
-      <RooterLogo className="flex-1" />
-      <Stack gap="xxl" className="items-center">
+    <View className="flex-1 pb-spacing-7">
+      <StatusBar style="light" />
+      {/* 루트 레이아웃 여백과 상태바 영역까지 화면 전체를 덮는 배경 */}
+      <VerticalGradient className="absolute bottom-spacing-0 -left-spacing-7 -right-spacing-7" style={{ top: -insets.top }} stops={BACKGROUND_STOPS} />
+      <PhoneMockup className="flex-1" />
+      <Stack gap="s" className="items-center">
+        <Text variant="title-medium">루터와 함께 공부하기</Text>
+        <Text variant="base-large" color="secondary" className="text-center">
+          {"언제나 힘든 공부 계획 세우기,\n루티와 함께해요!"}
+        </Text>
+      </Stack>
+      {/* 문구와 버튼 사이 72px */}
+      <Stack gap="xl" className="items-center mt-spacing-12 pt-spacing-3">
         {showToast && toast && <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />}
-        <Button variant="primary" icon="mail" onPress={() => router.push("/Auth/Login")}> 이메일로 로그인하기 </Button>
-        <Pressable onPress={() => router.push("/Auth/Signup")}><Text weight="medium" color="disabled"> 회원가입 </Text></Pressable>
+        <Button variant="primary" onPress={() => router.push("/Auth/Login")}>이메일로 로그인</Button>
+        <Pressable onPress={() => router.push("/Auth/Signup")}><Text weight="medium" color="disabled">회원가입</Text></Pressable>
       </Stack>
     </View>
   );

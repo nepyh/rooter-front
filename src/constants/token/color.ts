@@ -103,6 +103,9 @@ export const color = {
     "score-top": "#9D3F37",
     "score-bottom": "#5B383F",
   },
+  onboarding: {
+    "gradient-top": "#3F3333",
+  },
   chat: {
     "gradient-bottom": "#3F3333",
     "list-shadow": "#292F3566",
