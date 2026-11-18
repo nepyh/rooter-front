@@ -1,6 +1,6 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ErrorBoundary as RouterErrorBoundary, Slot, usePathname } from "expo-router";
-import { Sentry } from "@/lib/monitoring";
+import { Sentry, startScreenSpan } from "@/lib/monitoring";
 import { View } from "react-native";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
@@ -35,6 +35,11 @@ function RootLayout() {
   const pathname = usePathname();
   const isFullScreenModalOpen = useUIStore((state) => state.isFullScreenModalOpen);
   const showNavBar = TAB_PATHS.includes(pathname) && !isFullScreenModalOpen;
+
+  // 화면이 바뀔 때마다 성능 추적용 화면 트랜잭션 시작 (성능 추적이 꺼져 있으면 아무것도 안 함)
+  useEffect(() => {
+    startScreenSpan(pathname);
+  }, [pathname]);
 
   const [fontsLoaded] = useFonts({
     Jalnan2: require("@/assets/fonts/Jalnan2.otf"),
