@@ -1,7 +1,14 @@
 import { useEffect } from "react";
 import { View } from "react-native";
 import { Image } from "expo-image";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 // ================================
 // Constants
@@ -36,23 +43,37 @@ interface Props {
 export function PhoneMockup({ className = "" }: Props) {
   const progress = useSharedValue(0);
   const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: FLOAT_X * progress.get() }, { translateY: FLOAT_Y * progress.get() }],
+    transform: [
+      { translateX: FLOAT_X * progress.get() },
+      { translateY: FLOAT_Y * progress.get() },
+    ],
   }));
 
   useEffect(() => {
-    progress.set(withRepeat(
-      withSequence(
-        withTiming(1, { duration: HALF_CYCLE_MS, easing: EASE_OUT }),
-        withTiming(0, { duration: HALF_CYCLE_MS, easing: EASE_IN }),
+    progress.set(
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: HALF_CYCLE_MS, easing: EASE_OUT }),
+          withTiming(0, { duration: HALF_CYCLE_MS, easing: EASE_IN }),
+        ),
+        -1,
       ),
-      -1,
-    ));
+    );
   }, [progress]);
 
   return (
     <View className={`items-center justify-end ${className}`}>
-      <Animated.View style={[{ height: "100%", maxHeight: MAX_HEIGHT, aspectRatio: ASPECT_RATIO }, floatStyle]}>
-        <Image source={require("@/assets/images/rooter_phone.png")} style={{ width: "100%", height: "100%" }} contentFit="contain" />
+      <Animated.View
+        style={[
+          { height: "100%", maxHeight: MAX_HEIGHT, aspectRatio: ASPECT_RATIO },
+          floatStyle,
+        ]}
+      >
+        <Image
+          source={require("@/assets/images/rooter_phone.png")}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="contain"
+        />
       </Animated.View>
     </View>
   );
