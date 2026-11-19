@@ -4,7 +4,7 @@ import api from '../../axios';
 // Types
 // ================================
 
-export type NotificationType = 'TASK_REMINDER';
+export type NotificationType = 'TASK_REMINDER' | 'DAILY_FEEDBACK_REMINDER';
 
 export interface AppNotification {
   id: number;

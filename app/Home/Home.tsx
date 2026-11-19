@@ -11,7 +11,7 @@ import {
   HomeHeader,
   PlanTimeline,
   NeighborPage,
-  EmptyPlanNotice,
+  MascotNotice,
   FloatingActions,
   EditModal,
   AddMenu,
@@ -25,6 +25,7 @@ import { useDaySchedule } from "@/hooks/home/useDaySchedule";
 import { useBusyEdit } from "@/hooks/home/useBusyEdit";
 import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
+import { useFeedbackNotice } from "@/hooks/home/useFeedbackNotice";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
@@ -82,6 +83,12 @@ export default function Home() {
   const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
   const timeline = useTimelineScroll(now);
   const openTaskQuiz = useOpenTaskQuiz();
+  const feedbackNotice = useFeedbackNotice(now);
+
+  const openFeedback = () => {
+    if (feedbackNotice.dailyPlanId === null) return;
+    router.push({ pathname: "/Quiz/FeedbackPage", params: { dailyPlanId: String(feedbackNotice.dailyPlanId) } });
+  };
 
   const moveDay = (delta: number) => {
     setActiveId(null);
@@ -224,8 +231,22 @@ export default function Home() {
       />
 
       <View className="flex-1">
-        {hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
-          <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
+        {isToday && feedbackNotice.visible ? (
+          <MascotNotice
+            message="오늘 공부 어떠셨나요? 루티에게 알려주세요!"
+            actionLabel="오늘 공부 설문하기"
+            onAction={openFeedback}
+            onClose={feedbackNotice.close}
+          />
+        ) : (
+          hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
+            <MascotNotice
+              message="생성된 플랜이 없어요. 플랜을 만들어 하루 계획을 생성해보세요!"
+              actionLabel="새 플랜 생성하기"
+              onAction={startPlanCreation}
+              onClose={() => setEmptyNoticeClosed(true)}
+            />
+          )
         )}
         <View className="flex-1 -mx-spacing-7" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
           {pageWidth > 0 && (

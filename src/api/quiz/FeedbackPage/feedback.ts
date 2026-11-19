@@ -21,6 +21,7 @@ export interface AdjustmentTask {
 export interface Feedback {
   id: number;
   dailyPlanId: number;
+  planTaskId?: number | null;
   difficulty: string;
   timeSpentMinutes?: number | null;
   focusLevel?: number | null;
@@ -41,10 +42,11 @@ export const submitFeedback = async (dailyPlanId: number, input: SubmitFeedbackI
 
 /**
  * 일일 학습 피드백 설문 조회 API 함수
+ * 서버는 그날 제출된 설문 목록을 주고(할 일 단위 설문 포함), 하루 설문은 planTaskId 가 없는 행
  * @param dailyPlanId 일일 계획 ID
- * @returns 제출된 피드백
+ * @returns 그날 제출한 하루 설문, 아직 안 냈으면 null
  */
-export const getFeedback = async (dailyPlanId: number): Promise<Feedback> => {
-  const response = await api.get(`/daily-plans/${dailyPlanId}/feedback`);
-  return response.data;
+export const getFeedback = async (dailyPlanId: number): Promise<Feedback | null> => {
+  const response = await api.get<Feedback[]>(`/daily-plans/${dailyPlanId}/feedback`);
+  return response.data.find((feedback) => feedback.planTaskId == null) ?? null;
 };
