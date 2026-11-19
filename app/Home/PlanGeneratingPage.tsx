@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { Text, BackHeader } from "@/components";
+import { LoadingScreen } from "@/components";
 import { generatePlan } from "@/api/home/common/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
 import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
@@ -10,8 +9,6 @@ import { saveStudyStyleAnswers } from "@/api/common";
 import { updateSleepTime } from "@/api/common/user";
 import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { useUserStore } from "@/store";
-import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/common/token";
 import { toSleepTimeInput } from "@/utils/home/sleepTime";
 
 /**
@@ -63,14 +60,5 @@ export default function PlanGeneratingPage() {
     if (router.canGoBack()) router.back(); else router.replace("/Home/Home");
   };
 
-  return (
-    <View className="flex-1">
-      <StatusBar style="light" />
-      <BackHeader onBack={goBack} />
-      <View className="flex-1 items-center justify-center" style={{ gap: getSpacing("spacing-8") }}>
-        <ActivityIndicator size="large" color={color.primary["500"]} />
-        <Text variant="title-small">플랜 생성 중...</Text>
-      </View>
-    </View>
-  );
+  return <LoadingScreen text="플랜 생성 중..." onBack={goBack} />;
 }
