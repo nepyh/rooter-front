@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
 import type { AnimatedRef } from "react-native-reanimated";
 import { HourLines } from "./HourLines";
 import { BusyBlockView } from "./BusyBlockView";
@@ -32,7 +32,7 @@ const TIMELINE_BOTTOM_PADDING = 140;
 
 interface Props {
   scrollRef: AnimatedRef<ScrollView>;
-  pagerGesture: NativeGesture;
+  pagerGesture: GestureType;
   dateKey: string;
   busyBlocks: BusyBlock[];
   plans: Plan[];
