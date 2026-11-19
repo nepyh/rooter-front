@@ -7,8 +7,12 @@ import { Icon } from "@/assets";
 // Constants
 // ================================
 
-// 뒤로가기 버튼 옆에 진행 막대를 붙인 헤더를 화면이 직접 그려서, 공통 헤더를 빼고 보여줌
-const NO_HEADER_PATHS = ["/LearningSurvey/StudySurveyQuestion"];
+// 공통 헤더를 빼고 보여줄 화면
+// 문항 화면은 진행 막대를 붙인 헤더를 직접 그리고, 분석 중 화면은 뒤로가기가 없음
+const NO_HEADER_PATHS = [
+  "/LearningSurvey/StudySurveyQuestion",
+  "/LearningSurvey/StudySurveyLoading",
+];
 
 export default function LearningSurveyLayout() {
   const pathname = usePathname();

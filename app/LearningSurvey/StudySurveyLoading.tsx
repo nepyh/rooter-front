@@ -39,5 +39,5 @@ export default function StudySurveyLoading() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <LoadingScreen text="공부 스타일 분석 중..." onBack={() => router.back()} />;
+  return <LoadingScreen text="공부 스타일 분석 중..." />;
 }

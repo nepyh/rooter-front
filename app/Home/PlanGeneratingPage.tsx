@@ -1,16 +1,13 @@
-import { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { useEffect } from "react";
+import { Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { Text, BackHeader } from "@/components";
+import { LoadingScreen } from "@/components";
 import { generatePlan } from "@/api/home/common/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
 import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
 import { updateSleepTime } from "@/api/common/user";
 import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { useUserStore } from "@/store";
-import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/common/token";
 import { toSleepTimeInput } from "@/utils/home/sleepTime";
 
 /**
@@ -20,7 +17,6 @@ import { toSleepTimeInput } from "@/utils/home/sleepTime";
 export default function PlanGeneratingPage() {
   const { plan } = useLocalSearchParams<{ plan: string }>();
   const userId = useUserStore((state) => state.userId);
-  const leftRef = useRef(false);
 
   useEffect(() => {
     const { examDate, subjects, wakeTime, sleepHours } = JSON.parse(plan ?? "{}") as {
@@ -46,9 +42,8 @@ export default function PlanGeneratingPage() {
           examDate: examDate || undefined,
         });
         invalidatePlanQueries();
-        if (!leftRef.current) router.replace("/Home/Home");
+        router.replace("/Home/Home");
       } catch (error) {
-        if (leftRef.current) return;
         Alert.alert("계획 생성 실패", getGenerateErrorMessage(error), [{ text: "확인", onPress: () => router.back() }]);
       }
     };
@@ -56,19 +51,5 @@ export default function PlanGeneratingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goBack = () => {
-    leftRef.current = true;
-    if (router.canGoBack()) router.back(); else router.replace("/Home/Home");
-  };
-
-  return (
-    <View className="flex-1">
-      <StatusBar style="light" />
-      <BackHeader onBack={goBack} />
-      <View className="flex-1 items-center justify-center" style={{ gap: getSpacing("spacing-8") }}>
-        <ActivityIndicator size="large" color={color.primary["500"]} />
-        <Text variant="title-small">플랜 생성 중...</Text>
-      </View>
-    </View>
-  );
+  return <LoadingScreen text="플랜 생성 중..." />;
 }
