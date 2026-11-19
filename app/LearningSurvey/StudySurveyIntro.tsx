@@ -29,7 +29,7 @@ export default function StudySurveyIntro() {
     }
 
     if (userId !== null) saveStudentProfile(userId, schoolId, grade, classNum);
-    router.replace({ pathname: "/Home/Home", params: { toast: "success" } });
+    router.replace("/Tutorial/Tutorial");
   };
 
   const handleStart = () => {

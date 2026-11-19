@@ -12,7 +12,9 @@ export default function StudySurveyComplete() {
   const { from } = useLocalSearchParams<{ from?: "AccountSetting" }>();
 
   const handleNext = () => {
-    router.replace({ pathname: "/Home/Home", params: { toast: from === "AccountSetting" ? "study-survey-completed" : "success" } });
+    // 가입 중이면 홈 전에 튜토리얼을 보여주고, 마이페이지에서 다시 한 설문은 바로 홈으로
+    if (from === "AccountSetting") router.replace({ pathname: "/Home/Home", params: { toast: "study-survey-completed" } });
+    else router.replace("/Tutorial/Tutorial");
   };
 
   return (
