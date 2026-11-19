@@ -10,7 +10,7 @@ import {
   HomeHeader,
   PlanTimeline,
   NeighborPage,
-  EmptyPlanNotice,
+  MascotNotice,
   FloatingActions,
   EditModal,
   AddMenu,
@@ -21,6 +21,7 @@ import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
+import { useFeedbackNotice } from "@/hooks/home/useFeedbackNotice";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
@@ -70,6 +71,12 @@ export default function Home() {
   const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
   const timeline = useTimelineScroll(now);
+  const feedbackNotice = useFeedbackNotice(now);
+
+  const openFeedback = () => {
+    if (feedbackNotice.dailyPlanId === null) return;
+    router.push({ pathname: "/Quiz/FeedbackPage", params: { dailyPlanId: String(feedbackNotice.dailyPlanId) } });
+  };
 
   const moveDay = (delta: number) => {
     setActiveId(null);
@@ -193,8 +200,22 @@ export default function Home() {
       <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
 
       <View className="flex-1">
-        {plans.length === 0 && !emptyNoticeClosed && (
-          <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
+        {isToday && feedbackNotice.visible ? (
+          <MascotNotice
+            message="오늘 공부 어떠셨나요? 루티에게 알려주세요!"
+            actionLabel="오늘 공부 설문하기"
+            onAction={openFeedback}
+            onClose={feedbackNotice.close}
+          />
+        ) : (
+          plans.length === 0 && !emptyNoticeClosed && (
+            <MascotNotice
+              message="생성된 플랜이 없어요. 플랜을 만들어 하루 계획을 생성해보세요!"
+              actionLabel="새 플랜 생성하기"
+              onAction={startPlanCreation}
+              onClose={() => setEmptyNoticeClosed(true)}
+            />
+          )
         )}
         <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
           {pager.pageWidth > 0 && (

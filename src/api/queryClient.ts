@@ -89,6 +89,10 @@ export const queryKeys = {
     catalog: ['agreements', 'catalog'] as const,
     user: (userId: number) => ['agreements', 'user', userId] as const,
   },
+  feedback: {
+    all: ['feedback'] as const,
+    daily: (dailyPlanId: number) => ['feedback', 'daily', dailyPlanId] as const,
+  },
   notifications: {
     all: ['notifications'] as const,
     list: ['notifications', 'list'] as const,
