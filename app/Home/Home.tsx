@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -63,7 +63,6 @@ export default function Home() {
     setDayOffset((prev) => prev + delta);
   };
   const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
-  const pagerGesture = useMemo(() => Gesture.Native(), []);
   const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
@@ -190,11 +189,12 @@ export default function Home() {
         )}
         <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
           {pager.pageWidth > 0 && (
-            <GestureDetector gesture={pagerGesture}>
+            <GestureDetector gesture={pager.pagerGesture}>
               <ScrollView
                 ref={pager.pagerRef}
                 horizontal
                 pagingEnabled
+                scrollEnabled={pager.pagerScrollEnabled}
                 showsHorizontalScrollIndicator={false}
                 contentOffset={{ x: pager.pageWidth, y: 0 }}
                 scrollEventThrottle={16}
@@ -206,7 +206,7 @@ export default function Home() {
                 <View className="px-spacing-7" style={{ width: pager.pageWidth }}>
                   <PlanTimeline
                     scrollRef={timeline.scrollRef}
-                    pagerGesture={pagerGesture}
+                    pagerGesture={pager.pagerGesture}
                     dateKey={selectedKey}
                     busyBlocks={busyBlocks}
                     plans={coloredPlans}

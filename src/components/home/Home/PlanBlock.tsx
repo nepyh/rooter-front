@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { View } from "react-native";
-import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { PlanBlockCard } from "./PlanBlockCard";
@@ -45,7 +45,7 @@ interface Props {
   isActive: boolean;
   dragMode: DragMode | null;
   draggable: boolean;
-  scrollGestures: NativeGesture[];
+  scrollGestures: GestureType[];
   autoScroll: AutoScroll;
   onPress: () => void;
   onLongPress: () => void;
