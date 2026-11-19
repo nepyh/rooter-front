@@ -1,7 +1,7 @@
 import { View } from "react-native";
-import { TextbookCard } from "./TextbookCard";
+import { TextbookCard } from "../common/TextbookCard";
 import { FadeScrollView } from "../common/FadeScrollView";
-import type { TextbookWithSubject } from "@/api/home/TextbookSelectPage";
+import type { TextbookWithSubject } from "@/api/home/common/catalog";
 import { getSpacing } from "@/utils/common/token";
 
 // ================================

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import Animated, { FadeInUp, FadeOutUp, LinearTransition } from "react-native-reanimated";
 import { StatusBar } from "expo-status-bar";
-import { LeadMinutesChip, Modal, MorePageHeader, NotificationSettingRow, Switch, Toast, WheelPicker } from "@/components";
+import { LeadMinutesChip, Modal, PageHeader, NotificationSettingRow, Switch, Toast, WheelPicker } from "@/components";
 import { MAX_LEAD_MINUTES, MIN_LEAD_MINUTES } from "@/api/more/NotificationSetting";
 import { useNotificationPermission } from "@/hooks/more/useNotificationPermission";
 import { useNotificationSettings } from "@/hooks/more/useNotificationSettings";
@@ -39,7 +39,7 @@ export default function NotificationSettingPage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <MorePageHeader title="알림 설정" />
+      <PageHeader title="알림 설정" />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="w-full gap-spacing-8 pt-spacing-5">

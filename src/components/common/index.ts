@@ -1,4 +1,5 @@
 export { Modal } from "./Modal";
+export { PageHeader } from "./PageHeader";
 export { PasswordInput } from "./PasswordInput";
 export { TimeRangeInputs } from "./TimeRangeInputs";
 export { TimeWheelPicker, WheelPicker } from "./TimeWheelPicker";

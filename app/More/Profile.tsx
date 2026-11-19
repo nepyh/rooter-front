@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Text, Input, Button, MorePageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField, Toast } from "@/components";
+import { Stack, Text, Input, Button, PageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField, Toast } from "@/components";
 import { useProfile } from "@/hooks/more/useProfile";
 import { useLogout } from "@/hooks/more/useLogout";
 import { formatGradeClass } from "@/utils/more/profile";
@@ -22,7 +22,7 @@ export default function ProfilePage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <MorePageHeader title="프로필" />
+      <PageHeader title="프로필" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-9") }}>
         <Stack width="full" className="items-center pt-spacing-5">

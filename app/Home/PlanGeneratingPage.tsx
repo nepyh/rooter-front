@@ -5,10 +5,11 @@ import { StatusBar } from "expo-status-bar";
 import { Text, BackHeader } from "@/components";
 import { generatePlan } from "@/api/home/common/planGeneration";
 import type { PlanGenerationSubjectInput } from "@/api/home/common/planGeneration";
-import { getGenerateErrorMessage } from "@/api/home/PlanGeneratingPage";
+import { getGenerateErrorMessage, setRepresentativeIfMissing } from "@/api/home/PlanGeneratingPage";
 import { updateSleepTime } from "@/api/common/user";
+import { updatePlanBoard } from "@/api/common/planBoard";
 import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
-import { useUserStore } from "@/store";
+import { usePlanDraftStore, useUserStore } from "@/store";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 import { toSleepTimeInput } from "@/utils/home/sleepTime";
@@ -16,6 +17,8 @@ import { toSleepTimeInput } from "@/utils/home/sleepTime";
 /**
  * 플랜 생성 중 화면, 수면 시간 저장 뒤 AI 계획 생성
  * 수면 시간은 AI 가 일정을 배치할 때 쓰므로 생성 전에 저장하고, 저장에 실패해도 생성은 진행
+ * 계획 생성 API 는 설명과 대표 플랜을 다루지 않아, 생성 뒤 입력한 설명을 저장하고 대표 플랜이 없으면 새 플랜을 대표로 지정함
+ * 둘 다 플랜이 이미 만들어진 뒤라 실패해도 넘어감
  */
 export default function PlanGeneratingPage() {
   const { plan } = useLocalSearchParams<{ plan: string }>();
@@ -38,13 +41,18 @@ export default function PlanGeneratingPage() {
     };
 
     const run = async () => {
+      const { title, description } = usePlanDraftStore.getState();
       await saveSleepTime();
       try {
-        await generatePlan({
-          title: examDate ? `${examDate} 시험 대비` : "새 학습 계획",
+        const generated = await generatePlan({
+          title: title || (examDate ? `${examDate} 시험 대비` : "새 학습 계획"),
           subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
           examDate: examDate || undefined,
         });
+        await Promise.all([
+          description ? updatePlanBoard(generated.planBoardId, { description }).catch(() => {}) : null,
+          setRepresentativeIfMissing(generated.planBoardId).catch(() => {}),
+        ]);
         invalidatePlanQueries();
         if (!leftRef.current) router.replace("/Home/Home");
       } catch (error) {

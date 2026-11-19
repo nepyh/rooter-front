@@ -6,7 +6,10 @@ import type { PlanGenerationSubjectInput } from '@/api/home/common/planGeneratio
 // ================================
 
 interface PlanDraftState {
+  title: string;
+  description: string;
   subjectsByTextbook: Record<number, PlanGenerationSubjectInput[]>;
+  setInfo: (title: string, description: string) => void;
   setTextbookSubjects: (textbookId: number, subjects: PlanGenerationSubjectInput[]) => void;
   reset: () => void;
 }
@@ -16,11 +19,15 @@ interface PlanDraftState {
 // ================================
 
 /**
- * 플랜 만들기 중 교과서별로 고른 목차. 교과서 선택 ↔ 목차 선택을 오가며 모아 두었다가 수면 시간 화면으로 넘길 때 씀
+ * 플랜 만들기 중 입력한 내용. 플랜 정보 화면의 이름·설명과, 교과서 선택 ↔ 목차 선택을 오가며 교과서별로 고른 목차를 모아 두었다가
+ * 플랜 생성 화면에서 씀
  */
 export const usePlanDraftStore = create<PlanDraftState>((set) => ({
+  title: '',
+  description: '',
   subjectsByTextbook: {},
+  setInfo: (title, description) => set({ title, description }),
   setTextbookSubjects: (textbookId, subjects) =>
     set((state) => ({ subjectsByTextbook: { ...state.subjectsByTextbook, [textbookId]: subjects } })),
-  reset: () => set({ subjectsByTextbook: {} }),
+  reset: () => set({ title: '', description: '', subjectsByTextbook: {} }),
 }));

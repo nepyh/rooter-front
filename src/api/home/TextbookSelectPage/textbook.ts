@@ -1,13 +1,5 @@
 import { getTextbooksBySubject } from '../common/catalog';
-import type { Subject, Textbook } from '../common/catalog';
-
-// ================================
-// Types
-// ================================
-
-export interface TextbookWithSubject extends Textbook {
-  subjectName: string;
-}
+import type { Subject, TextbookWithSubject } from '../common/catalog';
 
 // ================================
 // Functions
