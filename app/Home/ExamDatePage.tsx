@@ -26,7 +26,7 @@ export default function ExamDatePage() {
     router.push({ pathname: "/Home/TextbookSelectPage", params: { examDate: toLocalDateString(selectedDate) } });
   };
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/Home"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/PlanInfoPage"));
 
   return (
     <View className="flex-1">

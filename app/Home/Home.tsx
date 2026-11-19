@@ -20,11 +20,13 @@ import { useNow } from "@/hooks/common/useNow";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
+import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
-import { getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
+import { getPlanExamDate } from "@/utils/home/planBoard";
+import { getDDay, getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
 
 // ================================
 // Constants
@@ -68,7 +70,9 @@ export default function Home() {
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
   const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
-  const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
+  const { busyBlocks } = useDaySchedule(selectedKey);
+  const { representative, isPending: boardsPending } = usePlanBoards();
+  const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
   const timeline = useTimelineScroll(now);
 
   const moveDay = (delta: number) => {
@@ -173,7 +177,7 @@ export default function Home() {
 
   const startPlanCreation = () => {
     resetPlanDraft();
-    router.push("/Home/ExamDatePage");
+    router.push("/Home/PlanInfoPage");
   };
 
   const handlePlanCreated = () => {
@@ -191,7 +195,15 @@ export default function Home() {
       <StatusBar style="light" />
       {toastMessage && <Toast text={toastMessage} onClose={() => router.setParams({ toast: undefined })} />}
 
-      <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
+      <HomeHeader
+        date={selectedDate}
+        isToday={isToday}
+        planLoaded={!boardsPending}
+        examTitle={representative?.title ?? null}
+        examDDay={examDDay}
+        onPressToday={pager.goToday}
+        onPressDDay={() => router.push("/Home/PlanListPage")}
+      />
 
       <View className="flex-1">
         {plans.length === 0 && !emptyNoticeClosed && (

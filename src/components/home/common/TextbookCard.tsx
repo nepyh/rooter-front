@@ -2,7 +2,7 @@ import { Image, Pressable, View } from "react-native";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
-import type { TextbookWithSubject } from "@/api/home/TextbookSelectPage";
+import type { TextbookWithSubject } from "@/api/home/common/catalog";
 import { getTextbookLabels } from "@/utils/home/textbook";
 import { color } from "@/constants/token/color";
 
@@ -13,20 +13,20 @@ import { color } from "@/constants/token/color";
 interface Props {
   textbook: TextbookWithSubject;
   selected?: boolean;
-  onPress: () => void;
+  onPress?: () => void;
 }
 
 /**
  * 표지·제목·출판사로 된 교과서 카드
  * @param textbook 보여줄 교과서
  * @param selected 목차를 고른 교과서인지. 표지에 테두리·덮개·체크 표시를 띄움
- * @param onPress 카드를 눌렀을 때 호출
+ * @param onPress 카드를 눌렀을 때 호출, 없으면 눌리지 않는 카드
  */
 export function TextbookCard({ textbook, selected = false, onPress }: Props) {
   const { title, publisher } = getTextbookLabels(textbook, textbook.subjectName);
 
   return (
-    <Pressable onPress={onPress} className="gap-spacing-3" style={{ width: 104 }}>
+    <Pressable onPress={onPress} disabled={!onPress} className="gap-spacing-3" style={{ width: 104 }}>
       <View className="rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden" style={{ aspectRatio: 210 / 270 }}>
         {textbook.coverImageUrl ? (
           <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />

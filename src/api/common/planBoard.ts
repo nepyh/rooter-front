@@ -9,10 +9,14 @@ import { toLocalDateString } from '@/utils/common/date';
 export interface PlanBoard {
   id: number;
   title: string;
+  description: string | null;
   startDate: string;
   endDate: string;
   examDate: string | null;
+  isArchived: boolean;
+  isRepresentative: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreatePlanBoardInput {
@@ -20,6 +24,16 @@ export interface CreatePlanBoardInput {
   startDate: string;
   endDate: string;
   examDate?: string;
+  description?: string;
+}
+
+export interface UpdatePlanBoardInput {
+  title?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  examDate?: string;
+  isArchived?: boolean;
 }
 
 export interface CreatePlanBoardResult {
@@ -74,7 +88,7 @@ export interface WeeklyPlan {
 }
 
 /**
- * 플랜보드 목록 조회 API 함수
+ * 플랜보드 목록 조회 API 함수. 최근에 만든 보드가 앞에 오고, 보관한 보드는 빠짐
  * @returns 플랜보드 배열
  */
 export const getPlanBoards = async (): Promise<PlanBoard[]> => {
@@ -84,12 +98,41 @@ export const getPlanBoards = async (): Promise<PlanBoard[]> => {
 
 /**
  * 플랜보드 생성 API 함수
- * @param input 생성할 플랜보드 정보
+ * @param input 생성할 플랜보드 정보, description 은 500자 이하
  * @returns 생성된 플랜보드 id와 메시지
  */
 export const createPlanBoard = async (input: CreatePlanBoardInput): Promise<CreatePlanBoardResult> => {
   const response = await api.post('/plan-boards', input);
   return response.data;
+};
+
+/**
+ * 플랜보드 수정 API 함수. 보낸 필드만 바뀌고, description 에 빈 문자열을 보내면 설명이 지워짐
+ * @param boardId 플랜보드 ID
+ * @param input 수정할 필드
+ * @returns 수정된 플랜보드
+ */
+export const updatePlanBoard = async (boardId: number, input: UpdatePlanBoardInput): Promise<PlanBoard> => {
+  const response = await api.patch(`/plan-boards/${boardId}`, input);
+  return response.data;
+};
+
+/**
+ * 대표 플랜 설정 API 함수. 대표는 계정에 하나라 기존 대표는 서버가 자동으로 내림
+ * @param boardId 대표로 고를 플랜보드 ID
+ * @returns 대표로 설정된 플랜보드
+ */
+export const setRepresentativePlanBoard = async (boardId: number): Promise<PlanBoard> => {
+  const response = await api.put(`/plan-boards/${boardId}/representative`);
+  return response.data;
+};
+
+/**
+ * 대표 플랜 해제 API 함수. 대표가 아닌 보드에 호출해도 성공
+ * @param boardId 대표에서 내릴 플랜보드 ID
+ */
+export const unsetRepresentativePlanBoard = async (boardId: number): Promise<void> => {
+  await api.delete(`/plan-boards/${boardId}/representative`);
 };
 
 /**
@@ -104,7 +147,19 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
 
   const oneYearLater = toLocalDateString(new Date(Date.now() + 365 * 24 * 60 * 60_000));
   const created = await createPlanBoard({ title: '기본 플랜보드', startDate: today, endDate: oneYearLater });
-  return { id: created.id, title: '기본 플랜보드', startDate: today, endDate: oneYearLater, examDate: null, createdAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  return {
+    id: created.id,
+    title: '기본 플랜보드',
+    description: null,
+    startDate: today,
+    endDate: oneYearLater,
+    examDate: null,
+    isArchived: false,
+    isRepresentative: false,
+    createdAt: now,
+    updatedAt: now,
+  };
 };
 
 /**
