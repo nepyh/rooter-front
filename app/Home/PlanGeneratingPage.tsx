@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { LoadingScreen } from "@/components";
@@ -18,7 +18,6 @@ import { toSleepTimeInput } from "@/utils/home/sleepTime";
 export default function PlanGeneratingPage() {
   const { plan, answers } = useLocalSearchParams<{ plan: string; answers?: string }>();
   const userId = useUserStore((state) => state.userId);
-  const leftRef = useRef(false);
 
   useEffect(() => {
     const { examDate, subjects, wakeTime, sleepHours } = JSON.parse(plan ?? "{}") as {
@@ -45,9 +44,8 @@ export default function PlanGeneratingPage() {
           examDate: examDate || undefined,
         });
         invalidatePlanQueries();
-        if (!leftRef.current) router.replace("/Home/Home");
+        router.replace("/Home/Home");
       } catch (error) {
-        if (leftRef.current) return;
         Alert.alert("계획 생성 실패", getGenerateErrorMessage(error), [{ text: "확인", onPress: () => router.back() }]);
       }
     };
@@ -55,10 +53,5 @@ export default function PlanGeneratingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goBack = () => {
-    leftRef.current = true;
-    if (router.canGoBack()) router.back(); else router.replace("/Home/Home");
-  };
-
-  return <LoadingScreen text="플랜 생성 중..." onBack={goBack} />;
+  return <LoadingScreen text="플랜 생성 중..." />;
 }
