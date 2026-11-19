@@ -14,7 +14,7 @@ import { SURVEY_QUESTIONS } from "@/api/learningSurvey/StudySurveyQuestion";
  * plan 이 있으면 플랜 생성 중 설문이라, 마지막 문항 뒤 플랜 생성 화면으로 넘어감
  */
 export default function StudySurveyQuestion() {
-  const { school, schoolId, grade, classNum, step, answers, plan } = useLocalSearchParams<{
+  const { school, schoolId, grade, classNum, step, answers, plan, from } = useLocalSearchParams<{
     school: string;
     schoolId: string;
     grade: string;
@@ -22,6 +22,7 @@ export default function StudySurveyQuestion() {
     step: string;
     answers?: string;
     plan?: string;
+    from?: "AccountSetting";
   }>();
   const stepIndex = Math.min(Math.max(Number(step) || 1, 1), SURVEY_QUESTIONS.length) - 1;
   const isLast = stepIndex === SURVEY_QUESTIONS.length - 1;
@@ -39,13 +40,13 @@ export default function StudySurveyQuestion() {
     }
 
     if (isLast) {
-      router.push({ pathname: "/LearningSurvey/StudySurveyLoading", params: { school, schoolId, grade, classNum, answers: nextAnswers } });
+      router.push({ pathname: "/LearningSurvey/StudySurveyLoading", params: { school, schoolId, grade, classNum, from, answers: nextAnswers } });
       return;
     }
 
     router.push({
       pathname: "/LearningSurvey/StudySurveyQuestion",
-      params: { school, schoolId, grade, classNum, plan, step: String(stepIndex + 2), answers: nextAnswers },
+      params: { school, schoolId, grade, classNum, plan, from, step: String(stepIndex + 2), answers: nextAnswers },
     });
   };
 

@@ -26,11 +26,25 @@ import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
 import { getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
 
+// ================================
+// Constants
+// ================================
+
+const TOAST_MESSAGES: Record<string, string> = {
+  "success": "회원가입이 완료되었습니다.",
+  "study-survey-completed": "공부 스타일 설문이 완료되었습니다.",
+};
+
+// ================================
+// Components
+// ================================
+
 /**
  * 홈 화면
  */
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
+  const toastMessage = toast ? TOAST_MESSAGES[toast] : undefined;
   const now = useNow(30_000);
   const [dayOffset, setDayOffset] = useState(0);
   const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
@@ -42,7 +56,6 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [failTarget, setFailTarget] = useState<Plan | null>(null);
-  const [showToast, setShowToast] = useState(false);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showNotStartedNotice, setShowNotStartedNotice] = useState(false);
   const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
@@ -69,10 +82,6 @@ export default function Home() {
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const activePlanStarted = activePlan ? isPlanStarted(activePlan, selectedKey, now) : false;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
-
-  useEffect(() => {
-    if (toast === "success") setShowToast(true);
-  }, [toast]);
 
   useEffect(() => {
     setFullScreenModalOpen(showAddPlan || showAiChat);
@@ -180,7 +189,7 @@ export default function Home() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
+      {toastMessage && <Toast text={toastMessage} onClose={() => router.setParams({ toast: undefined })} />}
 
       <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
 
