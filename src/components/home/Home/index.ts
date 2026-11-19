@@ -10,7 +10,7 @@ export { PlanBlockText } from "./PlanBlockText";
 export { CurrentTimeLine } from "./CurrentTimeLine";
 export { ActionMenu } from "./ActionMenu";
 export { ActionButton } from "./ActionButton";
-export { EmptyPlanNotice } from "./EmptyPlanNotice";
+export { MascotNotice } from "./MascotNotice";
 export { FloatingActions } from "./FloatingActions";
 export { EditModal } from "./EditModal";
 export { AddMenu } from "./AddMenu";
