@@ -10,7 +10,7 @@ import { Button, SurveyMessageScreen } from "@/components";
  */
 export default function StudySurveyComplete() {
   const handleNext = () => {
-    router.replace({ pathname: "/Home/Home", params: { toast: "success" } });
+    router.replace("/Tutorial/Tutorial");
   };
 
   return (
