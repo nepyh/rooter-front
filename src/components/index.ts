@@ -8,3 +8,4 @@ export * from "./learningSurvey";
 export * from "./more";
 export * from "./quiz";
 export * from "./todo";
+export * from "./tutorial";

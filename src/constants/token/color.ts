@@ -112,4 +112,7 @@ export const color = {
     "gradient-bottom": "#3F3333",
     "list-shadow": "#292F3566",
   },
+  tutorial: {
+    "dot-inactive": "#FFFFFF40",
+  },
 };
