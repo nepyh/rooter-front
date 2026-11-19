@@ -6,6 +6,15 @@ import { isSameDay, parseServerDateTime, toLocalDateString } from "@/utils/commo
 // Types
 // ================================
 
+/**
+ * 이동할 화면을 고르는 데 필요한 알림 정보. 알림함 목록과 눌린 푸시 알림 양쪽에서 만듦
+ */
+export interface NotificationTarget {
+  type: string;
+  data: Record<string, unknown>;
+  date: Date;
+}
+
 export interface NotificationSection {
   key: string;
   title: string;
@@ -68,14 +77,27 @@ export const groupNotificationsByDay = (notifications: AppNotification[], now: D
 };
 
 /**
- * 알림을 눌렀을 때 이동할 화면. 모르는 종류면 null (알림함에만 보여줌)
- * 할 일 알림은 시작 몇 분 전에 오므로 알림이 생긴 날짜의 할 일 화면을 엶
- * @param notification 누른 알림
+ * 알림함의 알림을 화면 이동용 정보로 바꿈
+ * @param notification 알림함 알림
  */
-export const getNotificationHref = (notification: AppNotification): Href | null => {
-  if (notification.type === "TASK_REMINDER") {
-    const date = toLocalDateString(parseServerDateTime(notification.createdAt));
-    return { pathname: "/Todo/Todo", params: { date } };
+export const toNotificationTarget = (notification: AppNotification): NotificationTarget => ({
+  type: notification.type,
+  data: notification.data,
+  date: parseServerDateTime(notification.createdAt),
+});
+
+/**
+ * 알림을 눌렀을 때 이동할 화면. 모르는 종류면 null (알림함에만 보여줌)
+ * - 할 일 알림: 시작 몇 분 전에 오므로 알림이 생긴 날짜의 할 일 화면
+ * - 오늘 공부 설문 알림: 그날 일일 계획의 학습 피드백 화면
+ * @param target 누른 알림
+ */
+export const getNotificationHref = ({ type, data, date }: NotificationTarget): Href | null => {
+  if (type === "TASK_REMINDER") {
+    return { pathname: "/Todo/Todo", params: { date: toLocalDateString(date) } };
+  }
+  if (type === "DAILY_FEEDBACK_REMINDER" && data.dailyPlanId) {
+    return { pathname: "/Quiz/FeedbackPage", params: { dailyPlanId: String(data.dailyPlanId) } };
   }
   return null;
 };

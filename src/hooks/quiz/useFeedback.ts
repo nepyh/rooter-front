@@ -9,6 +9,7 @@ import {
   type Difficulty,
   type Feedback,
 } from "@/api/quiz/FeedbackPage";
+import { queryClient, queryKeys } from "@/api/queryClient";
 import { diffMinutes, roundedNow } from "@/utils/quiz/feedback";
 
 // ================================
@@ -49,7 +50,10 @@ export function useFeedback(planId: number) {
       return;
     }
     getFeedback(planId)
-      .then(() => router.replace("/Home/Home"))
+      .then((feedback) => {
+        if (feedback) router.replace("/Home/Home");
+        else setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [planId]);
 
@@ -71,9 +75,16 @@ export function useFeedback(planId: number) {
     setError("");
     try {
       setResult(await submitFeedback(planId, { difficulty, timeSpentMinutes: timeSpent, focusLevel }));
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedback.daily(planId) });
     } catch (e) {
-      if (isAlreadySubmitted(e)) getFeedback(planId).then(setResult).catch(() => setError("이미 제출한 피드백이 있어요."));
-      else setError(getSubmitErrorMessage(e));
+      if (isAlreadySubmitted(e)) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.feedback.daily(planId) });
+        getFeedback(planId)
+          .then((feedback) => (feedback ? setResult(feedback) : setError("이미 제출한 피드백이 있어요.")))
+          .catch(() => setError("이미 제출한 피드백이 있어요."));
+      } else {
+        setError(getSubmitErrorMessage(e));
+      }
     } finally {
       setSubmitting(false);
     }

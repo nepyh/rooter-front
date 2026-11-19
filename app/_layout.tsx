@@ -12,6 +12,7 @@ import { CACHE_MAX_AGE_MS, clearQueryCache, queryClient, queryPersister } from "
 import { syncPushToken } from "@/api/common/notification";
 import { useUIStore, useUserStore } from "@/store";
 import { useAgreementGate } from "@/hooks/common/useAgreementGate";
+import { useNotificationTapRouting } from "@/hooks/common/useNotificationTapRouting";
 import "../global.css";
 
 // ================================
@@ -35,6 +36,8 @@ function RootLayout() {
   const pathname = usePathname();
   const isFullScreenModalOpen = useUIStore((state) => state.isFullScreenModalOpen);
   const showNavBar = TAB_PATHS.includes(pathname) && !isFullScreenModalOpen;
+  const isLogin = useUserStore((state) => state.isLogin);
+  useNotificationTapRouting(isLogin, pathname);
 
   const [fontsLoaded] = useFonts({
     Jalnan2: require("@/assets/fonts/Jalnan2.otf"),
