@@ -84,8 +84,6 @@ export const queryKeys = {
   users: {
     info: (userId: number) => ['users', userId] as const,
     sleepTime: (userId: number) => ['users', 'sleep-time', userId] as const,
-    studyStyleAll: ['users', 'study-style'] as const,
-    studyStyle: (userId: number) => ['users', 'study-style', userId] as const,
   },
   agreements: {
     catalog: ['agreements', 'catalog'] as const,
