@@ -12,7 +12,7 @@ import { WEEKDAYS } from "@/constants/date";
  */
 export function WeekdayHeader() {
   return (
-    <Row width="full" className="border-b border-neutral-600 pb-spacing-3">
+    <Row width="full" className="border-b border-neutral-600">
       {WEEKDAYS.map((weekday, i) => (
         <View key={weekday} className="flex-1 items-center px-spacing-4 py-spacing-3">
           <Text variant="base-medium" color={i === 0 || i === 6 ? "disabled" : "primary"}>{weekday}</Text>
