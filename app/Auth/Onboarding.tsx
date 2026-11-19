@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   PhoneMockup,
+  Row,
   Stack,
   Button,
   Text,
@@ -13,6 +14,7 @@ import {
 } from "@/components";
 import { color } from "@/constants/token/color";
 import { getStartPath } from "@/api/auth/common";
+import { useAgreementCatalog } from "@/hooks/common/useAgreements";
 import { useUserStore } from "@/store";
 
 // ================================
@@ -36,6 +38,10 @@ export default function Onboarding() {
   const [showToast, setShowToast] = useState(false);
   const isLogin = useUserStore((state) => state.isLogin);
   const userId = useUserStore((state) => state.userId);
+  // 회원가입 전에도 볼 수 있게 서버 약관 목록에서 개인정보 처리방침 주소를 가져옴
+  const privacyUrl = useAgreementCatalog()?.find(
+    (doc) => doc.code === "PRIVACY",
+  )?.url;
   // 로그인 정보가 남아 있을 때 보낼 화면, 학교 정보를 확인하는 동안은 null
   const [startPath, setStartPath] = useState<Awaited<
     ReturnType<typeof getStartPath>
@@ -89,11 +95,23 @@ export default function Onboarding() {
         <Button variant="primary" onPress={() => router.push("/Auth/Login")}>
           이메일로 로그인
         </Button>
-        <Pressable onPress={() => router.push("/Auth/Signup")}>
-          <Text weight="medium" color="disabled">
-            회원가입
-          </Text>
-        </Pressable>
+        <Row gap="m" className="items-center">
+          <Pressable onPress={() => router.push("/Auth/Signup")}>
+            <Text weight="medium" color="disabled">
+              회원가입
+            </Text>
+          </Pressable>
+          {privacyUrl && (
+            <>
+              <Text color="disabled">|</Text>
+              <Pressable onPress={() => Linking.openURL(privacyUrl)}>
+                <Text weight="medium" color="disabled" className="underline">
+                  개인정보 처리방침
+                </Text>
+              </Pressable>
+            </>
+          )}
+        </Row>
       </Stack>
     </View>
   );
