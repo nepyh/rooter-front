@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -20,11 +20,13 @@ import { useNow } from "@/hooks/common/useNow";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
+import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
-import { getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
+import { getPlanExamDate } from "@/utils/home/planBoard";
+import { getDDay, getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
 
 // ================================
 // Constants
@@ -33,6 +35,8 @@ import { getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/
 const TOAST_MESSAGES: Record<string, string> = {
   "success": "회원가입이 완료되었습니다.",
   "study-survey-completed": "공부 스타일 설문이 완료되었습니다.",
+  "plan-deleted": "플랜 삭제가 완료되었습니다.",
+  "plan-updated": "수정이 완료되었습니다.",
 };
 
 // ================================
@@ -68,7 +72,10 @@ export default function Home() {
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
   const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
-  const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
+  const { busyBlocks } = useDaySchedule(selectedKey);
+  const { boards, representative, isPending: boardsPending, isError: boardsError } = usePlanBoards();
+  const hasNoPlanBoard = !boardsPending && !boardsError && boards.length === 0;
+  const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
   const timeline = useTimelineScroll(now);
 
   const moveDay = (delta: number) => {
@@ -76,7 +83,6 @@ export default function Home() {
     setDayOffset((prev) => prev + delta);
   };
   const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
-  const pagerGesture = useMemo(() => Gesture.Native(), []);
   const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
@@ -173,7 +179,7 @@ export default function Home() {
 
   const startPlanCreation = () => {
     resetPlanDraft();
-    router.push("/Home/ExamDatePage");
+    router.push("/Home/PlanInfoPage");
   };
 
   const handlePlanCreated = () => {
@@ -191,19 +197,28 @@ export default function Home() {
       <StatusBar style="light" />
       {toastMessage && <Toast text={toastMessage} onClose={() => router.setParams({ toast: undefined })} />}
 
-      <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
+      <HomeHeader
+        date={selectedDate}
+        isToday={isToday}
+        planLoaded={!boardsPending}
+        examTitle={representative?.title ?? null}
+        examDDay={examDDay}
+        onPressToday={pager.goToday}
+        onPressDDay={() => router.push("/Home/PlanListPage")}
+      />
 
       <View className="flex-1">
-        {plans.length === 0 && !emptyNoticeClosed && (
+        {hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
           <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
         <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
           {pager.pageWidth > 0 && (
-            <GestureDetector gesture={pagerGesture}>
+            <GestureDetector gesture={pager.pagerGesture}>
               <ScrollView
                 ref={pager.pagerRef}
                 horizontal
                 pagingEnabled
+                scrollEnabled={pager.pagerScrollEnabled}
                 showsHorizontalScrollIndicator={false}
                 contentOffset={{ x: pager.pageWidth, y: 0 }}
                 scrollEventThrottle={16}
@@ -215,7 +230,7 @@ export default function Home() {
                 <View className="px-spacing-7" style={{ width: pager.pageWidth }}>
                   <PlanTimeline
                     scrollRef={timeline.scrollRef}
-                    pagerGesture={pagerGesture}
+                    pagerGesture={pager.pagerGesture}
                     dateKey={selectedKey}
                     busyBlocks={busyBlocks}
                     plans={coloredPlans}

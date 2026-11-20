@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Button, Text, MorePageHeader, DayOfWeekPicker, TimeRangeInputs, UnavailableTimeRow } from "@/components";
+import { Stack, Button, Text, PageHeader, DayOfWeekPicker, TimeRangeInputs, UnavailableTimeRow } from "@/components";
 import { useUnavailableTimes } from "@/hooks/more/useUnavailableTimes";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
@@ -24,7 +24,7 @@ export default function UnavailableTimePage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <MorePageHeader title="불가능 시간" />
+      <PageHeader title="불가능 시간" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-9") }}>
         <Stack gap="xl" width="full">

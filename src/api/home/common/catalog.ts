@@ -19,6 +19,10 @@ export interface Textbook {
   coverImageUrl: string | null;
 }
 
+export interface TextbookWithSubject extends Textbook {
+  subjectName: string;
+}
+
 export interface ChapterTree {
   id: number;
   chapterName: string;

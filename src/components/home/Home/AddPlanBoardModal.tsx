@@ -7,13 +7,13 @@ import { Text, Input, Switch, Button } from "@/components/ui";
 import { Icon } from "@/assets";
 import { TextbookPicker } from "./TextbookPicker";
 import { ChapterPicker } from "./ChapterPicker";
+import { DatePill } from "../common/DatePill";
+import { CalendarGrid } from "../common/CalendarGrid";
 import { TimeWheelPicker } from "../../common/TimeWheelPicker";
 import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 import type { TextbookWithSubject } from "./TextbookPicker";
 import { color } from "@/constants/token/color";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/common/planBoard";
-import { buildMonthWeeks, isSameDay } from "@/utils/common/date";
-import { WEEKDAYS } from "@/constants/date";
 import { getSpacing } from "@/utils/common/token";
 
 // ================================
@@ -62,69 +62,6 @@ const SHEET_HEIGHT = Math.round(Dimensions.get("window").height * 0.9);
 // ================================
 // Components
 // ================================
-
-function DatePill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="bg-neutral-600 px-spacing-4 py-spacing-3 rounded-radius-full">
-      <Text variant="base-small" weight={active ? "medium" : "regular"} style={{ color: active ? "#F6482D" : "#FFFFFF" }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function CalendarGrid({ value, onSelect }: { value: Date; onSelect: (date: Date) => void }) {
-  const [viewYear, setViewYear] = useState(value.getFullYear());
-  const [viewMonth, setViewMonth] = useState(value.getMonth());
-  const weeks = buildMonthWeeks(viewYear, viewMonth);
-
-  const goPrevMonth = () => {
-    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); } else setViewMonth((m) => m - 1);
-  };
-  const goNextMonth = () => {
-    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else setViewMonth((m) => m + 1);
-  };
-
-  return (
-    <Stack gap="m" width="full">
-      <Row width="full" align="between" className="items-center">
-        <Pressable onPress={goPrevMonth} className="w-spacing-7 h-spacing-7 items-center justify-center">
-          <Icon name="chevronLeft" size={20} />
-        </Pressable>
-        <Text variant="base-large" weight="medium" className="text-text-primary">{viewMonth + 1}월</Text>
-        <Pressable onPress={goNextMonth} className="w-spacing-7 h-spacing-7 items-center justify-center">
-          <Icon name="chevronRight" size={20} />
-        </Pressable>
-      </Row>
-      <Stack gap="s" width="full">
-        <Row width="full" className="justify-between">
-          {WEEKDAYS.map((weekday) => (
-            <View key={weekday} className="w-[32px] h-[32px] items-center justify-center">
-              <Text variant="base-medium" color="secondary">{weekday}</Text>
-            </View>
-          ))}
-        </Row>
-        {weeks.map((week, i) => (
-          <Row key={i} width="full" className="justify-between">
-            {week.map((cell, j) => {
-              const isSelected = isSameDay(cell.date, value);
-              return (
-                <Pressable
-                  key={j}
-                  onPress={() => onSelect(cell.date)}
-                  className="w-[32px] h-[32px] rounded-radius-full items-center justify-center"
-                  style={isSelected ? { backgroundColor: "#F6482D" } : undefined}
-                >
-                  <Text variant="base-medium" weight="medium" color={cell.inMonth || isSelected ? "primary" : "disabled"}>
-                    {cell.date.getDate()}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </Row>
-        ))}
-      </Stack>
-    </Stack>
-  );
-}
 
 /**
  * 플랜보드 추가 모달

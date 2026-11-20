@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import { MorePageHeader, MoreSection, MenuGroup, MenuRow, Modal, Toast } from "@/components";
+import { PageHeader, MoreSection, MenuGroup, MenuRow, Modal, Toast } from "@/components";
 import { useLogout } from "@/hooks/more/useLogout";
 import { useWithdraw } from "@/hooks/more/useWithdraw";
 import { useAgreementCheck } from "@/hooks/more/useAgreementCheck";
@@ -23,7 +23,7 @@ export default function AccountSettingPage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <MorePageHeader title="계정 설정" />
+      <PageHeader title="계정 설정" />
       <MoreSection title="계정 설정" spacing="none">
         <MenuGroup>
           <MenuRow icon="logout" label="로그아웃" onPress={handleLogout} />

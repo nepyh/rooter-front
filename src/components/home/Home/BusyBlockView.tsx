@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { Row, Stack } from "../../layout";
 import { Text } from "../../ui/Text";
-import { MUTED_TEXT_COLOR, columnStyle } from "./styles";
+import { CollapsedDots } from "./CollapsedDots";
+import { BLOCK_MEASURE_STYLE, BLOCK_TEXT_PADDING, MUTED_TEXT_COLOR, columnStyle } from "./styles";
 import { Icon } from "@/assets";
 import { CATEGORY_COLORS } from "@/constants/category";
 import { color } from "@/constants/token/color";
@@ -19,9 +21,9 @@ type BusyKind = "sleep" | "school";
 // Styles
 // ================================
 
-const busyColors: Record<BusyKind, { bar: string; bg: string }> = {
-  "sleep": { bar: color.busy["sleep-bar"], bg: color.busy["sleep-bg"] },
-  "school": { bar: color.busy["school-bar"], bg: color.busy["school-bg"] },
+const busyColors: Record<BusyKind, { bar: string; bg: string; focus: string }> = {
+  "sleep": { bar: color.busy["sleep-bar"], bg: color.busy["sleep-bg"], focus: color.busy["sleep-focus"] },
+  "school": { bar: color.busy["school-bar"], bg: color.busy["school-bg"], focus: color.busy["school-focus"] },
 };
 
 // ================================
@@ -38,6 +40,7 @@ interface Props {
 /**
  * 수면·학교·불가능 시간 블록. 누를 수 없음
  * 일정을 끄는 동안 칸 배치가 바뀌면 새 자리로 부드럽게 옮겨감
+ * 블록이 낮아 제목이 들어가지 않으면 focus 색 점 세 개로 축약 표시
  * @param block 그릴 블록 (key 앞부분으로 수면·학교 색을 정하고, 나머지는 기본 회색)
  * @param column 겹치는 블록 사이에서 몇 번째 칸인지 (0부터)
  * @param columns 겹치는 묶음의 전체 칸 수
@@ -51,6 +54,10 @@ export function BusyBlockView({ block, column, columns, areaWidth }: Props) {
   const { x, width: animatedWidth } = useAnimatedColumn(left, width);
   const columnAnimatedStyle = useAnimatedStyle(() => ({ left: x.get(), width: animatedWidth.get() }));
 
+  const [titleHeight, setTitleHeight] = useState<number | null>(null);
+  const measured = titleHeight !== null;
+  const showText = titleHeight === null || titleHeight <= block.duration - BLOCK_TEXT_PADDING;
+
   return (
     <Animated.View
       pointerEvents="none"
@@ -61,15 +68,30 @@ export function BusyBlockView({ block, column, columns, areaWidth }: Props) {
         className="flex-row gap-spacing-3 p-spacing-2 rounded-radius-1 overflow-hidden"
       >
         <View className="w-spacing-2 h-full rounded-radius-full" style={{ backgroundColor: colors.bar }} />
-        <Stack gap="xs" className="flex-1 py-spacing-1">
-          <Text variant="base-small" weight="medium">{block.title}</Text>
-          {block.duration >= 40 && (
-            <Row gap="xs" className="items-center">
-              <Icon name="history" size={12} color={MUTED_TEXT_COLOR} />
-              <Text variant="base-caption" style={{ color: MUTED_TEXT_COLOR }}>{block.label}</Text>
-            </Row>
+        <View className="flex-1 py-spacing-1" style={{ opacity: measured ? 1 : 0 }}>
+          {showText ? (
+            <Stack gap="xs">
+              <Text variant="base-small" weight="medium">{block.title}</Text>
+              {block.duration >= 40 && (
+                <Row gap="xs" className="items-center">
+                  <Icon name="history" size={12} color={MUTED_TEXT_COLOR} />
+                  <Text variant="base-caption" style={{ color: MUTED_TEXT_COLOR }}>{block.label}</Text>
+                </Row>
+              )}
+            </Stack>
+          ) : (
+            <CollapsedDots color={colors.focus} />
           )}
-        </Stack>
+        </View>
+        <View style={BLOCK_MEASURE_STYLE}>
+          <Text
+            variant="base-small"
+            weight="medium"
+            onLayout={(e) => setTitleHeight(e.nativeEvent.layout.height)}
+          >
+            {block.title}
+          </Text>
+        </View>
       </View>
     </Animated.View>
   );
