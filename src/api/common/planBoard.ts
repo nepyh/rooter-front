@@ -9,10 +9,14 @@ import { toLocalDateString } from '@/utils/common/date';
 export interface PlanBoard {
   id: number;
   title: string;
+  description: string | null;
   startDate: string;
   endDate: string;
   examDate: string | null;
+  isArchived: boolean;
+  isRepresentative: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreatePlanBoardInput {
@@ -20,6 +24,7 @@ export interface CreatePlanBoardInput {
   startDate: string;
   endDate: string;
   examDate?: string;
+  description?: string;
 }
 
 export interface CreatePlanBoardResult {
@@ -104,8 +109,42 @@ export const getOrCreateCurrentPlanBoard = async (): Promise<PlanBoard> => {
 
   const oneYearLater = toLocalDateString(new Date(Date.now() + 365 * 24 * 60 * 60_000));
   const created = await createPlanBoard({ title: '기본 플랜보드', startDate: today, endDate: oneYearLater });
-  return { id: created.id, title: '기본 플랜보드', startDate: today, endDate: oneYearLater, examDate: null, createdAt: new Date().toISOString() };
+  // 서버가 채우는 값(description·isRepresentative 등)이 있어 임의 객체를 만들지 않고 목록에서 다시 받아온다
+  const board = (await getPlanBoards()).find((item) => item.id === created.id);
+  if (!board) throw new Error('기본 플랜보드를 만들었지만 목록에서 찾지 못했습니다.');
+  return board;
 };
+
+export interface UpdatePlanBoardInput {
+  title?: string;
+  /** 빈 문자열을 보내면 설명이 지워진다 (보내지 않으면 변경 없음) */
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  examDate?: string;
+  /** true = 보관(목록에서 빠짐), false = 보관 해제 */
+  isArchived?: boolean;
+}
+
+/** 교과서 + 단원 범위. 플랜보드의 과목 범위를 통째로 교체할 때 쓴다 */
+export interface PlanBoardSubjectInput {
+  textbookId: number;
+  startChapterId: number;
+  endChapterId: number;
+  customRangeText?: string;
+}
+
+export interface PlanSubject {
+  id: number;
+  planBoardId: number;
+  subjectId: number;
+  subjectName: string;
+  textbookId: number;
+  textbookTitle: string;
+  startChapterId: number;
+  endChapterId: number;
+  customRangeText: string | null;
+}
 
 /**
  * 플랜보드 목록을 캐시에서 꺼내고, 없거나 오래됐으면 서버에서 받아옴. 여러 화면이 같은 목록을 함께 씀
@@ -159,4 +198,66 @@ export const updatePlanTask = async (taskId: number, input: UpdatePlanTaskInput)
  */
 export const deletePlanTask = async (taskId: number): Promise<void> => {
   await api.delete(`/plan-tasks/${taskId}`);
+};
+
+/**
+ * 플랜보드 수정 API 함수 (플랜 이름·설명·기간)
+ * @param boardId 수정할 플랜보드 ID
+ * @param input 바꿀 필드만. description 에 빈 문자열을 보내면 설명이 지워진다
+ * @returns 수정된 플랜보드
+ */
+export const updatePlanBoard = async (boardId: number, input: UpdatePlanBoardInput): Promise<PlanBoard> => {
+  const response = await api.patch(`/plan-boards/${boardId}`, input);
+  return response.data;
+};
+
+/**
+ * 플랜보드 삭제 API 함수. 하위 데이터(과목 범위·일일 계획·할일·퀴즈·피드백·챗봇 기록)가 함께 삭제된다
+ * @param boardId 삭제할 플랜보드 ID
+ */
+export const deletePlanBoard = async (boardId: number): Promise<void> => {
+  await api.delete(`/plan-boards/${boardId}`);
+};
+
+/**
+ * 대표 플랜 설정 API 함수. 대표 플랜은 유저당 1개라 기존 대표는 자동으로 내려간다
+ * @param boardId 대표로 지정할 플랜보드 ID
+ * @returns 대표로 지정된 플랜보드
+ */
+export const setRepresentativePlanBoard = async (boardId: number): Promise<PlanBoard> => {
+  const response = await api.put(`/plan-boards/${boardId}/representative`);
+  return response.data;
+};
+
+/**
+ * 대표 플랜 해제 API 함수. 대표가 아닌 보드에 불러도 성공한다
+ * @param boardId 대표에서 내릴 플랜보드 ID
+ */
+export const clearRepresentativePlanBoard = async (boardId: number): Promise<void> => {
+  await api.delete(`/plan-boards/${boardId}/representative`);
+};
+
+/**
+ * 플랜보드의 과목 범위(교과서 목록) 조회 API 함수
+ * @param boardId 플랜보드 ID
+ * @returns 이 보드에 등록된 과목 범위 목록
+ */
+export const getPlanBoardSubjects = async (boardId: number): Promise<PlanSubject[]> => {
+  const response = await api.get(`/plan-boards/${boardId}/subjects`);
+  return response.data;
+};
+
+/**
+ * 플랜보드의 과목 범위(교과서 목록)를 통째로 교체하는 API 함수
+ * 검증을 먼저 끝낸 뒤 교체하므로, 잘못된 교과서가 하나라도 섞이면 아무 것도 바뀌지 않는다 (400)
+ * @param boardId 플랜보드 ID
+ * @param subjects 새 과목 범위 목록. 빈 배열이면 전부 지운다
+ * @returns 교체된 과목 범위 목록
+ */
+export const updatePlanBoardSubjects = async (
+  boardId: number,
+  subjects: PlanBoardSubjectInput[],
+): Promise<PlanSubject[]> => {
+  const response = await api.put(`/plan-boards/${boardId}/subjects`, { subjects });
+  return response.data;
 };
