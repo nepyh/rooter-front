@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
-import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, Toast, QuizTabHeader, QuizSection } from "@/components";
 import type { QuizItem } from "@/api/quiz/Quiz";
 import { useNow } from "@/hooks/common/useNow";
+import { useOpenTaskQuiz } from "@/hooks/common/useOpenTaskQuiz";
 import { useQuizItems } from "@/hooks/quiz/useQuizItems";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
@@ -19,6 +19,7 @@ export default function QuizTab() {
   const now = useNow();
   const { loaded, current, upcoming, completed, isEmpty } = useQuizItems(now);
   const [showNotStartedNotice, setShowNotStartedNotice] = useState(false);
+  const openTaskQuiz = useOpenTaskQuiz();
 
   const openQuiz = (item: QuizItem) => {
     const pressedAt = new Date();
@@ -27,10 +28,7 @@ export default function QuizTab() {
       setShowNotStartedNotice(true);
       return;
     }
-    router.push({
-      pathname: "/Quiz/QuizPage",
-      params: { taskId: String(item.task.id), dailyPlanId: String(item.task.dailyPlanId), category: item.category, date, startTime: item.task.startTime },
-    });
+    openTaskQuiz({ taskId: String(item.task.id), dailyPlanId: String(item.task.dailyPlanId), category: item.category, date, startTime: item.task.startTime });
   };
 
   return (

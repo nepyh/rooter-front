@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
 import { Text } from "../../ui/Text";
-import { QuizCloseButton } from "./QuizCloseButton";
+import { QuizCloseButton } from "../common/QuizCloseButton";
 import { Icon } from "@/assets";
 import { color } from "@/constants/token/color";
 
