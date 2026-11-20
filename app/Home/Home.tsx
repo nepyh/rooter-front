@@ -35,6 +35,8 @@ import { getDDay, getPlanStartTime, isPlanStarted, type DragPreview, type Plan }
 const TOAST_MESSAGES: Record<string, string> = {
   "success": "회원가입이 완료되었습니다.",
   "study-survey-completed": "공부 스타일 설문이 완료되었습니다.",
+  "plan-deleted": "플랜 삭제가 완료되었습니다.",
+  "plan-updated": "수정이 완료되었습니다.",
 };
 
 // ================================
@@ -71,7 +73,8 @@ export default function Home() {
 
   const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks } = useDaySchedule(selectedKey);
-  const { representative, isPending: boardsPending } = usePlanBoards();
+  const { boards, representative, isPending: boardsPending, isError: boardsError } = usePlanBoards();
+  const hasNoPlanBoard = !boardsPending && !boardsError && boards.length === 0;
   const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
   const timeline = useTimelineScroll(now);
 
@@ -205,7 +208,7 @@ export default function Home() {
       />
 
       <View className="flex-1">
-        {plans.length === 0 && !emptyNoticeClosed && (
+        {hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
           <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
         <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>

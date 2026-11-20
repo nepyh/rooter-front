@@ -118,6 +118,14 @@ export const updatePlanBoard = async (boardId: number, input: UpdatePlanBoardInp
 };
 
 /**
+ * 플랜보드 삭제 API 함수. 하위 데이터(과목 범위·일일 계획·할일·퀴즈·피드백·챗봇 기록)가 함께 삭제된다
+ * @param boardId 삭제할 플랜보드 ID
+ */
+export const deletePlanBoard = async (boardId: number): Promise<void> => {
+  await api.delete(`/plan-boards/${boardId}`);
+};
+
+/**
  * 대표 플랜 설정 API 함수. 대표는 계정에 하나라 기존 대표는 서버가 자동으로 내림
  * @param boardId 대표로 고를 플랜보드 ID
  * @returns 대표로 설정된 플랜보드

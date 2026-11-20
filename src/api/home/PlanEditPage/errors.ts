@@ -15,6 +15,13 @@ const SAVE_ERROR_MESSAGES: Record<string, string> = {
 
 const DEFAULT_SAVE_ERROR_MESSAGE = "플랜을 수정하지 못했습니다. 잠시 후 다시 시도해주세요.";
 
+const DELETE_ERROR_MESSAGES: Record<string, string> = {
+  "PLAN_BOARD_NOT_FOUND": "이미 삭제되었거나 찾을 수 없는 플랜이에요.",
+  "FORBIDDEN": "내 플랜만 삭제할 수 있어요.",
+};
+
+const DEFAULT_DELETE_ERROR_MESSAGE = "플랜을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.";
+
 // ================================
 // Functions
 // ================================
@@ -26,4 +33,13 @@ const DEFAULT_SAVE_ERROR_MESSAGE = "플랜을 수정하지 못했습니다. 잠�
 export const getSaveErrorMessage = (error: unknown) => {
   const code = isAxiosError(error) ? error.response?.data?.code : undefined;
   return SAVE_ERROR_MESSAGES[code] ?? DEFAULT_SAVE_ERROR_MESSAGE;
+};
+
+/**
+ * 플랜 삭제 실패 에러를 안내 문구로 변환 (백엔드 code 기준)
+ * @param error deletePlanBoard() 가 던진 에러
+ */
+export const getDeleteErrorMessage = (error: unknown) => {
+  const code = isAxiosError(error) ? error.response?.data?.code : undefined;
+  return DELETE_ERROR_MESSAGES[code] ?? DEFAULT_DELETE_ERROR_MESSAGE;
 };
