@@ -19,6 +19,7 @@ import { toSleepTimeInput } from "@/utils/home/sleepTime";
  * 수면 시간은 AI 가 일정을 배치할 때 쓰므로 생성 전에 저장하고, 저장에 실패해도 생성은 진행
  * 계획 생성 API 는 설명과 대표 플랜을 다루지 않아, 생성 뒤 입력한 설명을 저장하고 대표 플랜이 없으면 새 플랜을 대표로 지정함
  * 둘 다 플랜이 이미 만들어진 뒤라 실패해도 넘어감
+ * 시험 시작일은 examDate, 종료일은 examEndDate 로 보내고 두 날이 같으면 하루짜리 시험이라 종료일은 보내지 않음. 계획은 시험 시작 전날까지 만들어짐
  */
 export default function PlanGeneratingPage() {
   const { plan } = useLocalSearchParams<{ plan: string }>();
@@ -26,8 +27,7 @@ export default function PlanGeneratingPage() {
   const leftRef = useRef(false);
 
   useEffect(() => {
-    const { examDate, subjects, wakeTime, sleepHours } = JSON.parse(plan ?? "{}") as {
-      examDate?: string;
+    const { subjects, wakeTime, sleepHours } = JSON.parse(plan ?? "{}") as {
       subjects?: string;
       wakeTime?: string;
       sleepHours?: number;
@@ -41,13 +41,14 @@ export default function PlanGeneratingPage() {
     };
 
     const run = async () => {
-      const { title, description } = usePlanDraftStore.getState();
+      const { title, description, examStartDate, examEndDate } = usePlanDraftStore.getState();
       await saveSleepTime();
       try {
         const generated = await generatePlan({
-          title: title || (examDate ? `${examDate} 시험 대비` : "새 학습 계획"),
+          title: title || (examStartDate ? `${examStartDate} 시험 대비` : "새 학습 계획"),
           subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
-          examDate: examDate || undefined,
+          examDate: examStartDate ?? undefined,
+          examEndDate: examEndDate !== null && examEndDate !== examStartDate ? examEndDate : undefined,
         });
         await Promise.all([
           description ? updatePlanBoard(generated.planBoardId, { description }).catch(() => {}) : null,

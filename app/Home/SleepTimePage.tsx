@@ -54,7 +54,7 @@ const toPickerValues = (sleepTime: SleepTimeInput | null) => {
  * 수면 시간 선택 화면
  */
 export default function SleepTimePage() {
-  const { examDate, subjects } = useLocalSearchParams<{ examDate: string; subjects: string }>();
+  const { subjects } = useLocalSearchParams<{ subjects: string }>();
   const savedPicker = toPickerValues(useSleepTime());
   // 직접 고르기 전에는 저장된 수면 시간, 없으면 기본값을 보여줌
   const [pickedWakeHour, setWakeHour] = useState<number | null>(null);
@@ -70,11 +70,11 @@ export default function SleepTimePage() {
   const togglePicker = (target: PickerTarget) => setActivePicker((prev) => (prev === target ? null : target));
 
   const handleNext = () => {
-    const plan = JSON.stringify({ examDate, subjects, wakeTime, sleepHours: SLEEP_HOURS[sleepHoursIndex] });
+    const plan = JSON.stringify({ subjects, wakeTime, sleepHours: SLEEP_HOURS[sleepHoursIndex] });
     router.push({ pathname: "/Home/PlanGeneratingPage", params: { plan } });
   };
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamDatePage"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/TextbookSelectPage"));
 
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>

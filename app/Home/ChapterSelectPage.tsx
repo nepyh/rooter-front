@@ -46,7 +46,7 @@ const toggleInSet = (set: Set<number>, id: number) => {
  * 오른쪽 위 "N개 선택됨"을 누르면 고른 목차를 그대로 두고 교과서 선택 화면으로 돌아감
  */
 export default function ChapterSelectPage() {
-  const { examDate, textbookIds } = useLocalSearchParams<{ examDate: string; textbookIds: string }>();
+  const { textbookIds } = useLocalSearchParams<{ textbookIds: string }>();
   const [textbooks, setTextbooks] = useState<TextbookDetail[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
@@ -75,7 +75,7 @@ export default function ChapterSelectPage() {
 
   const selectionState: SelectionState = selectedIds.size > 0 ? "selected" : "empty";
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/Home/TextbookSelectPage", params: { examDate } }));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/TextbookSelectPage"));
 
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>

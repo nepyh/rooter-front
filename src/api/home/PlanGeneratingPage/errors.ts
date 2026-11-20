@@ -5,7 +5,7 @@ import axios from 'axios';
 // ================================
 
 const GENERATE_ERROR_MESSAGES: Record<string, string> = {
-  "INVALID_DATE_RANGE": "시험일은 내일 이후로 선택해주세요.",
+  "INVALID_DATE_RANGE": "시험 시작 날짜는 내일 이후로, 종료 날짜는 시작 날짜 이후로 선택해주세요.",
   "MISSING_DATE_INFO": "시험 날짜를 다시 선택해주세요.",
   "INVALID_DATE_FORMAT": "시험 날짜를 다시 선택해주세요.",
   "SUBJECTS_REQUIRED": "목차를 하나 이상 선택해주세요.",
