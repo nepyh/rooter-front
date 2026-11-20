@@ -17,6 +17,7 @@ import {
   ConfirmDeleteModal,
 } from "@/components";
 import { useNow } from "@/hooks/common/useNow";
+import { useOpenTaskQuiz } from "@/hooks/common/useOpenTaskQuiz";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
@@ -77,6 +78,7 @@ export default function Home() {
   const hasNoPlanBoard = !boardsPending && !boardsError && boards.length === 0;
   const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
   const timeline = useTimelineScroll(now);
+  const openTaskQuiz = useOpenTaskQuiz();
 
   const moveDay = (delta: number) => {
     setActiveId(null);
@@ -120,15 +122,12 @@ export default function Home() {
 
   const handleComplete = (plan: Plan) => {
     if (!tryResolve(plan)) return;
-    router.push({
-      pathname: "/Quiz/QuizPage",
-      params: {
-        taskId: plan.id,
-        dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "",
-        category: plan.category,
-        date: selectedKey,
-        startTime: getPlanStartTime(plan),
-      },
+    openTaskQuiz({
+      taskId: plan.id,
+      dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "",
+      category: plan.category,
+      date: selectedKey,
+      startTime: getPlanStartTime(plan),
     });
   };
 
