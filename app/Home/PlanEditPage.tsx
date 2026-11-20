@@ -16,9 +16,10 @@ import {
   Stack,
   Text,
 } from "@/components";
+import { deletePlanBoard } from "@/api/common/planBoard";
 import type { PlanBoard } from "@/api/common/planBoard";
-import { getSaveErrorMessage, savePlanBoardEdit } from "@/api/home/PlanEditPage";
-import { invalidatePlanQueries } from "@/api/queryClient";
+import { getDeleteErrorMessage, getSaveErrorMessage, savePlanBoardEdit } from "@/api/home/PlanEditPage";
+import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { usePlanBoardTextbooks } from "@/hooks/home/usePlanBoardTextbooks";
 import { toLocalDateString } from "@/utils/common/date";
@@ -38,17 +39,19 @@ const BOTTOM_FADE_HEIGHT = getSpacing("spacing-12");
 interface FormProps {
   board: PlanBoard;
   canBeRepresentative: boolean;
+  onDeleted: () => void;
 }
 
 /**
  * 플랜 수정 입력 칸들. 지금은 시험일 하루만 저장할 수 있어 시작·종료일을 늘 같은 날짜(시험일)로 맞추고, 오늘 이전 날짜는 고를 수 없음
  * 아래로 더 스크롤할 수 있으면 [수정하기] 버튼 바로 위를 그라데이션으로 흐리게 덮음
- * [수정하기] 를 누르면 확인창을 띄운 뒤 바뀐 이름·설명·시험일·대표 여부만 저장하고 플랜 목록으로 돌아감
- * [삭제하기] 는 확인창까지만 띄우고, 삭제 API 는 아직 연결하지 않음
+ * [수정하기] 를 누르면 확인창을 띄운 뒤 바뀐 이름·설명·시험일·대표 여부만 저장하고, 홈으로 돌아가 완료 토스트를 띄움
+ * [삭제하기] 를 누르면 확인창을 띄운 뒤 플랜을 삭제하고, 목록 캐시에서 바로 빼서 홈으로 돌아가 완료 토스트를 띄움
  * @param board 수정할 플랜
  * @param canBeRepresentative 대표 플랜 스위치를 보여줄지 (진행 중이거나 이미 대표인 플랜)
+ * @param onDeleted 삭제에 성공해 목록 캐시에서 빼기 직전에 호출
  */
-function PlanEditForm({ board, canBeRepresentative }: FormProps) {
+function PlanEditForm({ board, canBeRepresentative, onDeleted }: FormProps) {
   const [title, setTitle] = useState(board.title);
   const [description, setDescription] = useState(board.description ?? "");
   const [examDate, setExamDate] = useState(() => parseLocalDate(getPlanExamDate(board)));
@@ -56,8 +59,10 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { textbooks, isPending: loadingTextbooks } = usePlanBoardTextbooks(board.id);
   const today = new Date();
+  const busy = saving || deleting;
 
   const editInput = buildPlanBoardEditInput(board, {
     title,
@@ -65,7 +70,7 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
     examDate: toLocalDateString(examDate),
     isRepresentative,
   });
-  const canSave = title.trim().length > 0 && hasPlanBoardEdit(editInput) && !saving;
+  const canSave = title.trim().length > 0 && hasPlanBoardEdit(editInput) && !busy;
 
   const handleSave = async () => {
     setShowSaveConfirm(false);
@@ -73,11 +78,27 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
     try {
       await savePlanBoardEdit(board.id, editInput);
       invalidatePlanQueries();
-      if (router.canGoBack()) router.back(); else router.replace("/Home/PlanListPage");
+      router.dismissTo({ pathname: "/Home/Home", params: { toast: "plan-updated" } });
     } catch (error) {
       invalidatePlanQueries();
       Alert.alert("수정 실패", getSaveErrorMessage(error));
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await deletePlanBoard(board.id);
+      onDeleted();
+      queryClient.setQueryData<PlanBoard[]>(queryKeys.boards.list, (prev) => prev?.filter((item) => item.id !== board.id));
+      invalidatePlanQueries();
+      router.dismissTo({ pathname: "/Home/Home", params: { toast: "plan-deleted" } });
+    } catch (error) {
+      invalidatePlanQueries();
+      Alert.alert("삭제 실패", getDeleteErrorMessage(error));
+      setDeleting(false);
     }
   };
 
@@ -102,7 +123,7 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
           {canBeRepresentative && (
             <RepresentativePlanToggle value={isRepresentative} onToggle={() => setIsRepresentative((prev) => !prev)} />
           )}
-          <PlanDeleteButton onPress={() => setShowDeleteConfirm(true)} />
+          <PlanDeleteButton disabled={busy} onPress={() => setShowDeleteConfirm(true)} />
         </Stack>
       </FadeScrollView>
 
@@ -116,7 +137,6 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
 
       {showSaveConfirm && (
         <Modal
-          animationType="fade"
           title="플랜을 수정할까요?"
           description="수정한 플랜 정보를 저장합니다."
           confirmText="수정"
@@ -127,12 +147,11 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
 
       {showDeleteConfirm && (
         <Modal
-          animationType="fade"
           title={`'${board.title}' 플랜을 삭제할까요?`}
-          description="플랜의 공부 계획도 모두 삭제되고 되돌릴 수 없습니다."
+          description="이 플랜의 할 일과 퀴즈·피드백 기록도 함께 삭제되고 되돌릴 수 없습니다."
           confirmText="삭제"
           onCancel={() => setShowDeleteConfirm(false)}
-          onConfirm={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDelete}
         />
       )}
     </>
@@ -140,11 +159,13 @@ function PlanEditForm({ board, canBeRepresentative }: FormProps) {
 }
 
 /**
- * 플랜 수정 화면. 플랜 목록에서 고른 플랜(boardId)의 이름·설명·시험일·대표 여부를 수정하고, 쓰인 교과서를 보여줌
+ * 플랜 수정 화면. 플랜 목록에서 고른 플랜(boardId)의 이름·설명·시험일·대표 여부를 수정하거나 플랜을 삭제하고, 쓰인 교과서를 보여줌
+ * 삭제한 뒤 홈으로 돌아가는 동안에는 '플랜을 찾을 수 없어요' 를 띄우지 않음
  */
 export default function PlanEditPage() {
   const { boardId } = useLocalSearchParams<{ boardId: string }>();
   const { boards, inProgress, isPending } = usePlanBoards();
+  const [deleted, setDeleted] = useState(false);
   const board = boards.find((item) => item.id === Number(boardId));
 
   return (
@@ -157,10 +178,11 @@ export default function PlanEditPage() {
           key={board.id}
           board={board}
           canBeRepresentative={board.isRepresentative || inProgress.some((item) => item.id === board.id)}
+          onDeleted={() => setDeleted(true)}
         />
       )}
       {!board && isPending && <LoadingView />}
-      {!board && !isPending && <Text variant="base-medium" color="secondary">플랜을 찾을 수 없어요.</Text>}
+      {!board && !isPending && !deleted && <Text variant="base-medium" color="secondary">플랜을 찾을 수 없어요.</Text>}
     </View>
   );
 }
