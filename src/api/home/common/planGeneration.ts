@@ -16,6 +16,7 @@ export interface GeneratePlanInput {
   subjects: PlanGenerationSubjectInput[];
   startDate?: string;
   examDate?: string;
+  examEndDate?: string;
   daysRemaining?: number;
   targetScore?: number;
   isCramMode?: boolean;
@@ -42,6 +43,7 @@ export interface GeneratedPlan {
   startDate: string;
   endDate: string;
   examDate?: string | null;
+  examEndDate?: string | null;
   isCramMode: boolean;
   dailyPlans: PlanGenerationDaily[];
   tips: string[];
@@ -49,7 +51,7 @@ export interface GeneratedPlan {
 
 /**
  * AI 학습 계획 생성 API 함수
- * @param input 제목/과목 범위/시험일 등 계획 조건
+ * @param input 제목/과목 범위/시험일 등 계획 조건. examEndDate(시험 마지막 날)는 examDate 가 있어야 하고 그보다 앞설 수 없으며, 생략하면 하루짜리 시험
  * @returns 생성된 플랜보드와 일자별 계획
  */
 export const generatePlan = async (input: GeneratePlanInput): Promise<GeneratedPlan> => {

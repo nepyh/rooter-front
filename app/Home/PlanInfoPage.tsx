@@ -7,7 +7,7 @@ import { usePlanDraftStore } from "@/store";
 import { getSpacing } from "@/utils/common/token";
 
 /**
- * 플랜 만들기 첫 화면. 플랜 이름(필수)과 설명을 받아 두고 시험 날짜 선택 화면으로 넘어감
+ * 플랜 만들기 첫 화면. 플랜 이름(필수)과 설명을 받아 두고 시험 시작 날짜 선택 화면으로 넘어감
  */
 export default function PlanInfoPage() {
   const [title, setTitle] = useState(() => usePlanDraftStore.getState().title);
@@ -18,7 +18,7 @@ export default function PlanInfoPage() {
   const handleNext = () => {
     if (!canNext) return;
     setInfo(title.trim(), description.trim());
-    router.push("/Home/ExamDatePage");
+    router.push("/Home/ExamStartDatePage");
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/Home"));

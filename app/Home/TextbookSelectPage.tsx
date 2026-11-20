@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Animated, { SlideOutLeft } from "react-native-reanimated";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, LoadingView, BackHeader, PageTitle, SubjectFilter, TextbookGrid, NextButton } from "@/components";
 import { useTextbookCatalog } from "@/hooks/home/useTextbookCatalog";
@@ -10,7 +10,6 @@ import { usePlanDraftStore } from "@/store";
  * 교과서 선택 화면
  */
 export default function TextbookSelectPage() {
-  const { examDate } = useLocalSearchParams<{ examDate: string }>();
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const { subjects, textbooks, loadingTextbooks } = useTextbookCatalog(selectedSubjectId);
   const [nextTextbookId, setNextTextbookId] = useState<number | null>(null);
@@ -22,17 +21,17 @@ export default function TextbookSelectPage() {
     if (nextTextbookId === null) return;
     router.push({
       pathname: "/Home/ChapterSelectPage",
-      params: { examDate, textbookIds: String(nextTextbookId) },
+      params: { textbookIds: String(nextTextbookId) },
     });
-  }, [nextTextbookId, examDate]);
+  }, [nextTextbookId]);
 
   useFocusEffect(useCallback(() => setNextTextbookId(null), []));
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamDatePage"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamEndDatePage"));
 
   const handleNext = () => {
     if (selectedSubjects.length === 0) return;
-    router.push({ pathname: "/Home/SleepTimePage", params: { examDate, subjects: JSON.stringify(selectedSubjects) } });
+    router.push({ pathname: "/Home/SleepTimePage", params: { subjects: JSON.stringify(selectedSubjects) } });
   };
 
   return (
