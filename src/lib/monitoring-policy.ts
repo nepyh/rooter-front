@@ -129,3 +129,115 @@ export function sanitizeErrorEvent(
         : undefined,
   };
 }
+
+// ================================
+// Performance tracing
+// ================================
+
+const HTTP_METHODS = /^(GET|POST|PUT|PATCH|DELETE|HEAD)$/;
+const SCREEN_NAME = /^\/[A-Za-z0-9/]{0,100}$/;
+const API_SPAN_NAME =
+  /^(GET|POST|PUT|PATCH|DELETE|HEAD) \/[A-Za-z0-9_./{}-]{0,200}$/;
+const SPAN_OPS = new Set(["http.client"]);
+const MAX_SPANS = 200;
+
+/**
+ * 샘플링 비율 환경변수를 0~1 사이 숫자로. 비었거나 숫자가 아니면 0 (= 성능 추적 끔)
+ * @param value EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+ */
+export function parseTracesSampleRate(value?: string) {
+  const rate = Number(value);
+  if (!value || !Number.isFinite(rate)) return 0;
+  return Math.min(1, Math.max(0, rate));
+}
+
+/**
+ * API 요청 span 이름. 주소의 id·날짜·쿼리는 빼고 경로 모양만 남깁니다.
+ * 예: get, "/users/12/streak?x=1" → "GET /users/{id}/streak"
+ * @param method HTTP 메서드
+ * @param url axios 요청 주소 (baseURL 을 뺀 경로든 전체 주소든)
+ * @returns span 이름, 모양이 이상하면 null
+ */
+export function apiSpanName(method?: string, url?: string) {
+  const upper = method?.toUpperCase();
+  if (!upper || !HTTP_METHODS.test(upper) || !url) return null;
+  const path = url
+    .replace(/^[a-z]+:\/\/[^/]*/i, "")
+    .split(/[?#]/, 1)[0]
+    .split("/")
+    .map((segment) =>
+      /^\d+$/.test(segment)
+        ? "{id}"
+        : /^\d{4}-\d{2}-\d{2}$/.test(segment)
+          ? "{date}"
+          : segment,
+    )
+    .join("/");
+  const name = `${upper} ${path.startsWith("/") ? path : `/${path}`}`;
+  return API_SPAN_NAME.test(name) ? name : null;
+}
+
+/**
+ * 화면 트랜잭션 이름. expo-router 경로(예: /Home/Home)만 허용합니다.
+ * @param pathname usePathname() 값
+ */
+export function screenSpanName(pathname?: string) {
+  return pathname && SCREEN_NAME.test(pathname) ? pathname : null;
+}
+
+type TransactionEvent = Parameters<
+  NonNullable<ReactNativeOptions["beforeSendTransaction"]>
+>[0];
+
+/**
+ * 성능 트랜잭션에서 화면 이름·API 경로 모양·시간만 남기고 나머지(요청·사용자·태그·기기 정보)는 버립니다.
+ * 이름이 허용 모양이 아니면 통째로 버립니다.
+ */
+export function sanitizeTransactionEvent(
+  event: TransactionEvent,
+): TransactionEvent | null {
+  const name = screenSpanName(event.transaction);
+  if (!name) return null;
+  const trace = event.contexts?.trace;
+  if (!trace) return null;
+  return {
+    type: "transaction",
+    event_id: event.event_id,
+    transaction: name,
+    transaction_info: { source: "route" },
+    start_timestamp: event.start_timestamp,
+    timestamp: event.timestamp,
+    platform: event.platform,
+    release: event.release,
+    environment: event.environment,
+    sdk: event.sdk,
+    contexts: {
+      trace: {
+        trace_id: trace.trace_id,
+        span_id: trace.span_id,
+        op: "navigation",
+        status: trace.status,
+      },
+    },
+    spans: (event.spans ?? [])
+      .filter(
+        (span) =>
+          span.op !== undefined &&
+          SPAN_OPS.has(span.op) &&
+          API_SPAN_NAME.test(span.description ?? ""),
+      )
+      .slice(0, MAX_SPANS)
+      .map((span) => ({
+        span_id: span.span_id,
+        trace_id: span.trace_id,
+        parent_span_id: span.parent_span_id,
+        op: span.op,
+        description: span.description,
+        start_timestamp: span.start_timestamp,
+        timestamp: span.timestamp,
+        status: span.status,
+        origin: "manual",
+        data: {},
+      })),
+  };
+}
