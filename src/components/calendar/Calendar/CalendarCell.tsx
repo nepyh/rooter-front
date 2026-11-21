@@ -18,7 +18,7 @@ interface Props {
 }
 
 /**
- * 캘린더 날짜 한 칸. 날짜 숫자와 그날 일정 목록을 보여줌. 오늘은 주황 원, 다른 달·주말은 흐리게 표시
+ * 캘린더 날짜 한 칸. 날짜 숫자와 그날 일정 목록을 보여줌. 오늘은 주황 원, 다른 달·주말은 흐리게 표시, 칸을 넘는 일정은 잘림
  * @param cell 날짜와 이번 달 여부
  * @param items 그날 일정
  * @param isToday 오늘인지
@@ -30,7 +30,7 @@ export function CalendarCell({ cell, items, isToday, onSelectItem, onSelectDay }
   const dimmed = !cell.inMonth || isWeekend;
 
   return (
-    <Pressable onPress={() => onSelectDay(cell.date)} style={{ flex: 1, minHeight: 72 }} className="items-center px-spacing-2 py-spacing-4">
+    <Pressable onPress={() => onSelectDay(cell.date)} className="flex-1 items-center overflow-hidden px-spacing-2 pt-spacing-4">
       <View style={{ height: 28 }} className="items-center justify-center">
         {isToday ? (
           <View className="items-center justify-center w-[28px] h-[28px] bg-primary-500 rounded-radius-full">
@@ -41,7 +41,7 @@ export function CalendarCell({ cell, items, isToday, onSelectItem, onSelectDay }
         )}
       </View>
       {items.length > 0 && (
-        <Stack gap="xxs" width="full" className="mt-spacing-3">
+        <Stack gap="xxs" width="full" className="mt-spacing-2">
           {items.map((item, i) => (
             <CalendarItemChip key={i} item={item} onPress={() => onSelectItem(cell.date, item)} />
           ))}

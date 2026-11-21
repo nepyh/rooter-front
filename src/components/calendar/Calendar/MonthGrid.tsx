@@ -27,7 +27,7 @@ interface Props {
 }
 
 /**
- * 한 달 날짜 칸 격자. 달을 넘기면 넘긴 방향에서 밀려 들어옴
+ * 한 달 날짜 칸 격자. 남은 높이를 주 수만큼 나눠 채우고, 달을 넘기면 넘긴 방향에서 밀려 들어옴
  * @param monthKey 보고 있는 달을 구분하는 값, 바뀌면 격자를 새로 그리며 애니메이션
  * @param weeks 주 단위로 나눈 날짜 칸
  * @param itemsByDate 날짜(yyyy-MM-dd) → 그날 일정
@@ -41,11 +41,11 @@ export function MonthGrid({ monthKey, weeks, itemsByDate, today, animate, direct
   const entering = animate ? (direction === "next" ? SlideInRight : SlideInLeft).duration(SLIDE_MS) : undefined;
 
   return (
-    <View style={{ overflow: "hidden" }}>
-      <Animated.View key={monthKey} entering={entering}>
-        <Stack width="full">
+    <View className="flex-1 overflow-hidden">
+      <Animated.View key={monthKey} entering={entering} className="flex-1">
+        <Stack width="full" className="flex-1">
           {weeks.map((week, i) => (
-            <Row key={i} width="full" className={i < weeks.length - 1 ? "border-b border-neutral-600" : ""}>
+            <Row key={i} width="full" className={`flex-1 ${i < weeks.length - 1 ? "border-b border-neutral-600" : ""}`}>
               {week.map((cell, j) => (
                 <CalendarCell
                   key={j}
