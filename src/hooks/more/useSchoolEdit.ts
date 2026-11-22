@@ -63,6 +63,7 @@ export function useSchoolEdit() {
   const save = async () => {
     if (!canSave || userId === null || !schoolId) return false;
     setSaving(true);
+    let saved = true;
     try {
       await createStudentProfile(userId, {
         schoolId,
@@ -72,12 +73,11 @@ export function useSchoolEdit() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.users.info(userId),
       });
-      return true;
     } catch {
-      return false;
-    } finally {
-      setSaving(false);
+      saved = false;
     }
+    setSaving(false);
+    return saved;
   };
 
   return {
