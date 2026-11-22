@@ -4,6 +4,7 @@ import { deletePlanTask, getDailyTasks, updatePlanTask } from "@/api/common/plan
 import { getEditErrorMessage, getFailErrorMessage } from "@/api/home/Home";
 import { invalidatePlanQueries, invalidateTaskQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { useRefetchOnFocus } from "@/hooks/common/useRefetchOnFocus";
+import { usePlanNames } from "@/hooks/home/usePlanNames";
 import { DAY_MIN } from "@/utils/common/time";
 import {
   WINDOW_START_MIN,
@@ -11,6 +12,7 @@ import {
   mapPlanTaskToPlan,
   markPastPlansFailed,
   toClockString,
+  withPlanNames,
   type Plan,
 } from "@/utils/home/timeline";
 
@@ -51,12 +53,13 @@ export const dailyPlansQueryOptions = (date: string) =>
  * @param selectedDate 보고 있는 날짜
  * @param selectedKey 보고 있는 날짜 (YYYY-MM-DD)
  * @param now 현재 시각, 끝난 시각이 지난 미완료 일정을 실패로 표시할 때 씀
- * @returns plans(원본), coloredPlans(실패·과목 색 반영), plansLoaded(그날 할 일을 불러왔는지), chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan
+ * @returns plans(원본), coloredPlans(실패·과목 색·플랜 이름 반영), plansLoaded(그날 할 일을 불러왔는지), chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan
  */
 export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
   const dailyKey = queryKeys.tasks.daily(selectedKey);
 
   const dailyQuery = useQuery(dailyPlansQueryOptions(selectedKey));
+  const planNames = usePlanNames();
 
   useRefetchOnFocus([dailyKey]);
 
@@ -77,7 +80,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     invalidatePlanQueries();
   };
 
-  const coloredPlans = markPastPlansFailed(plans, selectedDate, now);
+  const coloredPlans = withPlanNames(markPastPlansFailed(plans, selectedDate, now), planNames);
 
   const savePlanEdit = (id: string, title: string, start: number, duration: number) => {
     const startMin = (start + WINDOW_START_MIN) % DAY_MIN;

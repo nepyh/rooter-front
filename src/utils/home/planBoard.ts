@@ -13,8 +13,24 @@ interface PlanBoardEditForm {
 }
 
 // ================================
+// Constants
+// ================================
+
+const PLAN_NAME_MIN_BOARDS = 2;
+
+// ================================
 // Functions
 // ================================
+
+/**
+ * 일정 블록에 보여줄 플랜 이름 목록. 플랜이 PLAN_NAME_MIN_BOARDS 개 이상일 때만 만들고, 그보다 적으면 빈 목록
+ * @param boards 플랜보드 목록
+ * @returns 플랜보드 ID → 플랜 이름
+ */
+export const getPlanNames = (boards: PlanBoard[]): Record<number, string> =>
+  boards.length < PLAN_NAME_MIN_BOARDS
+    ? {}
+    : Object.fromEntries(boards.map((board) => [board.id, board.title]));
 
 /**
  * 플랜의 시험일. 시험일이 없는 보드는 종료일을 씀

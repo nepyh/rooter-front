@@ -18,7 +18,7 @@ export type PlanStatus = "pending" | "done" | "failed";
 export type DragMode = "move" | "resize";
 
 export interface PlanLine {
-  icon: "book" | "history";
+  icon: "book" | "history" | "listCheck";
   text: string;
 }
 
@@ -27,6 +27,8 @@ export interface PlanLine {
  * @param title 해야 할 일 (태스크 이름), 직접 만든 일정은 입력한 제목
  * @param subject 블록 제목으로 쓸 과목 이름 (과목이 없으면 "기타"), 직접 만든 일정은 없음
  * @param isManual 직접 만든 일정인지
+ * @param planBoardId 이 계획이 속한 플랜보드 ID
+ * @param planName 블록 부가 줄 맨 아래에 보여줄 플랜 이름. 플랜이 여러 개일 때만 있음 (withPlanNames 로 붙임)
  * @param start 타임라인 시작(00:00) 기준 오프셋(분)
  * @param duration 길이(분)
  */
@@ -35,6 +37,8 @@ export interface Plan {
   title: string;
   subject?: string;
   isManual: boolean;
+  planBoardId: number;
+  planName?: string;
   category: Category;
   lines: PlanLine[];
   start: number;
@@ -321,6 +325,14 @@ export const markPastPlansFailed = (plans: Plan[], date: Date, now: Date): Plan[
 };
 
 /**
+ * 계획마다 속한 플랜 이름을 붙여 돌려줌. 이름 목록에 없는 플랜의 계획은 이름 없이 둠
+ * @param plans 그날 계획 목록
+ * @param planNames 플랜보드 ID → 플랜 이름 (getPlanNames() 의 결과)
+ */
+export const withPlanNames = (plans: Plan[], planNames: Record<number, string>): Plan[] =>
+  plans.map((plan) => ({ ...plan, planName: planNames[plan.planBoardId] }));
+
+/**
  * 타임라인 계획의 시작 시각 ("HH:MM")
  * @param plan 계획
  */
@@ -354,6 +366,7 @@ export const mapPlanTaskToPlan = (task: PlanTask): Plan => {
     title: task.taskName,
     subject,
     isManual: task.isManual,
+    planBoardId: task.planBoardId,
     category: (subjectName && SUBJECT_CATEGORIES[subjectName]) || "neutral",
     start,
     duration: task.estimatedMinutes,
