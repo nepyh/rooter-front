@@ -5,3 +5,5 @@ export { Toast } from "./Toast";
 export { Switch } from "./Switch";
 export { LoadingView } from "./LoadingView";
 export { LoadingScreen } from "./LoadingScreen";
+export { Select } from "./Select";
+export type { SelectOption } from "./Select";

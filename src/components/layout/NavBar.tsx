@@ -23,6 +23,9 @@ interface Tab {
 // Constants
 // ================================
 
+// 탭바 전체 높이, 위 테두리 1 + 위 여백 8 + 탭 62 + 아래 여백 32
+export const NAV_BAR_HEIGHT = 103;
+
 const TABS: Tab[] = [
   { key: "home", label: "홈", icon: "home", path: "/Home/Home" },
   { key: "todo", label: "할일", icon: "checklist", path: "/Todo/Todo" },

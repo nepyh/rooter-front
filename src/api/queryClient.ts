@@ -63,7 +63,7 @@ export const queryKeys = {
   boards: {
     all: ['boards'] as const,
     list: ['boards', 'list'] as const,
-    nextExamDate: ['boards', 'next-exam-date'] as const,
+    textbooks: (boardId: number) => ['boards', 'textbooks', boardId] as const,
   },
   busyTimes: {
     all: ['busy-times'] as const,

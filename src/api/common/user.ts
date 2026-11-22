@@ -84,10 +84,15 @@ export interface SleepTime extends SleepTimeInput {
 export const DAY_OF_WEEK_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 export const DAY_OF_WEEK_NAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 
+/** 불가능 시간 종류. 식사(BREAKFAST·LUNCH·DINNER)·학원(ACADEMY)·기타(CUSTOM) */
+export type UnavailableKind = "BREAKFAST" | "LUNCH" | "DINNER" | "ACADEMY" | "CUSTOM";
+
 export interface AddUnavailableTimeInput {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+  kind?: UnavailableKind;
+  label?: string | null;
 }
 
 export interface UnavailableTime {
@@ -95,6 +100,8 @@ export interface UnavailableTime {
   dayOfWeek: typeof DAY_OF_WEEK_NAMES[number];
   startTime: string;
   endTime: string;
+  kind: UnavailableKind;
+  label: string | null;
 }
 
 /**
@@ -216,10 +223,19 @@ export const getUnavailableTimes = async (userId: number): Promise<UnavailableTi
 /**
  * 불가능 시간 추가 API 함수
  * @param userId 유저 ID
- * @param input 요일과 시작/종료 시간
+ * @param input 요일(1~7, 월요일 1)과 시작/종료 시간, 종류와 이름
  * @returns 추가된 불가능 시간
  */
 export const addUnavailableTime = async (userId: number, input: AddUnavailableTimeInput): Promise<UnavailableTime> => {
   const response = await api.post(`/users/${userId}/unavailable-times`, input);
   return response.data;
+};
+
+/**
+ * 불가능 시간 삭제 API 함수
+ * @param userId 유저 ID
+ * @param timeId 지울 불가능 시간 ID
+ */
+export const deleteUnavailableTime = async (userId: number, timeId: number): Promise<void> => {
+  await api.delete(`/users/${userId}/unavailable-times/${timeId}`);
 };

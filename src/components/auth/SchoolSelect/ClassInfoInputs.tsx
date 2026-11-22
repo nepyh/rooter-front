@@ -1,6 +1,8 @@
 import { View } from "react-native";
 import { Row } from "../../layout";
 import { Input } from "../../ui/Input";
+import { Select } from "../../ui/Select";
+import { GRADE_OPTIONS } from "@/constants/school";
 
 // ================================
 // Components
@@ -9,25 +11,42 @@ import { Input } from "../../ui/Input";
 interface Props {
   grade: string;
   classNum: string;
-  onChangeGrade: (text: string) => void;
+  onChangeGrade: (grade: string) => void;
   onChangeClassNum: (text: string) => void;
 }
 
 /**
- * 학년·반 입력칸 두 개를 가로로 나란히 배치
- * @param grade 입력된 학년
+ * 학년 선택칸과 반 입력칸을 가로로 나란히 배치. 학년은 1~3학년 중에서만 고름
+ * @param grade 고른 학년 ("1"~"3"), 안 골랐으면 빈 문자열
  * @param classNum 입력된 반
- * @param onChangeGrade 학년이 바뀔 때 호출
+ * @param onChangeGrade 학년을 골랐을 때 호출
  * @param onChangeClassNum 반이 바뀔 때 호출
  */
-export function ClassInfoInputs({ grade, classNum, onChangeGrade, onChangeClassNum }: Props) {
+export function ClassInfoInputs({
+  grade,
+  classNum,
+  onChangeGrade,
+  onChangeClassNum,
+}: Props) {
   return (
     <Row gap="m" width="full">
       <View className="flex-1">
-        <Input value={grade} onChangeText={onChangeGrade} label="학년" keyboardType="number-pad" maxLength={2} />
+        <Select
+          label="학년"
+          sheetTitle="학년을 선택해주세요"
+          value={grade}
+          options={GRADE_OPTIONS}
+          onChange={onChangeGrade}
+        />
       </View>
       <View className="flex-1">
-        <Input value={classNum} onChangeText={onChangeClassNum} label="반" keyboardType="number-pad" maxLength={2} />
+        <Input
+          value={classNum}
+          onChangeText={onChangeClassNum}
+          label="반"
+          keyboardType="number-pad"
+          maxLength={2}
+        />
       </View>
     </Row>
   );

@@ -58,9 +58,20 @@ export interface DragPreview {
 }
 
 /**
+ * 바쁜 시간 블록을 꾹 눌러 끌 때 무엇을 바꾸는지
+ * - sleep + top: 밤 수면 조각, 위쪽 끝(취침 시각)만 움직임
+ * - sleep + bottom: 아침 수면 조각, 아래쪽 끝(기상 시각)만 움직임
+ * - meal + move: 식사 블록 전체를 옮김 (길이 그대로)
+ */
+export type BusyEdit =
+  | { target: "sleep"; edge: "top" | "bottom" }
+  | { target: "meal"; edge: "move" };
+
+/**
  * 수면·등교 준비·학교·하교 후 귀가·식사·불가능 시간 블록
  * @param start 타임라인 시작 기준 오프셋(분)
  * @param duration 길이(분)
+ * @param edit 꾹 눌러 옮길 수 있는 블록이면 무엇을 바꾸는지, 옮길 수 없으면 없음
  */
 export interface BusyBlock {
   key: string;
@@ -68,6 +79,19 @@ export interface BusyBlock {
   start: number;
   duration: number;
   label: string;
+  edit?: BusyEdit;
+}
+
+/**
+ * 끌어 놓은 바쁜 시간 블록의 새 위치. 바꿀지 묻는 동안 타임라인에 미리 보여줄 때 씀
+ * @param block 끈 블록 (원래 위치)
+ * @param start 새 시작 위치 (타임라인 시작 기준 분)
+ * @param duration 새 길이(분)
+ */
+export interface BusyDrop {
+  block: BusyBlock;
+  start: number;
+  duration: number;
 }
 
 /**
@@ -89,6 +113,12 @@ export const TIMELINE_HEIGHT = DAY_MIN;
 export const TIMELINE_LEFT = 52;
 export const POPOVER_HEIGHT = 92;
 export const SNAP_MIN = 15;
+
+// 화면 아래에 떠 있는 [+]·[AI 채팅] 버튼. 아래 탭 바로 위에 떠 있음
+export const FLOATING_ACTIONS_BOTTOM = 96;
+export const FLOATING_ACTIONS_HEIGHT = 54;
+// 맨 아래까지 스크롤하면 24시 블록이 떠 있는 버튼 위로 올라오도록 버튼 높이와 여유만큼 아래 여백을 둠
+export const TIMELINE_BOTTOM_PADDING = FLOATING_ACTIONS_BOTTOM + FLOATING_ACTIONS_HEIGHT + 24;
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
@@ -192,10 +222,37 @@ const toBusyBlocks = (key: string, title: string, startTime: string, endTime: st
 };
 
 /**
+ * 수면 조각에 옮기기 정보를 붙임. 자정에 붙은 쪽은 고정하고 반대쪽 끝(취침·기상 시각)만 움직이게 함
+ * 자정에 붙지 않은 조각(하루 안에서 끝나는 잠)은 옮기지 않음
+ */
+const withSleepEdit = (block: BusyBlock): BusyBlock => {
+  if (block.start + block.duration === DAY_MIN && block.start > 0) return { ...block, edit: { target: "sleep", edge: "top" } };
+  if (block.start === 0 && block.duration < DAY_MIN) return { ...block, edit: { target: "sleep", edge: "bottom" } };
+  return block;
+};
+
+/**
+ * 끈 거리(분)만큼 바쁜 시간 블록의 새 위치를 SNAP_MIN 단위로 맞춤
+ * 제스처 콜백(UI 스레드)에서 부를 수 있도록 worklet 으로 만듦
+ * @param edge 어느 쪽을 움직이는지 (move 는 블록 전체)
+ * @param start 원래 시작 위치 (타임라인 시작 기준 분)
+ * @param duration 원래 길이(분)
+ * @param delta 끈 거리(분), 아래로 끌면 양수
+ * @returns start(새 시작 위치), duration(새 길이)
+ */
+export const snapBusyDrag = (edge: BusyEdit["edge"], start: number, duration: number, delta: number) => {
+  "worklet";
+  if (edge === "move") return { start: snapPlanStart(start + delta, duration), duration };
+  if (edge === "top") return snapResizeTop(start + delta, start + duration);
+  return snapResizeBottom(start, start + duration + delta);
+};
+
+/**
  * 서버 바쁜 시간을 타임라인 블록으로 변환
  * - 할일(TASK)은 계획 블록으로 따로 그려서 제외
  * - 밤(23:00~24:00)과 아침(00:00~06:30)으로 나뉜 수면을 한 번의 잠으로 합침
  * - 블록 제목은 서버가 주는 label 을 그대로 사용
+ * - 수면·식사 블록에는 꾹 눌러 옮길 수 있도록 옮기기 정보(edit)를 붙임
  * @param day 그날의 바쁜 시간
  */
 export const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
@@ -204,12 +261,15 @@ export const buildBusyBlocks = (day: DailyBusyTime | null): BusyBlock[] => {
   const morningSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.startTime === "00:00");
   const nightSleep = day.busyTimes.find((item) => item.type === "SLEEP" && item.endTime === "24:00");
   const mergedSleep = morningSleep && nightSleep
-    ? toBusyBlocks("sleep", titleOf(nightSleep), nightSleep.startTime, morningSleep.endTime)
+    ? toBusyBlocks("sleep", titleOf(nightSleep), nightSleep.startTime, morningSleep.endTime).map(withSleepEdit)
     : [];
   return mergedSleep.concat(day.busyTimes.flatMap((item, i) => {
     if (item.type === "TASK") return [];
     if (mergedSleep.length > 0 && (item === morningSleep || item === nightSleep)) return [];
-    return toBusyBlocks(`${item.type.toLowerCase()}-${i}`, titleOf(item), item.startTime, item.endTime);
+    const blocks = toBusyBlocks(`${item.type.toLowerCase()}-${i}`, titleOf(item), item.startTime, item.endTime);
+    if (item.type === "SLEEP") return blocks.map(withSleepEdit);
+    if (item.type === "MEAL" && blocks.length === 1) return [{ ...blocks[0], edit: { target: "meal", edge: "move" } as const }];
+    return blocks;
   }));
 };
 

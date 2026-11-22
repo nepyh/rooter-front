@@ -3,6 +3,7 @@ import { Platform, type NativeScrollEvent, type NativeSyntheticEvent, type Scrol
 import { Gesture } from "react-native-gesture-handler";
 import { scrollTo, useAnimatedRef } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { SWIPE_ACTIVE_X, SWIPE_FAIL_Y, SWIPE_FLING_VELOCITY, SWIPE_PAGE_RATIO } from "@/constants/swipe";
 
 // ================================
 // Constants
@@ -10,13 +11,6 @@ import { scheduleOnRN } from "react-native-worklets";
 
 const JUMP_FALLBACK_MS = 1000;
 const ARRIVE_TOLERANCE_PX = 1;
-
-/** Android 에서 손으로 넘길지(가로 Pan) 정하는 기준. 가로로 이만큼(dp) 먼저 움직여야 켜지고, 세로로 이만큼 먼저 움직이면 세로 스크롤에 양보 */
-const SWIPE_ACTIVE_X = 16;
-const SWIPE_FAIL_Y = 12;
-/** 놓았을 때 페이지를 넘기는 기준: 페이지 너비의 이 비율 이상 끌었거나, 이 속도(px/s) 이상으로 튕겼을 때 */
-const SWIPE_PAGE_RATIO = 0.3;
-const SWIPE_FLING_VELOCITY = 500;
 
 /**
  * Android 는 가로 ScrollView 가 x 이동이 터치 슬롭만 넘으면 y 이동과 상관없이 터치를 가로채서,

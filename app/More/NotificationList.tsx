@@ -1,7 +1,7 @@
 import { Pressable, SectionList, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { LoadingView, MorePageHeader, NotificationCard, Text, Toast, UnreadCountBadge } from "@/components";
+import { LoadingView, PageHeader, NotificationCard, Text, Toast, UnreadCountBadge } from "@/components";
 import type { AppNotification } from "@/api/more/NotificationList";
 import { useNow } from "@/hooks/common/useNow";
 import { useNotifications } from "@/hooks/more/useNotifications";
@@ -34,7 +34,7 @@ export default function NotificationListPage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <MorePageHeader
+      <PageHeader
         title="알림"
         accessory={<UnreadCountBadge count={unreadCount} />}
         right={
