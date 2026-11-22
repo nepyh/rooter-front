@@ -86,7 +86,16 @@ export default function QuizPage() {
           ) : phase === "review" ? (
             <Button variant="primary" onPress={quiz.reviewNext}>{isLast ? "점수 보기" : "다음"}</Button>
           ) : quiz.currentGrade ? (
-            <Button variant={checking ? "disabled" : "primary"} onPress={quiz.next}>{checking ? "채점 중..." : "다음"}</Button>
+            <Row gap="m" width="full">
+              {quiz.hasExplanation && (
+                <Button variant="disabled" disabled={false} width="auto" className="flex-1" onPress={quiz.toggleExplanation}>
+                  {quiz.explanationOpen ? "해설 닫기" : "해설 보기"}
+                </Button>
+              )}
+              <Button variant={checking ? "disabled" : "primary"} width="auto" className="flex-1" onPress={quiz.next}>
+                {checking ? "채점 중..." : "다음"}
+              </Button>
+            </Row>
           ) : (
             <Button variant={quiz.selectedChoiceId === undefined || checking ? "disabled" : "primary"} onPress={quiz.confirm}>
               {checking ? "채점 중..." : "확인"}

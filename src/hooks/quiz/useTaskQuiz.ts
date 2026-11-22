@@ -37,6 +37,7 @@ export interface TaskStart {
 /**
  * useTaskQuiz — 할일 완료 확인 퀴즈의 진행 상태 관리
  * 시작 → 문제마다 [확인]으로 바로 채점 → 마지막 문제 뒤 전체 제출 → 풀이 보기 → 점수 순으로 진행합니다.
+ * 채점한 문제는 [해설 보기]로 그 자리에서 해설을 펼쳐 볼 수 있고, 마지막 풀이 보기도 그대로 거칩니다.
  * 시작 화면을 보는 동안 퀴즈를 미리 불러오고, 이미 답한 문제는 건너뛰고 안 푼 문제부터 이어 풉니다.
  * 시작 시각을 받으면 시작 전에는 퀴즈를 부르지 않고 안내를 띄움 (어느 화면에서 들어와도 막는 안전장치, 없으면 서버 TASK_NOT_STARTED 로 막힘)
  * @param taskId 할일 ID (문자열)
@@ -52,6 +53,8 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [graded, setGraded] = useState<Record<number, TaskQuizAnswerResult>>({});
   const [checking, setChecking] = useState(false);
+  // 해설을 펼친 문제 id, 채점 직후에는 정답·오답 문구를 먼저 보여주고 버튼을 누르면 해설로 바꿈
+  const [explanationOpenId, setExplanationOpenId] = useState<number | null>(null);
   const [result, setResult] = useState<TaskQuizResult | null>(null);
   const prefetchRef = useRef<Promise<TaskQuiz> | null>(null);
   const correctMessagesRef = useRef<Record<number, string>>({});
@@ -157,10 +160,20 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     else setCurrentIndex((i) => i + 1);
   };
 
+  const gradeExplanation = currentGrade?.explanation?.trim() || null;
+  const explanationOpen = !!current && explanationOpenId === current.id && !!gradeExplanation;
+
+  const toggleExplanation = () => {
+    if (!current) return;
+    setExplanationOpenId((prev) => (prev === current.id ? null : current.id));
+  };
+
   const bubbleText = reviewResult
     ? reviewResult.explanation || `정답은 ${reviewResult.correctChoiceText}입니다.`
     : currentGrade
-      ? currentGrade.isCorrect ? getCorrectMessage(current?.id ?? currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
+      ? explanationOpen
+        ? gradeExplanation
+        : currentGrade.isCorrect ? getCorrectMessage(current?.id ?? currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
       : null;
 
   return {
@@ -178,6 +191,9 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     checking,
     result,
     bubbleText,
+    hasExplanation: phase === "answering" && !!gradeExplanation,
+    explanationOpen,
+    toggleExplanation,
     optionStateOf: (choiceId: number) => getOptionState(choiceId, selectedChoiceId, currentGrade, reviewResult),
     start,
     select,
