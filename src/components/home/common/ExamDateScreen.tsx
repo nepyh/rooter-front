@@ -55,7 +55,7 @@ export function ExamDateScreen({ title, description, selectedDate, onSelect, onN
       <BackHeader onBack={onBack} />
       <PageTitle title={title} description={description} className="pb-spacing-6 border-b border-neutral-600" />
 
-      <Stack gap="m" width="full" className="pt-spacing-6 flex-1">
+      <Stack gap="m" width="full" className="pt-spacing-6 pb-spacing-4 flex-1">
         <MonthNavigator year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
         <DateGrid
           viewYear={viewYear}
@@ -65,6 +65,7 @@ export function ExamDateScreen({ title, description, selectedDate, onSelect, onN
           onSelect={onSelect}
           minDate={minDate}
           rangeStart={rangeStart}
+          className="flex-1"
         />
       </Stack>
 

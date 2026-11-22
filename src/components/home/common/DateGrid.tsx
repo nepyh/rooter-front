@@ -12,6 +12,13 @@ import { color } from "@/constants/token/color";
 type CellState = "selected" | "inRange" | "default";
 
 // ================================
+// Constants
+// ================================
+
+// 한 주(줄)의 최대 높이. 화면이 작아 다 안 들어가면 남은 높이를 주 수로 나눠 줄임 (#354)
+const WEEK_ROW_MAX_HEIGHT = 87;
+
+// ================================
 // Styles
 // ================================
 
@@ -43,6 +50,7 @@ interface Props {
   onSelect: (date: Date) => void;
   minDate?: Date;
   rangeStart?: Date;
+  className?: string;
 }
 
 /**
@@ -54,8 +62,9 @@ interface Props {
  * @param onSelect 날짜를 눌렀을 때 호출
  * @param minDate 고를 수 있는 가장 이른 날짜, 생략하면 오늘·지난 날짜를 뺀 내일부터
  * @param rangeStart 기간의 시작일. 주면 이 날도 주황 테두리로 표시하고, 고른 날까지의 사이 날짜를 옅은 주황으로 칠함
+ * @param className 바깥 Stack 에 덧붙일 클래스. flex-1 을 주면 주는 그 높이 안에 맞춰 줄어듦 (한 주 최대 87)
  */
-export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, minDate, rangeStart }: Props) {
+export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, minDate, rangeStart, className = "" }: Props) {
   const weeks = buildMonthWeeks(viewYear, viewMonth);
   const todayString = toLocalDateString(today);
   const selectedString = selectedDate ? toLocalDateString(selectedDate) : null;
@@ -63,7 +72,7 @@ export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, m
   const rangeStartString = rangeStart ? toLocalDateString(rangeStart) : null;
 
   return (
-    <Stack width="full">
+    <Stack width="full" className={className}>
       <Row width="full" className="border-b border-neutral-600 justify-center">
         {WEEKDAYS.map((weekday, i) => (
           <View key={weekday} className="flex-1 items-center px-spacing-4 py-spacing-3">
@@ -72,7 +81,7 @@ export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, m
         ))}
       </Row>
       {weeks.map((week, i) => (
-        <Row key={i} width="full" className={`justify-center ${i < weeks.length - 1 ? "border-b border-neutral-600" : ""}`} style={{ height: 87 }}>
+        <Row key={i} width="full" className={`justify-center ${i < weeks.length - 1 ? "border-b border-neutral-600" : ""}`} style={{ flex: 1, maxHeight: WEEK_ROW_MAX_HEIGHT }}>
           {week.map((cell, j) => {
             const dateString = toLocalDateString(cell.date);
             const isToday = dateString === todayString;
@@ -83,7 +92,7 @@ export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, m
                 key={j}
                 onPress={() => onSelect(cell.date)}
                 disabled={!isSelectable}
-                className="flex-1 items-center rounded-radius-3 px-spacing-2 py-spacing-5"
+                className="flex-1 items-center rounded-radius-3 px-spacing-2 pt-spacing-5"
                 style={cellStyles[getCellState(dateString, selectedString, rangeStartString)]}
               >
                 {isToday ? (
