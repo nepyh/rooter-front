@@ -21,7 +21,7 @@ interface Props {
   expandedIds: Set<number>;
   onToggleExpand: (id: number) => void;
   selectedIds: Set<number>;
-  onToggleLeaf: (id: number) => void;
+  onToggleLeaves: (ids: number[]) => void;
 }
 
 /**
@@ -30,9 +30,9 @@ interface Props {
  * @param expandedIds 펼친 대단원 id
  * @param onToggleExpand 대단원을 펼치거나 접을 때 호출
  * @param selectedIds 고른 소단원 id
- * @param onToggleLeaf 소단원을 눌렀을 때 호출
+ * @param onToggleLeaves 소단원이나 중단원을 눌렀을 때 그 아래 소단원 id 들로 호출
  */
-export function ChapterList({ textbooks, expandedIds, onToggleExpand, selectedIds, onToggleLeaf }: Props) {
+export function ChapterList({ textbooks, expandedIds, onToggleExpand, selectedIds, onToggleLeaves }: Props) {
   return (
     <FadeScrollView
       fadeHeight={CHAPTER_FADE_HEIGHT}
@@ -50,7 +50,7 @@ export function ChapterList({ textbooks, expandedIds, onToggleExpand, selectedId
               expanded={expandedIds.has(node.id)}
               onToggle={() => onToggleExpand(node.id)}
               selectedIds={selectedIds}
-              onToggleLeaf={onToggleLeaf}
+              onToggleLeaves={onToggleLeaves}
             />
           ))}
         </Stack>

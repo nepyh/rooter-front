@@ -43,7 +43,7 @@ interface Props {
   expanded: boolean;
   onToggle: () => void;
   selectedIds: Set<number>;
-  onToggleLeaf: (id: number) => void;
+  onToggleLeaves: (ids: number[]) => void;
 }
 
 /**
@@ -52,9 +52,9 @@ interface Props {
  * @param expanded 펼친 상태인지
  * @param onToggle 대단원 제목을 눌렀을 때 호출
  * @param selectedIds 고른 소단원 id
- * @param onToggleLeaf 소단원을 눌렀을 때 호출
+ * @param onToggleLeaves 소단원이나 중단원을 눌렀을 때 그 아래 소단원 id 들로 호출
  */
-export function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaf }: Props) {
+export function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaves }: Props) {
   const state: State = expanded ? "expanded" : "collapsed";
 
   return (
@@ -75,7 +75,7 @@ export function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onTog
             className="absolute inset-spacing-0"
           />
           {sortByChapterOrder(node.children).map((child) => (
-            <ChapterNode key={child.id} node={child} depth={1} selectedIds={selectedIds} onToggleLeaf={onToggleLeaf} />
+            <ChapterNode key={child.id} node={child} depth={1} selectedIds={selectedIds} onToggleLeaves={onToggleLeaves} />
           ))}
         </Stack>
       )}
