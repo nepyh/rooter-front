@@ -1,7 +1,14 @@
 import { useEffect, useRef } from "react";
 import type { ScrollView } from "react-native";
 import { useAnimatedRef } from "react-native-reanimated";
-import { POPOVER_HEIGHT, TIMELINE_HEIGHT, minutesSinceWindowStart, type Plan } from "@/utils/home/timeline";
+import {
+  FLOATING_ACTIONS_BOTTOM,
+  POPOVER_HEIGHT,
+  TIMELINE_BOTTOM_PADDING,
+  TIMELINE_HEIGHT,
+  minutesSinceWindowStart,
+  type Plan,
+} from "@/utils/home/timeline";
 
 // ================================
 // Constants
@@ -16,7 +23,7 @@ const MENU_GAP = 8;
 
 /**
  * useTimelineScroll — 홈 세로 타임라인의 스크롤 위치 관리
- * 처음 열면 현재 시각 조금 위로 스크롤하고, 액션 메뉴가 화면 밖에 뜨면 메뉴가 가운데 오도록 스크롤합니다.
+ * 처음 열면 현재 시각 조금 위로 스크롤하고, 액션 메뉴가 화면 밖이나 아래 탭 뒤에 뜨면 메뉴가 가운데 오도록 스크롤합니다.
  * scrollRef 는 animated ref 라서 블록을 끌 때 UI 스레드에서 자동 스크롤(useAutoScroll)할 때도 함께 씁니다.
  * @param now 현재 시각
  * @returns scrollRef, scrollYRef, handleScrollY, handleViewportHeight, revealMenu
@@ -48,12 +55,15 @@ export function useTimelineScroll(now: Date) {
     const menuTop = showBelow ? plan.start + plan.duration + MENU_GAP : plan.start - POPOVER_HEIGHT - MENU_GAP;
     const menuBottom = menuTop + POPOVER_HEIGHT;
 
+    // 타임라인 아래쪽은 아래 탭이 덮고 있어 보이는 높이에서 뺌
+    const visibleHeight = viewportHeight - FLOATING_ACTIONS_BOTTOM;
     const visibleTop = scrollYRef.current;
-    const visibleBottom = visibleTop + viewportHeight;
+    const visibleBottom = visibleTop + visibleHeight;
     if (menuTop >= visibleTop && menuBottom <= visibleBottom) return;
 
-    const centerTarget = menuTop + POPOVER_HEIGHT / 2 - viewportHeight / 2;
-    const targetY = Math.max(0, Math.min(TIMELINE_HEIGHT - viewportHeight, centerTarget));
+    const centerTarget = menuTop + POPOVER_HEIGHT / 2 - visibleHeight / 2;
+    const maxScrollY = TIMELINE_HEIGHT + TIMELINE_BOTTOM_PADDING - viewportHeight;
+    const targetY = Math.max(0, Math.min(maxScrollY, centerTarget));
     scrollRef.current?.scrollTo({ y: targetY, animated: true });
   };
 

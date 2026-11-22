@@ -114,6 +114,12 @@ export const TIMELINE_LEFT = 52;
 export const POPOVER_HEIGHT = 92;
 export const SNAP_MIN = 15;
 
+// 화면 아래에 떠 있는 [+]·[AI 채팅] 버튼. 아래 탭 바로 위에 떠 있음
+export const FLOATING_ACTIONS_BOTTOM = 96;
+export const FLOATING_ACTIONS_HEIGHT = 54;
+// 맨 아래까지 스크롤하면 24시 블록이 떠 있는 버튼 위로 올라오도록 버튼 높이와 여유만큼 아래 여백을 둠
+export const TIMELINE_BOTTOM_PADDING = FLOATING_ACTIONS_BOTTOM + FLOATING_ACTIONS_HEIGHT + 24;
+
 export const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
 // ================================
