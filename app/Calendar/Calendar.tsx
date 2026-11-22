@@ -1,11 +1,14 @@
 import { useRef, useState } from "react";
 import { View } from "react-native";
+import Animated from "react-native-reanimated";
+import { GestureDetector } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { CalendarHeader, WeekdayHeader, MonthGrid, PlanDetailModal, EventFormModal } from "@/components";
 import type { CalendarItem } from "@/api/calendar/Calendar";
 import { useNow } from "@/hooks/common/useNow";
 import { useCalendarMonth } from "@/hooks/calendar/useCalendarMonth";
 import { useCalendarEvents } from "@/hooks/calendar/useCalendarEvents";
+import { useMonthSwipe } from "@/hooks/common/useMonthSwipe";
 
 // ================================
 // Types
@@ -27,6 +30,8 @@ export default function CalendarPage() {
   const now = useNow(60_000);
   const month = useCalendarMonth(now);
   const { itemsByDate, createEvent, updateEvent, deleteEvent } = useCalendarEvents(month.gridStartKey, month.gridEndKey);
+  const monthKey = `${month.viewDate.getFullYear()}-${month.viewDate.getMonth()}`;
+  const swipe = useMonthSwipe(monthKey, month.goPrevMonth, month.goNextMonth);
 
   const [activeItem, setActiveItem] = useState<SelectedItem | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
@@ -71,16 +76,20 @@ export default function CalendarPage() {
       <StatusBar style="light" />
       <CalendarHeader title={month.headerText} onPrev={month.goPrevMonth} onNext={month.goNextMonth} />
       <WeekdayHeader />
-      <MonthGrid
-        monthKey={`${month.viewDate.getFullYear()}-${month.viewDate.getMonth()}`}
-        weeks={month.weeks}
-        itemsByDate={itemsByDate}
-        today={now}
-        animate={month.hasNavigated}
-        direction={month.direction}
-        onSelectItem={handleSelectItem}
-        onSelectDay={setAddingDate}
-      />
+      <GestureDetector gesture={swipe.gesture}>
+        <Animated.View style={swipe.animatedStyle} onLayout={swipe.onLayout}>
+          <MonthGrid
+            monthKey={monthKey}
+            weeks={month.weeks}
+            itemsByDate={itemsByDate}
+            today={now}
+            animate={month.hasNavigated}
+            direction={month.direction}
+            onSelectItem={handleSelectItem}
+            onSelectDay={setAddingDate}
+          />
+        </Animated.View>
+      </GestureDetector>
 
       {activeItem && (
         <PlanDetailModal

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { Stack, Row } from "@/components/layout";
 import { Text, Input, Switch, Button } from "@/components/ui";
@@ -198,153 +199,156 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
   return (
     <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
-      <View className="flex-1 justify-end">
-        <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
-        <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
-            <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <DismissKeyboardView className="flex-1">
-            <Stack gap="xxl" width="full" className="bg-background-primary p-spacing-7 rounded-t-radius-6 flex-1">
-              <Row width="full" align="between" className="items-center">
-              <Pressable onPress={onClose} className="w-spacing-9 h-spacing-9 items-center justify-center">
-                <Icon name="close" size={24} />
-              </Pressable>
-              <Text variant="header-medium" weight="semibold">새로운 일정</Text>
-              <Pressable onPress={handleSubmit} disabled={!canSubmit} className="w-spacing-9 h-spacing-9 items-center justify-center">
-                <Icon name="check" size={24} color={canSubmit ? "#FFFFFF" : "#525866"} />
-              </Pressable>
-            </Row>
+      {/* RN Modal 은 앱 루트의 GestureHandlerRootView 밖에 그려져서, 안의 제스처(달력 스와이프)가 동작하도록 다시 감쌈 */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View className="flex-1 justify-end">
+          <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
+          <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
+              <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
+              <DismissKeyboardView className="flex-1">
+              <Stack gap="xxl" width="full" className="bg-background-primary p-spacing-7 rounded-t-radius-6 flex-1">
+                <Row width="full" align="between" className="items-center">
+                <Pressable onPress={onClose} className="w-spacing-9 h-spacing-9 items-center justify-center">
+                  <Icon name="close" size={24} />
+                </Pressable>
+                <Text variant="header-medium" weight="semibold">새로운 일정</Text>
+                <Pressable onPress={handleSubmit} disabled={!canSubmit} className="w-spacing-9 h-spacing-9 items-center justify-center">
+                  <Icon name="check" size={24} color={canSubmit ? "#FFFFFF" : "#525866"} />
+                </Pressable>
+              </Row>
 
-            <ScrollView
-              className="flex-1"
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              contentContainerStyle={{ paddingBottom: getSpacing("spacing-11") }}
-              {...({ delaysContentTouches: false } as object)}
-            >
-              <Stack gap="xl" width="full">
-                <Stack gap="s" width="full">
-                  <Text variant="base-medium">제목</Text>
-                  <Input value={title} onChangeText={setTitle} placeholder="제목" />
-                </Stack>
+              <ScrollView
+                className="flex-1"
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                contentContainerStyle={{ paddingBottom: getSpacing("spacing-11") }}
+                {...({ delaysContentTouches: false } as object)}
+              >
+                <Stack gap="xl" width="full">
+                  <Stack gap="s" width="full">
+                    <Text variant="base-medium">제목</Text>
+                    <Input value={title} onChangeText={setTitle} placeholder="제목" />
+                  </Stack>
 
-                <Stack gap="s" width="full">
-                  <Text variant="base-medium">일시</Text>
-                  <View className="w-full rounded-radius-4 overflow-hidden">
-                    <Row width="full" align="between" className={`items-center bg-neutral-700 px-spacing-6 py-spacing-5 ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
-                      <Text variant="base-large" weight="medium" className="text-text-primary">하루종일</Text>
-                      <Switch value={allDay} onToggle={() => setAllDay((prev) => !prev)} />
-                    </Row>
+                  <Stack gap="s" width="full">
+                    <Text variant="base-medium">일시</Text>
+                    <View className="w-full rounded-radius-4 overflow-hidden">
+                      <Row width="full" align="between" className={`items-center bg-neutral-700 px-spacing-6 py-spacing-5 ${allDay ? "" : "border-b-2 border-neutral-600"}`}>
+                        <Text variant="base-large" weight="medium" className="text-text-primary">하루종일</Text>
+                        <Switch value={allDay} onToggle={() => setAllDay((prev) => !prev)} />
+                      </Row>
 
-                    {!allDay && (
-                      <View className="w-full bg-neutral-700 px-spacing-6 py-spacing-5 border-b-2 border-neutral-600" style={{ gap: getSpacing("spacing-7") }}>
-                        <Row width="full" align="between" className="items-center">
-                          <Text variant="base-large" weight="medium" className="text-text-primary">시작</Text>
-                          <Row gap="xs">
-                            <DatePill label={formatDatePill(start)} active={activePicker === "start-date"} onPress={() => togglePicker("start-date")} />
-                            <DatePill label={formatTimePill(start)} active={activePicker === "start-time"} onPress={() => togglePicker("start-time")} />
+                      {!allDay && (
+                        <View className="w-full bg-neutral-700 px-spacing-6 py-spacing-5 border-b-2 border-neutral-600" style={{ gap: getSpacing("spacing-7") }}>
+                          <Row width="full" align="between" className="items-center">
+                            <Text variant="base-large" weight="medium" className="text-text-primary">시작</Text>
+                            <Row gap="xs">
+                              <DatePill label={formatDatePill(start)} active={activePicker === "start-date"} onPress={() => togglePicker("start-date")} />
+                              <DatePill label={formatTimePill(start)} active={activePicker === "start-time"} onPress={() => togglePicker("start-time")} />
+                            </Row>
                           </Row>
-                        </Row>
-                        {activePicker === "start-date" && (
-                          <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
-                        )}
-                        {activePicker === "start-time" && (
-                          <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
-                        )}
-                      </View>
-                    )}
-
-                    {!allDay && (
-                      <View className="w-full bg-neutral-700 px-spacing-6 py-spacing-5" style={{ gap: getSpacing("spacing-7") }}>
-                        <Row width="full" align="between" className="items-center">
-                          <Text variant="base-large" weight="medium" className="text-text-primary">종료</Text>
-                          <Row gap="xs">
-                            <DatePill label={formatDatePill(end)} active={activePicker === "end-date"} onPress={() => togglePicker("end-date")} />
-                            <DatePill label={formatTimePill(end)} active={activePicker === "end-time"} onPress={() => togglePicker("end-time")} />
-                          </Row>
-                        </Row>
-                        {activePicker === "end-date" && (
-                          <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
-                        )}
-                        {activePicker === "end-time" && (
-                          <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </Stack>
-
-                <Stack gap="s" width="full">
-                  <Text variant="base-medium">교과서</Text>
-                  <Row gap="xl" className="flex-wrap">
-                    {[...selectedTextbooks.values()].map((textbook) => (
-                      <Pressable key={textbook.id} onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
-                        <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden">
-                          {textbook.coverImageUrl ? (
-                            <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                          ) : (
-                            <Icon name="book" size={32} color={color.neutral["400"]} />
+                          {activePicker === "start-date" && (
+                            <CalendarGrid value={start} onSelect={(date) => selectDate("start-date", date)} />
+                          )}
+                          {activePicker === "start-time" && (
+                            <TimeWheelPicker value={start} onChange={(date) => applyPicked("start-time", date)} />
                           )}
                         </View>
-                        <Stack gap="xxs">
-                          <Text variant="base-small" weight="medium" className="text-text-primary" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
-                          <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.publisherName ?? textbook.subjectName}</Text>
-                          <Text variant="base-small" color="secondary" numberOfLines={1}>{`목차 ${selectedChapterIds.size}개`}</Text>
-                        </Stack>
+                      )}
+
+                      {!allDay && (
+                        <View className="w-full bg-neutral-700 px-spacing-6 py-spacing-5" style={{ gap: getSpacing("spacing-7") }}>
+                          <Row width="full" align="between" className="items-center">
+                            <Text variant="base-large" weight="medium" className="text-text-primary">종료</Text>
+                            <Row gap="xs">
+                              <DatePill label={formatDatePill(end)} active={activePicker === "end-date"} onPress={() => togglePicker("end-date")} />
+                              <DatePill label={formatTimePill(end)} active={activePicker === "end-time"} onPress={() => togglePicker("end-time")} />
+                            </Row>
+                          </Row>
+                          {activePicker === "end-date" && (
+                            <CalendarGrid value={end} onSelect={(date) => selectDate("end-date", date)} />
+                          )}
+                          {activePicker === "end-time" && (
+                            <TimeWheelPicker value={end} onChange={(date) => applyPicked("end-time", date)} />
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  </Stack>
+
+                  <Stack gap="s" width="full">
+                    <Text variant="base-medium">교과서</Text>
+                    <Row gap="xl" className="flex-wrap">
+                      {[...selectedTextbooks.values()].map((textbook) => (
+                        <Pressable key={textbook.id} onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
+                          <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden">
+                            {textbook.coverImageUrl ? (
+                              <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                            ) : (
+                              <Icon name="book" size={32} color={color.neutral["400"]} />
+                            )}
+                          </View>
+                          <Stack gap="xxs">
+                            <Text variant="base-small" weight="medium" className="text-text-primary" numberOfLines={1}>{textbook.title.replace(/\s*\([^)]+\)\s*$/, "")}</Text>
+                            <Text variant="base-small" color="secondary" numberOfLines={1}>{textbook.publisherName ?? textbook.subjectName}</Text>
+                            <Text variant="base-small" color="secondary" numberOfLines={1}>{`목차 ${selectedChapterIds.size}개`}</Text>
+                          </Stack>
+                        </Pressable>
+                      ))}
+                      <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
+                        <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
+                          <Icon name="plus" size={24} color={color.neutral["400"]} />
+                        </View>
+                        <Text variant="base-small" color="secondary">교과서 {selectedTextbooks.size > 0 ? "변경하기" : "추가하기"}</Text>
                       </Pressable>
-                    ))}
-                    <Pressable onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
-                      <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 border-2 border-dashed border-neutral-600 items-center justify-center">
-                        <Icon name="plus" size={24} color={color.neutral["400"]} />
-                      </View>
-                      <Text variant="base-small" color="secondary">교과서 {selectedTextbooks.size > 0 ? "변경하기" : "추가하기"}</Text>
-                    </Pressable>
-                  </Row>
+                    </Row>
+                  </Stack>
+
+                  {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
                 </Stack>
-
-                {!!error && <Text style={{ color: "#FF4D4F" }}>{error}</Text>}
-              </Stack>
-            </ScrollView>
-          </Stack>
-            </DismissKeyboardView>
-            </KeyboardAvoidingView>
-        </Animated.View>
-      </View>
-
-      {showTextbookPicker && (
-        <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5") }}>
-          <Row width="full" align="between" className="items-center pb-spacing-6">
-            <Row gap="xs" className="items-center">
-              <Pressable onPress={() => setShowTextbookPicker(false)} hitSlop={8}>
-                <Icon name="chevronLeft" size={32} />
-              </Pressable>
-              <Text variant="header-medium" weight="semibold">교과서 선택</Text>
-            </Row>
-          </Row>
-          <TextbookPicker selectedIds={new Set(selectedTextbooks.keys())} onToggle={openChapters} bottomInset={insets.bottom + 40} />
-          <View
-            pointerEvents="none"
-            className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0"
-            style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary}00 0%, ${color.background.primary} 100%)` }}
-          />
+              </ScrollView>
+            </Stack>
+              </DismissKeyboardView>
+              </KeyboardAvoidingView>
+          </Animated.View>
         </View>
-      )}
 
-      {chapterTextbook && (
-        <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5"), paddingBottom: insets.bottom + getSpacing("spacing-5") }}>
-          <Row width="full" align="between" className="items-center pb-spacing-6">
-            <Row gap="xs" className="items-center">
-              <Pressable onPress={() => setChapterTextbook(null)} hitSlop={8}>
-                <Icon name="chevronLeft" size={32} />
-              </Pressable>
-              <Text variant="header-medium" weight="semibold">목차 선택</Text>
+        {showTextbookPicker && (
+          <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5") }}>
+            <Row width="full" align="between" className="items-center pb-spacing-6">
+              <Row gap="xs" className="items-center">
+                <Pressable onPress={() => setShowTextbookPicker(false)} hitSlop={8}>
+                  <Icon name="chevronLeft" size={32} />
+                </Pressable>
+                <Text variant="header-medium" weight="semibold">교과서 선택</Text>
+              </Row>
             </Row>
-            <Text variant="base-medium" weight="medium">{`${pendingChapterIds.size}개 선택됨`}</Text>
-          </Row>
-          <ChapterPicker textbookId={chapterTextbook.id} selectedIds={pendingChapterIds} onToggle={togglePendingChapter} bottomInset={24} />
-          <Button variant={pendingChapterIds.size > 0 ? "primary" : "disabled"} onPress={confirmChapters}>선택 완료</Button>
-        </View>
-      )}
+            <TextbookPicker selectedIds={new Set(selectedTextbooks.keys())} onToggle={openChapters} bottomInset={insets.bottom + 40} />
+            <View
+              pointerEvents="none"
+              className="absolute left-spacing-0 right-spacing-0 bottom-spacing-0"
+              style={{ height: 140, experimental_backgroundImage: `linear-gradient(180deg, ${color.background.primary}00 0%, ${color.background.primary} 100%)` }}
+            />
+          </View>
+        )}
+
+        {chapterTextbook && (
+          <View className="absolute inset-spacing-0 bg-background-primary px-spacing-7" style={{ paddingTop: insets.top + getSpacing("spacing-5"), paddingBottom: insets.bottom + getSpacing("spacing-5") }}>
+            <Row width="full" align="between" className="items-center pb-spacing-6">
+              <Row gap="xs" className="items-center">
+                <Pressable onPress={() => setChapterTextbook(null)} hitSlop={8}>
+                  <Icon name="chevronLeft" size={32} />
+                </Pressable>
+                <Text variant="header-medium" weight="semibold">목차 선택</Text>
+              </Row>
+              <Text variant="base-medium" weight="medium">{`${pendingChapterIds.size}개 선택됨`}</Text>
+            </Row>
+            <ChapterPicker textbookId={chapterTextbook.id} selectedIds={pendingChapterIds} onToggle={togglePendingChapter} bottomInset={24} />
+            <Button variant={pendingChapterIds.size > 0 ? "primary" : "disabled"} onPress={confirmChapters}>선택 완료</Button>
+          </View>
+        )}
+      </GestureHandlerRootView>
     </Modal>
   );
 }
