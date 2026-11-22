@@ -7,7 +7,7 @@ import { signup, getSignupError } from '@/api/auth/Signup';
 import type { AgreementDecision } from '@/api/common/agreement';
 import { useFormField } from '@/hooks/common/useFormField';
 import { useAgreementCatalog } from '@/hooks/common/useAgreements';
-import { isValidPassword, PASSWORD_ERROR_MESSAGE } from '@/utils/common/password';
+import { getPasswordError } from '@/utils/common/password';
 
 export default function Signup() {
   const username = useFormField();
@@ -23,8 +23,9 @@ export default function Signup() {
   const handleSubmit = async () => {
     setBtnVariant("disabled");
 
-    if (!isValidPassword(password.value)) {
-      password.setError(PASSWORD_ERROR_MESSAGE);
+    const passwordError = getPasswordError(password.value);
+    if (passwordError) {
+      password.setError(passwordError);
       password.focus(true);
       setBtnVariant("primary");
       return;
@@ -68,7 +69,9 @@ export default function Signup() {
       }
 
       const field = { username, email, password }[authError.target];
-      field.setError(authError.message);
+      // 서버는 비밀번호 오류의 원인을 알려주지 않아서, 입력한 비밀번호로 어긴 규칙을 다시 찾아 안내
+      const message = authError.target === "password" ? getPasswordError(password.value) ?? authError.message : authError.message;
+      field.setError(message);
       field.focus();
     }
   };

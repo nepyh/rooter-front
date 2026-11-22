@@ -3,10 +3,10 @@ import { router } from "expo-router";
 import { Button, Toast, PasswordInput, ChangePasswordScreen } from "@/components";
 import { changePassword, verifyPassword } from "@/api/common/user";
 import { syncPushToken } from "@/api/common/notification";
-import { isWrongCurrentPassword } from "@/api/more/ChangePassword";
+import { isInvalidPasswordFormat, isWrongCurrentPassword } from "@/api/more/ChangePassword";
 import { useFormField } from "@/hooks/common/useFormField";
 import { useUserStore } from "@/store";
-import { isValidPassword, PASSWORD_ERROR_MESSAGE } from "@/utils/common/password";
+import { getPasswordError, PASSWORD_ERROR_MESSAGE } from "@/utils/common/password";
 
 // ================================
 // Types
@@ -58,8 +58,9 @@ export default function ChangePasswordPage() {
   };
 
   const handleReset = async () => {
-    if (!isValidPassword(newPassword.value)) {
-      newPassword.setError(PASSWORD_ERROR_MESSAGE);
+    const passwordError = getPasswordError(newPassword.value);
+    if (passwordError) {
+      newPassword.setError(passwordError);
       newPassword.focus(true);
       return;
     }
@@ -79,6 +80,11 @@ export default function ChangePasswordPage() {
       if (isWrongCurrentPassword(error)) {
         setStep("verify");
         currentPassword.setError("현재 비밀번호가 일치하지 않습니다.");
+        return;
+      }
+      if (isInvalidPasswordFormat(error)) {
+        newPassword.setError(getPasswordError(newPassword.value) ?? PASSWORD_ERROR_MESSAGE);
+        newPassword.focus(true);
         return;
       }
       setToastMessage("비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.");
