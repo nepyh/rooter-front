@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ScrollView } from "react-native";
 import { useAnimatedRef } from "react-native-reanimated";
 import {
@@ -33,11 +33,12 @@ export function useTimelineScroll(now: Date) {
   const scrollYRef = useRef(0);
   const viewportHeightRef = useRef(0);
 
+  // 처음 연 시각 기준으로 한 번만 스크롤함. 이후 now 가 바뀌어도 다시 스크롤하지 않음
+  const [initialOffset] = useState(() => Math.max(0, minutesSinceWindowStart(now) - INITIAL_SCROLL_ABOVE_NOW));
+
   useEffect(() => {
-    const offset = Math.max(0, minutesSinceWindowStart(now) - INITIAL_SCROLL_ABOVE_NOW);
-    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: offset, animated: false }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: initialOffset, animated: false }));
+  }, [scrollRef, initialOffset]);
 
   const handleScrollY = (y: number) => {
     scrollYRef.current = y;
