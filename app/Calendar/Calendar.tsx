@@ -3,7 +3,8 @@ import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import { GestureDetector } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { CalendarHeader, WeekdayHeader, MonthGrid, PlanDetailModal, EventFormModal } from "@/components";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CalendarHeader, WeekdayHeader, MonthGrid, PlanDetailModal, EventFormModal, NAV_BAR_HEIGHT } from "@/components";
 import type { CalendarItem } from "@/api/calendar/Calendar";
 import { useNow } from "@/hooks/common/useNow";
 import { useCalendarMonth } from "@/hooks/calendar/useCalendarMonth";
@@ -27,6 +28,7 @@ interface SelectedItem {
  * 캘린더 화면
  */
 export default function CalendarPage() {
+  const insets = useSafeAreaInsets();
   const now = useNow(60_000);
   const month = useCalendarMonth(now);
   const { itemsByDate, createEvent, updateEvent, deleteEvent } = useCalendarEvents(month.gridStartKey, month.gridEndKey);
@@ -72,7 +74,8 @@ export default function CalendarPage() {
   };
 
   return (
-    <View className="flex-1">
+    // 탭바는 화면 위에 떠 있으므로 아래 안전 영역을 뺀 나머지 높이만큼 비워 날짜 칸이 탭바 바로 위에서 끝나게 함
+    <View className="flex-1" style={{ paddingBottom: NAV_BAR_HEIGHT - insets.bottom }}>
       <StatusBar style="light" />
       <CalendarHeader title={month.headerText} onPrev={month.goPrevMonth} onNext={month.goNextMonth} />
       <WeekdayHeader />

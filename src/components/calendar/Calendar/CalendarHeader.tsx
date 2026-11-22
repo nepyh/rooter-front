@@ -21,7 +21,7 @@ interface Props {
  */
 export function CalendarHeader({ title, onPrev, onNext }: Props) {
   return (
-    <Row width="full" align="between" className="items-center pb-spacing-5">
+    <Row width="full" align="between" className="items-center pt-spacing-6 pb-spacing-5">
       <Text variant="header-large">{title}</Text>
       <Row gap="xs" className="items-center">
         <Pressable onPress={onPrev} className="p-spacing-2 rounded-radius-full">
