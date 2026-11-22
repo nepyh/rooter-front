@@ -3,6 +3,7 @@ import { ScrollView, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as Haptics from "expo-haptics";
 import {
   Toast,
   AddPlanBoardModal,
@@ -112,6 +113,8 @@ export default function Home() {
 
   const handleLongPressPlan = (plan: Plan) => {
     if (plan.status !== "pending") return;
+    // 메뉴가 열리는 순간 짧은 진동
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActiveId(plan.id);
     timeline.revealMenu(plan);
   };
