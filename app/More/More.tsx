@@ -7,6 +7,7 @@ import { Icon } from "@/assets";
 import { useUserStore } from "@/store";
 import { useUserInfo } from "@/hooks/common/useUserInfo";
 import { useContributionLevels } from "@/hooks/more/useContributionLevels";
+import { useInquiry } from "@/hooks/common/useInquiry";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 
@@ -35,6 +36,7 @@ export default function SettingPage() {
   const [showToast, setShowToast] = useState(false);
   const today = new Date();
   const levels = useContributionLevels(today, CONTRIBUTION_WEEK_COUNT);
+  const inquiry = useInquiry();
 
   useEffect(() => {
     if (toast && TOAST_MESSAGES[toast]) setShowToast(true);
@@ -63,6 +65,7 @@ export default function SettingPage() {
           <MenuGroup>
             <MenuRow icon="bell" label="알림 설정" arrow="muted" onPress={() => router.push("/More/NotificationSetting")} />
             <MenuRow icon="lock" label="계정" arrow="muted" onPress={() => router.push("/More/AccountSetting")} />
+            <MenuRow icon="mail" label="문의하기" arrow="muted" onPress={() => inquiry.open("general")} />
             {/* <MenuRow icon="calendar" label="불가능 시간" arrow="muted" onPress={() => router.push("/More/UnavailableTimePage")} /> */}
           </MenuGroup>
         </MoreSection>
@@ -73,6 +76,7 @@ export default function SettingPage() {
       </ScrollView>
 
       {showToast && toast && <Toast text={TOAST_MESSAGES[toast]} onClose={() => setShowToast(false)} />}
+      {!!inquiry.errorMessage && <Toast text={inquiry.errorMessage} onClose={inquiry.clearError} />}
     </View>
   );
 }
