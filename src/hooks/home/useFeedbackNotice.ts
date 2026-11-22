@@ -12,7 +12,7 @@ import { getFeedbackNoticeDate } from "@/utils/home/feedbackNotice";
 
 /**
  * useFeedbackNotice — 홈의 "오늘 공부 설문" 말풍선을 띄울지
- * 19시~다음 날 07시에, 그날 일일 계획이 있고 하루 설문을 아직 안 냈으면 띄웁니다. (자정이 지나면 어제 계획 기준)
+ * 22시~다음 날 07시에, 그날 일일 계획이 있고 하루 설문을 아직 안 냈으면 띄웁니다. (자정이 지나면 어제 계획 기준)
  * 닫으면 그 날짜에는 앱을 다시 켤 때까지 띄우지 않습니다.
  * @param now 현재 시각 (홈의 useNow)
  * @returns visible, dailyPlanId(설문 화면에 넘길 계획 ID), close
