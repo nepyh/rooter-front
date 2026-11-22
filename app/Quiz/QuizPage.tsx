@@ -44,7 +44,7 @@ export default function QuizPage() {
     router.replace({ pathname: "/Quiz/FeedbackPage", params: { dailyPlanId } });
   };
 
-  if (quiz.loading) return <LoadingScreen text="퀴즈 준비 중..." onBack={() => router.back()} />;
+  if (quiz.loading) return <LoadingScreen text="퀴즈 준비 중..." />;
 
   if (phase === "intro") return <QuizIntro subjectLabel={subjectLabel} onStart={quiz.start} />;
 
