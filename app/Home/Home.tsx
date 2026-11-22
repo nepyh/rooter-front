@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as Haptics from "expo-haptics";
 import {
   Toast,
   AddPlanBoardModal,
@@ -17,20 +18,40 @@ import {
   ConfirmDeleteModal,
 } from "@/components";
 import { useNow } from "@/hooks/common/useNow";
+import { useOpenTaskQuiz } from "@/hooks/common/useOpenTaskQuiz";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
+import { useBusyEdit } from "@/hooks/home/useBusyEdit";
+import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
-import { getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
+import { getPlanExamDate } from "@/utils/home/planBoard";
+import { getDDay, getPlanStartTime, isPlanStarted, type DragPreview, type Plan } from "@/utils/home/timeline";
+
+// ================================
+// Constants
+// ================================
+
+const TOAST_MESSAGES: Record<string, string> = {
+  "success": "회원가입이 완료되었습니다.",
+  "study-survey-completed": "공부 스타일 설문이 완료되었습니다.",
+  "plan-deleted": "플랜 삭제가 완료되었습니다.",
+  "plan-updated": "수정이 완료되었습니다.",
+};
+
+// ================================
+// Components
+// ================================
 
 /**
  * 홈 화면
  */
 export default function Home() {
   const { toast } = useLocalSearchParams<{ toast?: string }>();
+  const toastMessage = toast ? TOAST_MESSAGES[toast] : undefined;
   const now = useNow(30_000);
   const [dayOffset, setDayOffset] = useState(0);
   const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset);
@@ -42,7 +63,6 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [failTarget, setFailTarget] = useState<Plan | null>(null);
-  const [showToast, setShowToast] = useState(false);
   const [deleteToast, setDeleteToast] = useState<string | null>(null);
   const [showNotStartedNotice, setShowNotStartedNotice] = useState(false);
   const [emptyNoticeClosed, setEmptyNoticeClosed] = useState(false);
@@ -55,24 +75,36 @@ export default function Home() {
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
   const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
-  const { busyBlocks, examDDay } = useDaySchedule(selectedKey, now);
+  const { busyBlocks } = useDaySchedule(selectedKey);
+  const busyEdit = useBusyEdit(selectedDate);
+  const { boards, representative, isPending: boardsPending, isError: boardsError } = usePlanBoards();
+  const hasNoPlanBoard = !boardsPending && !boardsError && boards.length === 0;
+  const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
   const timeline = useTimelineScroll(now);
+  const openTaskQuiz = useOpenTaskQuiz();
 
   const moveDay = (delta: number) => {
     setActiveId(null);
     setDayOffset((prev) => prev + delta);
   };
-  const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
-  const pagerGesture = useMemo(() => Gesture.Native(), []);
+  const {
+    pagerRef,
+    pagerGesture,
+    pagerScrollEnabled,
+    pageWidth,
+    setPageWidth,
+    neighborOffset,
+    neighborDeltas,
+    goToday,
+    handlePagerBeginDrag,
+    handlePagerScroll,
+    handlePagerEnd,
+  } = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
   const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
   const activePlanStarted = activePlan ? isPlanStarted(activePlan, selectedKey, now) : false;
   const editingPlan = plans.find((plan) => plan.id === editingId) ?? null;
-
-  useEffect(() => {
-    if (toast === "success") setShowToast(true);
-  }, [toast]);
 
   useEffect(() => {
     setFullScreenModalOpen(showAddPlan || showAiChat);
@@ -81,6 +113,8 @@ export default function Home() {
 
   const handleLongPressPlan = (plan: Plan) => {
     if (plan.status !== "pending") return;
+    // 메뉴가 열리는 순간 짧은 진동
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActiveId(plan.id);
     timeline.revealMenu(plan);
   };
@@ -105,15 +139,12 @@ export default function Home() {
 
   const handleComplete = (plan: Plan) => {
     if (!tryResolve(plan)) return;
-    router.push({
-      pathname: "/Quiz/QuizPage",
-      params: {
-        taskId: plan.id,
-        dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "",
-        category: plan.category,
-        date: selectedKey,
-        startTime: getPlanStartTime(plan),
-      },
+    openTaskQuiz({
+      taskId: plan.id,
+      dailyPlanId: plan.dailyPlanId !== undefined ? String(plan.dailyPlanId) : "",
+      category: plan.category,
+      date: selectedKey,
+      startTime: getPlanStartTime(plan),
     });
   };
 
@@ -164,7 +195,7 @@ export default function Home() {
 
   const startPlanCreation = () => {
     resetPlanDraft();
-    router.push("/Home/ExamDatePage");
+    router.push("/Home/PlanInfoPage");
   };
 
   const handlePlanCreated = () => {
@@ -180,35 +211,44 @@ export default function Home() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      {showToast && <Toast text="회원가입이 완료되었습니다." onClose={() => setShowToast(false)} />}
+      {toastMessage && <Toast text={toastMessage} onClose={() => router.setParams({ toast: undefined })} />}
 
-      <HomeHeader date={selectedDate} isToday={isToday} examDDay={examDDay} onPressToday={pager.goToday} />
+      <HomeHeader
+        date={selectedDate}
+        isToday={isToday}
+        planLoaded={!boardsPending}
+        examTitle={representative?.title ?? null}
+        examDDay={examDDay}
+        onPressToday={goToday}
+        onPressDDay={() => router.push("/Home/PlanListPage")}
+      />
 
       <View className="flex-1">
-        {plans.length === 0 && !emptyNoticeClosed && (
+        {hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
           <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
-        <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
-          {pager.pageWidth > 0 && (
+        <View className="flex-1 -mx-spacing-7" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
+          {pageWidth > 0 && (
             <GestureDetector gesture={pagerGesture}>
               <ScrollView
-                ref={pager.pagerRef}
+                ref={pagerRef}
                 horizontal
                 pagingEnabled
+                scrollEnabled={pagerScrollEnabled}
                 showsHorizontalScrollIndicator={false}
-                contentOffset={{ x: pager.pageWidth, y: 0 }}
+                contentOffset={{ x: pageWidth, y: 0 }}
                 scrollEventThrottle={16}
-                onScrollBeginDrag={pager.handlePagerBeginDrag}
-                onScroll={pager.handlePagerScroll}
-                onMomentumScrollEnd={pager.handlePagerEnd}
+                onScrollBeginDrag={handlePagerBeginDrag}
+                onScroll={handlePagerScroll}
+                onMomentumScrollEnd={handlePagerEnd}
               >
-                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.prev)} now={now} />
-                <View className="px-spacing-7" style={{ width: pager.pageWidth }}>
+                <NeighborPage width={pageWidth} offset={neighborOffset} date={neighborDate(neighborDeltas.prev)} now={now} />
+                <View className="px-spacing-7" style={{ width: pageWidth }}>
                   <PlanTimeline
                     scrollRef={timeline.scrollRef}
                     pagerGesture={pagerGesture}
                     dateKey={selectedKey}
-                    busyBlocks={busyBlocks}
+                    busyBlocks={busyEdit.applyDrop(busyBlocks)}
                     plans={coloredPlans}
                     currentTime={isToday ? now : null}
                     activePlan={activePlan}
@@ -218,6 +258,7 @@ export default function Home() {
                     onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
                     onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
                     onDropPlan={handleDropPlan}
+                    onDropBusy={busyEdit.requestDrop}
                     onDismissMenu={() => setActiveId(null)}
                     onComplete={handleComplete}
                     onFail={handleFail}
@@ -227,14 +268,17 @@ export default function Home() {
                     onViewportHeight={timeline.handleViewportHeight}
                   />
                 </View>
-                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.next)} now={now} />
+                <NeighborPage width={pageWidth} offset={neighborOffset} date={neighborDate(neighborDeltas.next)} now={now} />
               </ScrollView>
             </GestureDetector>
           )}
         </View>
       </View>
 
-      <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
+      {/* 계획 메뉴가 열려 있거나 끄는 동안에는 24시 근처 블록·메뉴를 가리지 않도록 숨김 */}
+      {!activePlan && !dragPreview && (
+        <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
+      )}
 
       {editingPlan && <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />}
 
@@ -255,6 +299,17 @@ export default function Home() {
           onConfirm={confirmFail}
         />
       )}
+
+      {busyEdit.confirmMessage && (
+        <ConfirmDeleteModal
+          title={busyEdit.confirmMessage.title}
+          description={busyEdit.confirmMessage.description}
+          confirmText="바꾸기"
+          onCancel={busyEdit.cancel}
+          onConfirm={busyEdit.confirm}
+        />
+      )}
+      {!!busyEdit.error && <Toast text={busyEdit.error} onClose={busyEdit.clearError} />}
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
       {showNotStartedNotice && <Toast text={TASK_NOT_STARTED_MESSAGE} onClose={() => setShowNotStartedNotice(false)} />}

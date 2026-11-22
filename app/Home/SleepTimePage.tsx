@@ -9,7 +9,6 @@ import { pad } from "@/utils/common/time";
 import { fromSleepTime } from "@/utils/home/sleepTime";
 import type { SleepTimeInput } from "@/api/common/user";
 import { useSleepTime } from "@/hooks/home/useSleepTime";
-import { useStudyStyleDone } from "@/hooks/home/useStudyStyleDone";
 
 // ================================
 // Types
@@ -55,10 +54,8 @@ const toPickerValues = (sleepTime: SleepTimeInput | null) => {
  * 수면 시간 선택 화면
  */
 export default function SleepTimePage() {
-  const { examDate, subjects } = useLocalSearchParams<{ examDate: string; subjects: string }>();
+  const { subjects } = useLocalSearchParams<{ subjects: string }>();
   const savedPicker = toPickerValues(useSleepTime());
-  // 화면에 들어오자마자 불러 두어, "다음"을 누를 때는 보통 이미 알고 있음
-  const studyStyleDone = useStudyStyleDone();
   // 직접 고르기 전에는 저장된 수면 시간, 없으면 기본값을 보여줌
   const [pickedWakeHour, setWakeHour] = useState<number | null>(null);
   const [pickedWakeMinuteIndex, setWakeMinuteIndex] = useState<number | null>(null);
@@ -72,16 +69,12 @@ export default function SleepTimePage() {
   const wakeTime = `${HOUR_LABELS[wakeHour]}:${MINUTE_LABELS[wakeMinuteIndex]}`;
   const togglePicker = (target: PickerTarget) => setActivePicker((prev) => (prev === target ? null : target));
 
-  // 설문을 이미 다 했으면 바로 계획 생성, 아니거나 아직 모르면(불러오는 중·실패) 설문 안내로
   const handleNext = () => {
-    const plan = JSON.stringify({ examDate, subjects, wakeTime, sleepHours: SLEEP_HOURS[sleepHoursIndex] });
-    router.push({
-      pathname: studyStyleDone ? "/Home/PlanGeneratingPage" : "/LearningSurvey/StudySurveyIntro",
-      params: { plan },
-    });
+    const plan = JSON.stringify({ subjects, wakeTime, sleepHours: SLEEP_HOURS[sleepHoursIndex] });
+    router.push({ pathname: "/Home/PlanGeneratingPage", params: { plan } });
   };
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/ExamDatePage"));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/Home/TextbookSelectPage"));
 
   return (
     <Animated.View entering={SlideInRight.duration(300)} style={{ flex: 1 }}>

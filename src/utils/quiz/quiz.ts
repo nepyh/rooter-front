@@ -46,6 +46,16 @@ export const getResultNotice = (result: TaskQuizResult) => {
 };
 
 /**
+ * 재도전까지 남은 시간 안내 문구 (예: "3:21초 남음"). 초는 올려서 보여줘, 대기가 끝나기 전에 0:00 이 되지 않음
+ * @param remainingMs 남은 시간(ms)
+ */
+export const formatRetryRemaining = (remainingMs: number) => {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${Math.floor(totalSeconds / 60)}:${seconds}초 남음`;
+};
+
+/**
  * 보기 하나의 표시 상태. 풀이 보기·채점 직후엔 정답·오답을, 풀기 전엔 고른 보기를 표시
  * @param choiceId 보기 ID
  * @param selectedChoiceId 지금 문제에서 고른 보기 ID

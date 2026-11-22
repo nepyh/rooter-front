@@ -1,11 +1,24 @@
 import { ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Stack, Text, Input, Button, MorePageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField, Toast } from "@/components";
+import { Stack, Text, Input, Button, PageHeader, MenuGroup, MenuRow, ProfileAvatar, ReadOnlyField, Toast } from "@/components";
 import { useProfile } from "@/hooks/more/useProfile";
 import { useLogout } from "@/hooks/more/useLogout";
 import { formatGradeClass } from "@/utils/more/profile";
 import { getSpacing } from "@/utils/common/token";
+
+// ================================
+// Constants
+// ================================
+
+const TOAST_MESSAGES: Record<string, string> = {
+  "password-changed": "비밀번호가 변경되었습니다.",
+  "school-updated": "학교 정보가 수정되었습니다.",
+};
+
+// ================================
+// Components
+// ================================
 
 /**
  * 프로필 화면
@@ -22,7 +35,7 @@ export default function ProfilePage() {
   return (
     <View className="flex-1">
       <StatusBar style="light" />
-      <MorePageHeader title="프로필" />
+      <PageHeader title="프로필" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: getSpacing("spacing-9") }}>
         <Stack width="full" className="items-center pt-spacing-5">
@@ -47,14 +60,15 @@ export default function ProfilePage() {
         </Stack>
 
         <MenuGroup className="mt-spacing-9">
+          <MenuRow label="학교 정보 수정" onPress={() => router.push("/More/SchoolEdit")} />
           <MenuRow label="비밀번호 변경" onPress={() => router.push("/More/ChangePassword")} />
           <MenuRow label="로그아웃" onPress={handleLogout} />
         </MenuGroup>
       </ScrollView>
 
       <Button variant="primary" onPress={handleSave} className="mt-spacing-5">수정하기</Button>
-      {toast === "password-changed" && (
-        <Toast text="비밀번호가 변경되었습니다." onClose={() => router.setParams({ toast: undefined })} />
+      {!!toast && TOAST_MESSAGES[toast] && (
+        <Toast text={TOAST_MESSAGES[toast]} onClose={() => router.setParams({ toast: undefined })} />
       )}
     </View>
   );

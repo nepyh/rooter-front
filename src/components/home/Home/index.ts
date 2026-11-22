@@ -3,6 +3,7 @@ export { PlanTimeline } from "./PlanTimeline";
 export { NeighborPage } from "./NeighborPage";
 export { HourLines } from "./HourLines";
 export { BusyBlockView } from "./BusyBlockView";
+export { CollapsedDots } from "./CollapsedDots";
 export { PlanBlock } from "./PlanBlock";
 export { PlanBlockCard } from "./PlanBlockCard";
 export { PlanBlockText } from "./PlanBlockText";

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Gesture, GestureDetector, type NativeGesture } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
 import type { AnimatedRef } from "react-native-reanimated";
 import { HourLines } from "./HourLines";
 import { BusyBlockView } from "./BusyBlockView";
@@ -8,6 +8,7 @@ import { PlanBlock } from "./PlanBlock";
 import { CurrentTimeLine } from "./CurrentTimeLine";
 import { ActionMenu } from "./ActionMenu";
 import {
+  TIMELINE_BOTTOM_PADDING,
   TIMELINE_HEIGHT,
   TIMELINE_LEFT,
   layoutColumns,
@@ -21,18 +22,12 @@ import { formatClock } from "@/utils/common/time";
 import { useAutoScroll } from "@/hooks/home/useAutoScroll";
 
 // ================================
-// Constants
-// ================================
-
-const TIMELINE_BOTTOM_PADDING = 140;
-
-// ================================
 // Components
 // ================================
 
 interface Props {
   scrollRef: AnimatedRef<ScrollView>;
-  pagerGesture: NativeGesture;
+  pagerGesture: GestureType;
   dateKey: string;
   busyBlocks: BusyBlock[];
   plans: Plan[];
@@ -44,6 +39,7 @@ interface Props {
   onDragStart: (plan: Plan, mode: DragMode) => void;
   onDragMove: (plan: Plan, start: number, duration: number) => void;
   onDropPlan: (plan: Plan, start: number, duration: number) => void;
+  onDropBusy: (block: BusyBlock, start: number, duration: number) => void;
   onDismissMenu: () => void;
   onComplete: (plan: Plan) => void;
   onFail: (plan: Plan) => void;
@@ -57,6 +53,7 @@ interface Props {
  * 하루 24시간 세로 타임라인. 시간 눈금, 바쁜 시간, 계획 블록, 현재 시각 선, 액션 메뉴를 겹쳐 그림
  * 겹치는 계획·바쁜 시간은 칸을 나눠 나란히 놓음. 계획을 끄는 동안에는 지금 놓을 자리 기준으로 칸을 다시 나눠 주변 블록이 비켜 줌
  * 계획을 끌다가 손가락이 위·아래 끝에 가까워지면 저절로 스크롤함
+ * 수면·식사 블록도 꾹 눌러 끌 수 있음 (놓은 뒤 저장은 바깥에서)
  * @param scrollRef 세로 ScrollView 의 animated ref, 바깥(useTimelineScroll)의 스크롤과 자동 스크롤이 함께 씀
  * @param pagerGesture 날짜를 넘기는 가로 ScrollView 의 제스처, 계획 블록을 꾹 누른 동안 막을 때 씀
  * @param dateKey 보고 있는 날짜 (YYYY-MM-DD), 날짜가 바뀌면 타임라인을 새로 그림
@@ -70,6 +67,7 @@ interface Props {
  * @param onDragStart 계획 블록을 옮기거나 손잡이로 길이를 바꾸기 시작했을 때 호출
  * @param onDragMove 끄는 동안 놓을 자리가 SNAP_MIN 단위로 바뀔 때마다 새 시작 위치·길이(분)와 함께 호출
  * @param onDropPlan 끌던 계획 블록을 놓았을 때 새 시작 위치·길이(분)와 함께 호출
+ * @param onDropBusy 끌던 수면·식사 블록을 놓았을 때 새 시작 위치·길이(분)와 함께 호출
  * @param onDismissMenu 옮길 준비가 된 계획이 있을 때 바탕이나 다른 블록을 눌렀을 때 호출
  * @param onComplete 액션 메뉴의 완료를 눌렀을 때 호출
  * @param onFail 액션 메뉴의 실패를 눌렀을 때 호출
@@ -92,6 +90,7 @@ export function PlanTimeline({
   onDragStart,
   onDragMove,
   onDropPlan,
+  onDropBusy,
   onDismissMenu,
   onComplete,
   onFail,
@@ -139,7 +138,16 @@ export function PlanTimeline({
             onLayout={(e) => setAreaWidth(e.nativeEvent.layout.width)}
           >
             {areaWidth > 0 && busyBlocks.map((block) => (
-              <BusyBlockView key={block.key} block={block} {...columnOf(`busy:${block.key}`)} areaWidth={areaWidth} />
+              <BusyBlockView
+                key={block.key}
+                block={block}
+                {...columnOf(`busy:${block.key}`)}
+                areaWidth={areaWidth}
+                scrollGestures={scrollGestures}
+                autoScroll={autoScroll}
+                onPress={onDismissMenu}
+                onDrop={onDropBusy}
+              />
             ))}
             {areaWidth > 0 && plans.map((plan) => (
               <PlanBlock

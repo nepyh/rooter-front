@@ -10,21 +10,21 @@ import { useUserStore } from "@/store";
 
 /**
  * 공부 스타일 설문 안내 화면
- * plan 이 있으면 플랜 생성 중 안내라, 건너뛰면 설문 없이 플랜 생성 화면으로 넘어감
+ * from 이 AccountSetting 이면 계정 설정에서 시작한 설문이라, 건너뛰면 학생 프로필 저장 없이 홈으로 넘어감
  */
 export default function StudySurveyIntro() {
-  const { school, schoolId, grade, classNum, plan } = useLocalSearchParams<{
+  const { school, schoolId, grade, classNum, from } = useLocalSearchParams<{
     school: string;
     schoolId: string;
     grade: string;
     classNum: string;
-    plan?: string;
+    from?: "AccountSetting";
   }>();
   const userId = useUserStore((state) => state.userId);
 
   const handleSkip = () => {
-    if (plan) {
-      router.push({ pathname: "/Home/PlanGeneratingPage", params: { plan } });
+    if (from === "AccountSetting") {
+      router.replace("/Home/Home");
       return;
     }
 
@@ -33,7 +33,7 @@ export default function StudySurveyIntro() {
   };
 
   const handleStart = () => {
-    router.push({ pathname: "/LearningSurvey/StudySurveyQuestion", params: { school, schoolId, grade, classNum, plan, step: "1", answers: "" } });
+    router.push({ pathname: "/LearningSurvey/StudySurveyQuestion", params: { school, schoolId, grade, classNum, from, step: "1", answers: "" } });
   };
 
   return (

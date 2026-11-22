@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { BackHandler, TextInput } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { AuthScreen, SchoolSearchInput, ClassInfoInputs, SchoolInquiryLink, Stack, Button } from "@/components";
+import { AuthScreen, SchoolSearchInput, ClassInfoInputs, SchoolInquiryLink, Stack, Button, Toast } from "@/components";
 import type { School } from "@/api/auth/SchoolSelect";
 import { useLogout } from "@/hooks/more/useLogout";
+import { useInquiry } from "@/hooks/common/useInquiry";
 
 // ================================
 // Components
@@ -22,6 +23,7 @@ export default function SchoolSelect() {
 
   const schoolRef = useRef<TextInput>(null);
   const logout = useLogout();
+  const inquiry = useInquiry();
 
   // 안드로이드 뒤로가기도 헤더 뒤로가기(app/Auth/_layout.tsx)와 똑같이 로그아웃
   useFocusEffect(useCallback(() => {
@@ -70,7 +72,8 @@ export default function SchoolSelect() {
       footer={
         <Stack gap="l" width="full">
           <Button variant={btnVariant} onPress={handleComplete}> 선택 완료 </Button>
-          {!selected && <SchoolInquiryLink />}
+          {!selected && <SchoolInquiryLink onPress={() => inquiry.open("school")} />}
+          {!!inquiry.errorMessage && <Toast text={inquiry.errorMessage} onClose={inquiry.clearError} />}
         </Stack>
       }
     >

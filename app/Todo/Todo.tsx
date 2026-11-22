@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import Animated, { SlideInRight } from "react-native-reanimated";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Row, Stack, Text, Toast, LoadingView, WeekDateStrip, TaskList, TodayButton, type TaskRowStatus } from "@/components";
 import type { PlanTask } from "@/api/common/planBoard";
 import { useNow } from "@/hooks/common/useNow";
+import { useOpenTaskQuiz } from "@/hooks/common/useOpenTaskQuiz";
 import { useWeeklyTasks } from "@/hooks/todo/useWeeklyTasks";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { isSameDay, toLocalDateString } from "@/utils/common/date";
@@ -28,6 +29,7 @@ export default function TodoPage() {
   const centerDate = date ? parseDateString(date) : now;
   const selectedKey = toLocalDateString(selectedDate);
   const { loaded, tasks, isError, isPlaceholder } = useWeeklyTasks(selectedKey);
+  const openTaskQuiz = useOpenTaskQuiz();
   // 새 주를 불러오는 중에는 빈 목록이어도 '계획 없음'을 띄우지 않음 (주를 넘길 때 깜빡임 방지)
   const emptyMessage = isError ? "할 일을 불러오지 못했어요" : tasks.length === 0 && !isPlaceholder ? "현재 계획이 없어요" : null;
   const allFailed = tasks.length > 0 && tasks.every((task) => isTaskFailed(task, selectedKey));
@@ -47,7 +49,7 @@ export default function TodoPage() {
       setShowNotStartedNotice(true);
       return;
     }
-    router.push({ pathname: "/Quiz/QuizPage", params: { taskId: String(task.id), dailyPlanId: String(task.dailyPlanId), date: selectedKey, startTime: task.startTime } });
+    openTaskQuiz({ taskId: String(task.id), dailyPlanId: String(task.dailyPlanId), date: selectedKey, startTime: task.startTime });
   };
 
   return (

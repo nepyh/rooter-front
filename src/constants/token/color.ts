@@ -95,13 +95,18 @@ export const color = {
   busy: {
     "sleep-bar": "#6B7A99",
     "sleep-bg": "#6B7A9926",
+    "sleep-focus": "#6B7A9966",
     "school-bar": "#998F7A",
     "school-bg": "#998F7A26",
+    "school-focus": "#998F7A66",
   },
   quiz: {
     "result-bottom": "#55393B",
     "score-top": "#9D3F37",
     "score-bottom": "#5B383F",
+  },
+  onboarding: {
+    "gradient-top": "#3F3333",
   },
   chat: {
     "gradient-bottom": "#3F3333",

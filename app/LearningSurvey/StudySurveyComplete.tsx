@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Button, SurveyMessageScreen } from "@/components";
 
 // ================================
@@ -9,8 +9,10 @@ import { Button, SurveyMessageScreen } from "@/components";
  * 공부 스타일 분석 완료 화면
  */
 export default function StudySurveyComplete() {
+  const { from } = useLocalSearchParams<{ from?: "AccountSetting" }>();
+
   const handleNext = () => {
-    router.replace({ pathname: "/Home/Home", params: { toast: "success" } });
+    router.replace({ pathname: "/Home/Home", params: { toast: from === "AccountSetting" ? "study-survey-completed" : "success" } });
   };
 
   return (
