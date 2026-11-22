@@ -78,7 +78,7 @@ export function Button({ variant = "primary", width = "full", icon, children, cl
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       className={`
-        py-spacing-6 flex-row gap-spacing-4 items-center justify-center rounded-radius-3
+        h-spacing-12 flex-row gap-spacing-4 items-center justify-center rounded-radius-4
         ${widthStyles[width]}
         ${pressed ? variantStyles[variant].pressed : variantStyles[variant].default}
         ${className}
