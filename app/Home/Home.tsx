@@ -84,7 +84,19 @@ export default function Home() {
     setActiveId(null);
     setDayOffset((prev) => prev + delta);
   };
-  const pager = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
+  const {
+    pagerRef,
+    pagerGesture,
+    pagerScrollEnabled,
+    pageWidth,
+    setPageWidth,
+    neighborOffset,
+    neighborDeltas,
+    goToday,
+    handlePagerBeginDrag,
+    handlePagerScroll,
+    handlePagerEnd,
+  } = useDayPager(dayOffset, moveDay, timeline.scrollYRef);
   const neighborDate = (delta: number) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + delta);
 
   const activePlan = coloredPlans.find((plan) => plan.id === activeId) ?? null;
@@ -202,7 +214,7 @@ export default function Home() {
         planLoaded={!boardsPending}
         examTitle={representative?.title ?? null}
         examDDay={examDDay}
-        onPressToday={pager.goToday}
+        onPressToday={goToday}
         onPressDDay={() => router.push("/Home/PlanListPage")}
       />
 
@@ -210,26 +222,26 @@ export default function Home() {
         {hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
           <EmptyPlanNotice onCreate={startPlanCreation} onClose={() => setEmptyNoticeClosed(true)} />
         )}
-        <View className="flex-1 -mx-spacing-7" onLayout={(e) => pager.setPageWidth(e.nativeEvent.layout.width)}>
-          {pager.pageWidth > 0 && (
-            <GestureDetector gesture={pager.pagerGesture}>
+        <View className="flex-1 -mx-spacing-7" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
+          {pageWidth > 0 && (
+            <GestureDetector gesture={pagerGesture}>
               <ScrollView
-                ref={pager.pagerRef}
+                ref={pagerRef}
                 horizontal
                 pagingEnabled
-                scrollEnabled={pager.pagerScrollEnabled}
+                scrollEnabled={pagerScrollEnabled}
                 showsHorizontalScrollIndicator={false}
-                contentOffset={{ x: pager.pageWidth, y: 0 }}
+                contentOffset={{ x: pageWidth, y: 0 }}
                 scrollEventThrottle={16}
-                onScrollBeginDrag={pager.handlePagerBeginDrag}
-                onScroll={pager.handlePagerScroll}
-                onMomentumScrollEnd={pager.handlePagerEnd}
+                onScrollBeginDrag={handlePagerBeginDrag}
+                onScroll={handlePagerScroll}
+                onMomentumScrollEnd={handlePagerEnd}
               >
-                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.prev)} now={now} />
-                <View className="px-spacing-7" style={{ width: pager.pageWidth }}>
+                <NeighborPage width={pageWidth} offset={neighborOffset} date={neighborDate(neighborDeltas.prev)} now={now} />
+                <View className="px-spacing-7" style={{ width: pageWidth }}>
                   <PlanTimeline
                     scrollRef={timeline.scrollRef}
-                    pagerGesture={pager.pagerGesture}
+                    pagerGesture={pagerGesture}
                     dateKey={selectedKey}
                     busyBlocks={busyBlocks}
                     plans={coloredPlans}
@@ -250,7 +262,7 @@ export default function Home() {
                     onViewportHeight={timeline.handleViewportHeight}
                   />
                 </View>
-                <NeighborPage width={pager.pageWidth} offset={pager.neighborOffset} date={neighborDate(pager.neighborDeltas.next)} now={now} />
+                <NeighborPage width={pageWidth} offset={neighborOffset} date={neighborDate(neighborDeltas.next)} now={now} />
               </ScrollView>
             </GestureDetector>
           )}
