@@ -257,7 +257,10 @@ export default function Home() {
         </View>
       </View>
 
-      <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
+      {/* 계획 메뉴가 열려 있거나 끄는 동안에는 24시 근처 블록·메뉴를 가리지 않도록 숨김 */}
+      {!activePlan && !dragPreview && (
+        <FloatingActions onPressAdd={() => setShowAddMenu(true)} onPressAiChat={handleOpenAiChat} />
+      )}
 
       {editingPlan && <EditModal plan={editingPlan} onClose={() => setEditingId(null)} onSave={handleEditSave} />}
 

@@ -1,6 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Row } from "../../layout";
 import { Icon } from "@/assets";
+import { FLOATING_ACTIONS_BOTTOM } from "@/utils/home/timeline";
 
 // ================================
 // Components
@@ -18,7 +19,7 @@ interface Props {
  */
 export function FloatingActions({ onPressAdd, onPressAiChat }: Props) {
   return (
-    <View className="absolute self-center items-center" style={{ bottom: 96 }}>
+    <View className="absolute self-center items-center" style={{ bottom: FLOATING_ACTIONS_BOTTOM }}>
       <Row gap="none" className="bg-neutral-700 border border-neutral-600 rounded-radius-full p-spacing-2 items-center">
         <Pressable onPress={onPressAdd} className="p-spacing-4 rounded-radius-full items-center justify-center">
           <Icon name="plus" size={20} />

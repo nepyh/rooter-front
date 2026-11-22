@@ -8,6 +8,7 @@ import { PlanBlock } from "./PlanBlock";
 import { CurrentTimeLine } from "./CurrentTimeLine";
 import { ActionMenu } from "./ActionMenu";
 import {
+  TIMELINE_BOTTOM_PADDING,
   TIMELINE_HEIGHT,
   TIMELINE_LEFT,
   layoutColumns,
@@ -19,12 +20,6 @@ import {
 } from "@/utils/home/timeline";
 import { formatClock } from "@/utils/common/time";
 import { useAutoScroll } from "@/hooks/home/useAutoScroll";
-
-// ================================
-// Constants
-// ================================
-
-const TIMELINE_BOTTOM_PADDING = 140;
 
 // ================================
 // Components
