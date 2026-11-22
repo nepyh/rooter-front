@@ -21,6 +21,7 @@ import { useOpenTaskQuiz } from "@/hooks/common/useOpenTaskQuiz";
 import { useDayPager } from "@/hooks/home/useDayPager";
 import { usePlans } from "@/hooks/home/usePlans";
 import { useDaySchedule } from "@/hooks/home/useDaySchedule";
+import { useBusyEdit } from "@/hooks/home/useBusyEdit";
 import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { usePlanDraftStore, useUIStore } from "@/store";
@@ -74,6 +75,7 @@ export default function Home() {
 
   const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
   const { busyBlocks } = useDaySchedule(selectedKey);
+  const busyEdit = useBusyEdit(selectedDate);
   const { boards, representative, isPending: boardsPending, isError: boardsError } = usePlanBoards();
   const hasNoPlanBoard = !boardsPending && !boardsError && boards.length === 0;
   const examDDay = representative ? getDDay(getPlanExamDate(representative), now) : null;
@@ -231,7 +233,7 @@ export default function Home() {
                     scrollRef={timeline.scrollRef}
                     pagerGesture={pager.pagerGesture}
                     dateKey={selectedKey}
-                    busyBlocks={busyBlocks}
+                    busyBlocks={busyEdit.applyDrop(busyBlocks)}
                     plans={coloredPlans}
                     currentTime={isToday ? now : null}
                     activePlan={activePlan}
@@ -241,6 +243,7 @@ export default function Home() {
                     onDragStart={(plan, mode) => setDragPreview({ id: plan.id, mode, start: plan.start, duration: plan.duration })}
                     onDragMove={(plan, start, duration) => setDragPreview((prev) => prev && { ...prev, start, duration })}
                     onDropPlan={handleDropPlan}
+                    onDropBusy={busyEdit.requestDrop}
                     onDismissMenu={() => setActiveId(null)}
                     onComplete={handleComplete}
                     onFail={handleFail}
@@ -278,6 +281,17 @@ export default function Home() {
           onConfirm={confirmFail}
         />
       )}
+
+      {busyEdit.confirmMessage && (
+        <ConfirmDeleteModal
+          title={busyEdit.confirmMessage.title}
+          description={busyEdit.confirmMessage.description}
+          confirmText="바꾸기"
+          onCancel={busyEdit.cancel}
+          onConfirm={busyEdit.confirm}
+        />
+      )}
+      {!!busyEdit.error && <Toast text={busyEdit.error} onClose={busyEdit.clearError} />}
 
       {deleteToast && <Toast text={deleteToast} onClose={() => setDeleteToast(null)} />}
       {showNotStartedNotice && <Toast text={TASK_NOT_STARTED_MESSAGE} onClose={() => setShowNotStartedNotice(false)} />}
