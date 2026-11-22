@@ -6,7 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { Text, LoadingView, BackHeader, PageTitle, ChapterList } from "@/components";
 import type { ChapterTree, TextbookDetail } from "@/api/home/common/catalog";
 import { getTextbookDetails } from "@/api/home/ChapterSelectPage";
-import { flattenLeaves, toSubjectEntries } from "@/utils/home/chapter";
+import { flattenLeaves, toggleLeaves, toSubjectEntries } from "@/utils/home/chapter";
 import { usePlanDraftStore } from "@/store";
 import { color } from "@/constants/token/color";
 
@@ -67,8 +67,8 @@ export default function ChapterSelectPage() {
       .finally(() => setLoadingChapters(false));
   }, [textbookIds]);
 
-  const handleToggleLeaf = (id: number) => {
-    const next = toggleInSet(selectedIds, id);
+  const handleToggleLeaves = (ids: number[]) => {
+    const next = toggleLeaves(selectedIds, ids);
     setSelectedIds(next);
     textbooks.forEach((tb) => setTextbookSubjects(tb.id, toSubjectEntries(tb.id, leavesByTextbook[tb.id] ?? [], next)));
   };
@@ -107,7 +107,7 @@ export default function ChapterSelectPage() {
             expandedIds={expandedIds}
             onToggleExpand={(id) => setExpandedIds((prev) => toggleInSet(prev, id))}
             selectedIds={selectedIds}
-            onToggleLeaf={handleToggleLeaf}
+            onToggleLeaves={handleToggleLeaves}
           />
         )}
       </View>
