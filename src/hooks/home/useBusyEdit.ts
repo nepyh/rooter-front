@@ -64,16 +64,15 @@ export function useBusyEdit(date: Date) {
     if (!drop || userId === null || saving) return;
     setConfirming(false);
     setSaving(true);
+    const save = drop.block.edit?.target === "sleep" ? saveSleep : saveMeal;
     try {
-      if (drop.block.edit?.target === "sleep") await saveSleep(drop, userId);
-      else await saveMeal(drop, userId);
+      await save(drop, userId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.busyTimes.all });
     } catch {
       setError("시간을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setDrop(null);
-      setSaving(false);
     }
+    setDrop(null);
+    setSaving(false);
   };
 
   /**
