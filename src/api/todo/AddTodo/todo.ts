@@ -12,9 +12,10 @@ import { DAY_MIN, parseHHmm } from '@/utils/common/time';
  * @param taskName 할 일 이름
  * @param startTime 시작 시간 (HH:MM)
  * @param endTime 종료 시간 (HH:MM)
+ * @param textbookId 고른 교과서 ID. 보내면 서버가 그 교과서의 과목을 할 일에 붙여 퀴즈가 다른 과목으로 나오지 않음, 생략하면 과목 미지정
  */
-export const createTodo = async (date: string, taskName: string, startTime: string, endTime: string) => {
+export const createTodo = async (date: string, taskName: string, startTime: string, endTime: string, textbookId?: number) => {
   const estimatedMinutes = ((parseHHmm(endTime) - parseHHmm(startTime) + DAY_MIN) % DAY_MIN) || DAY_MIN;
   const board = await getOrCreateCurrentPlanBoard();
-  await createPlanTask({ planBoardId: board.id, planDate: date, taskName, startTime, endTime, estimatedMinutes });
+  await createPlanTask({ planBoardId: board.id, planDate: date, taskName, startTime, endTime, estimatedMinutes, textbookId });
 };
