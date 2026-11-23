@@ -15,6 +15,7 @@ import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 import type { TextbookWithSubject } from "./TextbookPicker";
 import { color } from "@/constants/token/color";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/common/planBoard";
+import { getCreateTaskErrorMessage } from "@/api/home/Home";
 import { getSpacing } from "@/utils/common/token";
 
 // ================================
@@ -187,11 +188,13 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
         startTime: formatTimePill(startAt),
         endTime: formatTimePill(endAt),
         estimatedMinutes,
+        // 교과서는 목차 선택을 마칠 때 하나로 바뀌므로(confirmChapters), 고른 목차는 모두 이 교과서의 단원
         textbookId: [...selectedTextbooks.keys()][0],
+        chapterIds: [...selectedChapterIds],
       });
       onCreated();
-    } catch {
-      setError("일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } catch (e) {
+      setError(getCreateTaskErrorMessage(e));
     } finally {
       setSubmitting(false);
     }
