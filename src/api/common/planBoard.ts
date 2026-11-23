@@ -71,6 +71,8 @@ export interface CreatePlanTaskInput {
   endTime: string;
   estimatedMinutes: number;
   textbookId?: number;
+  /** 할 일이 다루는 단원 ID. textbookId 교과서의 단원이어야 하고, 보내면 그 단원에서만 퀴즈가 나옴 */
+  chapterIds?: number[];
 }
 
 export interface UpdatePlanTaskInput {
@@ -199,7 +201,7 @@ export const getWeeklyTasks = async (date?: string): Promise<WeeklyPlan> => {
 
 /**
  * 태스크 생성 API 함수
- * @param input 생성할 태스크 정보, textbookId 를 보내면 서버가 그 교과서의 과목을 태스크에 붙임
+ * @param input 생성할 태스크 정보, textbookId 를 보내면 서버가 그 교과서의 과목을, chapterIds 를 함께 보내면 그 단원을 태스크에 붙임
  */
 export const createPlanTask = async (input: CreatePlanTaskInput): Promise<void> => {
   await api.post('/plan-tasks', input);
