@@ -12,7 +12,9 @@
       "bundleIdentifier": "io.github.nepyh.rooter",
       "infoPlist": {
         "NSBonjourServices": ["_expo._tcp", "_expo._tcp"],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDevelopmentRegion": "ko",
+        "CFBundleLocalizations": ["ko"]
       }
     },
     "android": {
