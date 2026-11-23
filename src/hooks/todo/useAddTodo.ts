@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createTodo } from "@/api/todo/AddTodo";
 import { invalidatePlanQueries } from "@/api/queryClient";
 import { normalizeClock } from "@/utils/common/time";
+import type { TextbookWithSubject } from "@/components/home/Home/TextbookPicker";
 
 // ================================
 // Hooks
@@ -10,12 +11,14 @@ import { normalizeClock } from "@/utils/common/time";
 /**
  * useAddTodo — 할 일 추가 입력값 관리와 제출
  * @param date 할 일 날짜 (yyyy-MM-dd)
- * @returns title, setTitle, startText, setStartText, endText, setEndText, error, canSubmit, submit(성공 여부를 돌려줌)
+ * 과목(교과서)은 고르지 않아도 추가할 수 있고, 고르면 그 과목으로 퀴즈가 나오도록 서버에 함께 보냄
+ * @returns title, setTitle, startText, setStartText, endText, setEndText, textbook, setTextbook, error, canSubmit, submit(성공 여부를 돌려줌)
  */
 export function useAddTodo(date: string | undefined) {
   const [title, setTitle] = useState("");
   const [startText, setStartText] = useState("");
   const [endText, setEndText] = useState("");
+  const [textbook, setTextbook] = useState<TextbookWithSubject | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,7 +37,7 @@ export function useAddTodo(date: string | undefined) {
     setError("");
     setSubmitting(true);
     try {
-      await createTodo(date, title.trim(), startTime, endTime);
+      await createTodo(date, title.trim(), startTime, endTime, textbook?.id);
       invalidatePlanQueries();
       return true;
     } catch {
@@ -45,5 +48,5 @@ export function useAddTodo(date: string | undefined) {
     }
   };
 
-  return { title, setTitle, startText, setStartText, endText, setEndText, error, canSubmit, submit };
+  return { title, setTitle, startText, setStartText, endText, setEndText, textbook, setTextbook, error, canSubmit, submit };
 }
