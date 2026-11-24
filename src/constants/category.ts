@@ -4,7 +4,7 @@ import { color } from "@/constants/token/color";
 // Types
 // ================================
 
-export type Category = "korean" | "math" | "english" | "science" | "social" | "neutral";
+export type Category = "korean" | "math" | "english" | "science" | "social" | "ethics" | "history" | "hanja" | "neutral";
 
 // ================================
 // Constants
@@ -48,6 +48,24 @@ export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string; focus:
     focus: color.label["yellow-focus"],
     muted: color.label["yellow-muted"],
   },
+  ethics: {
+    bar: color.label["pink-primary"],
+    bg: color.label["pink-overlay"],
+    focus: color.label["pink-focus"],
+    muted: color.label["pink-muted"],
+  },
+  history: {
+    bar: color.label["purple-primary"],
+    bg: color.label["purple-overlay"],
+    focus: color.label["purple-focus"],
+    muted: color.label["purple-muted"],
+  },
+  hanja: {
+    bar: color.label["lightblue-primary"],
+    bg: color.label["lightblue-overlay"],
+    focus: color.label["lightblue-focus"],
+    muted: color.label["lightblue-muted"],
+  },
   neutral: {
     bar: color.label["grey-primary"],
     bg: color.label["grey-overlay"],
@@ -67,4 +85,7 @@ export const SUBJECT_CATEGORIES: Record<string, Category> = {
   "영어": "english",
   "과학": "science",
   "사회": "social",
+  "도덕": "ethics",
+  "역사": "history",
+  "한문": "hanja",
 };

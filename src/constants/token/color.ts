@@ -91,6 +91,10 @@ export const color = {
     "pink-overlay": "#FF81C426",
     "pink-focus": "#FF81C466",
     "pink-muted": "#D26FA5",
+    "purple-primary": "#B281FF",
+    "purple-overlay": "#B281FF26",
+    "purple-focus": "#B281FF66",
+    "purple-muted": "#A27BD2",
   },
   busy: {
     "sleep-bar": "#6B7A99",

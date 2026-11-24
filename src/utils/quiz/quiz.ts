@@ -20,6 +20,9 @@ export const SUBJECT_LABELS: Partial<Record<Category, string>> = {
   "english": "영어",
   "science": "과학",
   "social": "사회",
+  "ethics": "도덕",
+  "history": "역사",
+  "hanja": "한문",
 };
 
 const CORRECT_MESSAGES = ["정답이에요!", "훌륭한걸요?", "좋아요!!", "완벽해요!", "잘했어요!", "정확해요!", "역시 대단해요!", "이대로만 가요!"];
