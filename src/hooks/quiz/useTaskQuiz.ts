@@ -14,6 +14,8 @@ import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { hasTaskStarted } from "@/utils/common/time";
 import { getOptionState, pickCorrectMessage } from "@/utils/quiz/quiz";
 
+const CORRECT_MESSAGE_FALLBACK = "정답이에요!";
+
 // ================================
 // Types
 // ================================
@@ -57,7 +59,8 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
   const [explanationOpenId, setExplanationOpenId] = useState<number | null>(null);
   const [result, setResult] = useState<TaskQuizResult | null>(null);
   const prefetchRef = useRef<Promise<TaskQuiz> | null>(null);
-  const correctMessagesRef = useRef<Record<number, string>>({});
+  // 맞힌 문제마다 칭찬 문구를 한 번만 골라 둠
+  const [correctMessages, setCorrectMessages] = useState<Record<number, string>>({});
 
   const questions = quiz?.questions ?? [];
   const current = questions[currentIndex];
@@ -78,11 +81,6 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     prefetchRef.current = request;
     request.then((data) => setServerSubject(data.subject?.subjectName ?? null)).catch(() => {});
   }, [taskId, startDate, startTime]);
-
-  const getCorrectMessage = (questionId: number) => {
-    if (correctMessagesRef.current[questionId] === undefined) correctMessagesRef.current[questionId] = pickCorrectMessage();
-    return correctMessagesRef.current[questionId];
-  };
 
   const submit = async (id: number) => {
     setChecking(true);
@@ -156,6 +154,7 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     try {
       const grade = await answerTaskQuizQuestion(quiz.planTaskId, current.id, selectedChoiceId);
       setGraded((prev) => ({ ...prev, [current.id]: grade }));
+      if (grade.isCorrect) setCorrectMessages((prev) => ({ ...prev, [current.id]: pickCorrectMessage() }));
     } catch (e) {
       if (isAlreadyAnswered(e)) next();
       else setError(getQuizErrorMessage(e, "채점하지 못했습니다. 잠시 후 다시 시도해주세요."));
@@ -181,7 +180,7 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     : currentGrade
       ? explanationOpen
         ? gradeExplanation
-        : currentGrade.isCorrect ? getCorrectMessage(current?.id ?? currentIndex) : currentGrade.reason ?? "아쉽지만 오답이에요."
+        : currentGrade.isCorrect ? correctMessages[current?.id ?? currentIndex] ?? CORRECT_MESSAGE_FALLBACK : currentGrade.reason ?? "아쉽지만 오답이에요."
       : null;
 
   return {
