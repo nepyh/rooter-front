@@ -21,7 +21,7 @@ import {
   updateChatTurnFeedback,
   type ChatSession,
 } from "@/api/home/Home/chat";
-import { getChatFeedbackErrorMessage, getChatSendErrorMessage } from "@/api/home/Home/errors";
+import { getChatFeedbackErrorMessage, getChatSendErrorMessage, isChatMessageTooLong } from "@/api/home/Home/errors";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 import { parseServerDateTime } from "@/utils/common/date";
@@ -268,7 +268,8 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     if (!text || sending || loadingTurns || creatingSession) return;
 
     const userMessage = createMessage("user", text);
-    if (messages.length === 0 && !currentSession?.title) setDraftTitle(text);
+    const setsDraftTitle = messages.length === 0 && !currentSession?.title;
+    if (setsDraftTitle) setDraftTitle(text);
     appendMessage(userMessage);
     setInput("");
 
@@ -305,7 +306,16 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     } catch (error) {
       const isNewSession = sessionId !== null && sessionId !== currentSessionId;
       if (sessionId !== null && (wasEmptySession || isNewSession)) keepFailedSession(sessionId, requestId);
-      if (requestId === turnsRequestRef.current) appendMessage(createMessage("assistant", getChatSendErrorMessage(error)));
+      if (requestId !== turnsRequestRef.current) return;
+      // 너무 길어 거절된 메시지는 보낸 적 없는 것으로 되돌려, 입력한 글을 줄여서 다시 보낼 수 있게 함
+      if (isChatMessageTooLong(error)) {
+        setMessages((prev) => prev.filter((message) => message.id !== userMessage.id));
+        if (setsDraftTitle) setDraftTitle(null);
+        setInput((current) => current || text);
+        setErrorMessage(getChatSendErrorMessage(error));
+        return;
+      }
+      appendMessage(createMessage("assistant", getChatSendErrorMessage(error)));
     } finally {
       setSending(false);
     }

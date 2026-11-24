@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { CHAT_MESSAGE_MAX_LENGTH } from "@/constants/chat";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 
 // ================================
@@ -42,8 +43,11 @@ export const getFailErrorMessage = (error: unknown) => {
   return FAIL_ERROR_MESSAGES[code] ?? DEFAULT_FAIL_ERROR_MESSAGE;
 };
 
+const CHAT_MESSAGE_TOO_LONG = "CHAT_MESSAGE_TOO_LONG";
+
 const CHAT_SEND_ERROR_MESSAGES: Record<string, string> = {
   "CHAT_SESSION_NOT_FOUND": "삭제되었거나 찾을 수 없는 대화예요. 새 채팅에서 다시 물어봐주세요.",
+  [CHAT_MESSAGE_TOO_LONG]: `메시지는 ${CHAT_MESSAGE_MAX_LENGTH}자까지 보낼 수 있어요.`,
 };
 
 const DEFAULT_CHAT_SEND_ERROR_MESSAGE = "답변을 받지 못했어요. 잠시 후 다시 시도해주세요.";
@@ -63,6 +67,13 @@ export const getChatSendErrorMessage = (error: unknown) => {
   const code = axios.isAxiosError(error) ? error.response?.data?.code : undefined;
   return CHAT_SEND_ERROR_MESSAGES[code] ?? DEFAULT_CHAT_SEND_ERROR_MESSAGE;
 };
+
+/**
+ * 메시지가 서버 한도(500자)를 넘어 거절됐는지. 붙여넣기 등으로 입력창 제한을 넘긴 경우
+ * @param error sendChatMessage() 가 던진 에러
+ */
+export const isChatMessageTooLong = (error: unknown) =>
+  axios.isAxiosError(error) && error.response?.data?.code === CHAT_MESSAGE_TOO_LONG;
 
 /**
  * 챗봇 답변 좋아요/싫어요 실패 에러를 안내 문구로 변환 (백엔드 code 기준)
