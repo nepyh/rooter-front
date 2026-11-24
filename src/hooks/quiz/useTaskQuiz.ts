@@ -14,6 +14,10 @@ import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { hasTaskStarted } from "@/utils/common/time";
 import { getOptionState, pickCorrectMessage } from "@/utils/quiz/quiz";
 
+// ================================
+// Constants
+// ================================
+
 const CORRECT_MESSAGE_FALLBACK = "정답이에요!";
 
 // ================================
