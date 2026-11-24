@@ -4,7 +4,7 @@ import { color } from "@/constants/token/color";
 // Types
 // ================================
 
-export type Category = "korean" | "math" | "english" | "science" | "social" | "ethics" | "history" | "hanja" | "neutral";
+export type Category = "korean" | "math" | "english" | "science" | "social" | "ethics" | "history" | "hanja" | "info" | "techHome" | "neutral";
 
 // ================================
 // Constants
@@ -66,6 +66,18 @@ export const CATEGORY_COLORS: Record<Category, { bar: string; bg: string; focus:
     focus: color.label["lightblue-focus"],
     muted: color.label["lightblue-muted"],
   },
+  info: {
+    bar: color.label["teal-primary"],
+    bg: color.label["teal-overlay"],
+    focus: color.label["teal-focus"],
+    muted: color.label["teal-muted"],
+  },
+  techHome: {
+    bar: color.label["brown-primary"],
+    bg: color.label["brown-overlay"],
+    focus: color.label["brown-focus"],
+    muted: color.label["brown-muted"],
+  },
   neutral: {
     bar: color.label["grey-primary"],
     bg: color.label["grey-overlay"],
@@ -88,4 +100,6 @@ export const SUBJECT_CATEGORIES: Record<string, Category> = {
   "도덕": "ethics",
   "역사": "history",
   "한문": "hanja",
+  "정보": "info",
+  "기술·가정": "techHome",
 };
