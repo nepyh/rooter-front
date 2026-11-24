@@ -134,18 +134,20 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
   const clearError = useCallback(() => setErrorMessage(""), []);
 
-  const loadSessions = useCallback(async () => {
-    setListStatus((prev) => (prev === "ready" ? prev : "loading"));
-    try {
-      const list = await getChatSessions();
-      setSessions(list);
-      setListStatus("ready");
-      return list;
-    } catch {
-      setListStatus("error");
-      return null;
-    }
-  }, []);
+  const loadSessions = useCallback(
+    () =>
+      getChatSessions()
+        .then((list) => {
+          setSessions(list);
+          setListStatus("ready");
+          return list;
+        })
+        .catch(() => {
+          setListStatus("error");
+          return null;
+        }),
+    [],
+  );
 
   /**
    * 빈 세션을 목록과 서버에서 지움.
@@ -154,10 +156,9 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
    * @param sessionId 지울 세션 ID
    */
   const removeEmptySession = useCallback((sessionId: number) => {
-    const remove = () => {
-      setSessions((prev) => prev.filter((session) => session.id !== sessionId));
-      return deleteChatSession(sessionId);
-    };
+    // 서버에서 지운 뒤 목록에서 뺌
+    const remove = () =>
+      deleteChatSession(sessionId).then(() => setSessions((prev) => prev.filter((session) => session.id !== sessionId)));
 
     if (!failedSessionsRef.current.has(sessionId)) {
       remove().catch(() => {});
@@ -216,9 +217,26 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     [discardEmptySession],
   );
 
-  useEffect(() => {
+  const [wasVisible, setWasVisible] = useState(visible);
+
+  // 열릴 때 바로 그리고 지난 대화 상태를 비움. 닫힐 때는 내려가는 애니메이션이 끝난 뒤에 지움
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) {
       setIsRendered(true);
+      setSessions([]);
+      setListStatus("loading");
+      setCurrentSessionId(null);
+      setDraftTitle(null);
+      setMessages([]);
+      setLoadingTurns(false);
+      setShowList(false);
+      setInput("");
+    }
+  }
+
+  useEffect(() => {
+    if (visible) {
       translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
     } else {
       translateY.value = withTiming(SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
@@ -239,14 +257,6 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
       return;
     }
     const requestId = ++turnsRequestRef.current;
-    setSessions([]);
-    setListStatus("loading");
-    setCurrentSessionId(null);
-    setDraftTitle(null);
-    setMessages([]);
-    setLoadingTurns(false);
-    setShowList(false);
-    setInput("");
     loadSessions().then((list) => {
       const recent = list?.[0];
       if (!recent || requestId !== turnsRequestRef.current) return;
@@ -279,10 +289,13 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     const requestId = turnsRequestRef.current;
     let sessionId = currentSessionId;
     setSending(true);
-    try {
+    const send = async () => {
       if (sessionId === null) sessionId = (await createChatSession()).id;
-      const result = await sendChatMessage(dailyPlanId, text, sessionId);
-      failedSessionsRef.current.delete(sessionId);
+      return sendChatMessage(dailyPlanId, text, sessionId);
+    };
+
+    const applyReply = (result: Awaited<ReturnType<typeof sendChatMessage>>) => {
+      if (sessionId !== null) failedSessionsRef.current.delete(sessionId);
       if (result.planChanged || (result.movedTasks?.length ?? 0) > 0) onPlanChanged?.();
       if (requestId !== turnsRequestRef.current) return;
 
@@ -303,7 +316,9 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
         };
         return [updated, ...prev.filter((session) => session.id !== result.sessionId)];
       });
-    } catch (error) {
+    };
+
+    const handleSendError = (error: unknown) => {
       const isNewSession = sessionId !== null && sessionId !== currentSessionId;
       if (sessionId !== null && (wasEmptySession || isNewSession)) keepFailedSession(sessionId, requestId);
       if (requestId !== turnsRequestRef.current) return;
@@ -316,9 +331,10 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
         return;
       }
       appendMessage(createMessage("assistant", getChatSendErrorMessage(error)));
-    } finally {
-      setSending(false);
-    }
+    };
+
+    await send().then(applyReply).catch(handleSendError);
+    setSending(false);
   };
 
   /**
@@ -350,19 +366,24 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
     feedbackPendingRef.current.add(turnId);
     setTurnFeedback(next);
-    try {
-      const updated = await updateChatTurnFeedback(turnId, next);
-      setTurnFeedback(updated.feedback);
-    } catch (error) {
-      setTurnFeedback(previous);
-      setErrorMessage(getChatFeedbackErrorMessage(error));
-    } finally {
-      feedbackPendingRef.current.delete(turnId);
-    }
+    const run = async () => {
+      try {
+        const updated = await updateChatTurnFeedback(turnId, next);
+        setTurnFeedback(updated.feedback);
+      } catch (error) {
+        setTurnFeedback(previous);
+        setErrorMessage(getChatFeedbackErrorMessage(error));
+      }
+    };
+    await run();
+    feedbackPendingRef.current.delete(turnId);
   };
 
   const handleToggleList = () => {
-    if (!showList) loadSessions();
+    if (!showList) {
+      setListStatus((prev) => (prev === "ready" ? prev : "loading"));
+      loadSessions();
+    }
     setShowList((prev) => !prev);
   };
 
@@ -373,25 +394,27 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
 
     const requestId = ++turnsRequestRef.current;
     setCreatingSession(true);
-    try {
-      const session = await createChatSession();
-      if (requestId !== turnsRequestRef.current) {
-        deleteChatSession(session.id).catch(() => {});
-        return;
+    const run = async () => {
+      try {
+        const session = await createChatSession();
+        if (requestId !== turnsRequestRef.current) {
+          deleteChatSession(session.id).catch(() => {});
+          return;
+        }
+        discardEmptySession(session.id);
+        emptySessionRef.current = session.id;
+        setSessions((prev) => [session, ...prev.filter((item) => item.id !== session.id)]);
+        setCurrentSessionId(session.id);
+        setDraftTitle(null);
+        setMessages([]);
+        setLoadingTurns(false);
+        setInput("");
+      } catch {
+        if (requestId === turnsRequestRef.current) setErrorMessage(CREATE_SESSION_ERROR_MESSAGE);
       }
-      discardEmptySession(session.id);
-      emptySessionRef.current = session.id;
-      setSessions((prev) => [session, ...prev.filter((item) => item.id !== session.id)]);
-      setCurrentSessionId(session.id);
-      setDraftTitle(null);
-      setMessages([]);
-      setLoadingTurns(false);
-      setInput("");
-    } catch {
-      if (requestId === turnsRequestRef.current) setErrorMessage(CREATE_SESSION_ERROR_MESSAGE);
-    } finally {
-      setCreatingSession(false);
-    }
+    };
+    await run();
+    setCreatingSession(false);
   };
 
   const handleSelectSession = (sessionId: number) => {
@@ -409,23 +432,25 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     setShowList(false);
 
     setDeletingAll(true);
-    try {
-      await deleteAllChatSessions();
-      emptySessionRef.current = null;
-      failedSessionsRef.current.clear();
-      turnsRequestRef.current += 1;
-      setSessions([]);
-      setListStatus("ready");
-      setCurrentSessionId(null);
-      setDraftTitle(null);
-      setMessages([]);
-      setLoadingTurns(false);
-      setInput("");
-    } catch {
-      setErrorMessage(DELETE_ALL_ERROR_MESSAGE);
-    } finally {
-      setDeletingAll(false);
-    }
+    const run = async () => {
+      try {
+        await deleteAllChatSessions();
+        emptySessionRef.current = null;
+        failedSessionsRef.current.clear();
+        turnsRequestRef.current += 1;
+        setSessions([]);
+        setListStatus("ready");
+        setCurrentSessionId(null);
+        setDraftTitle(null);
+        setMessages([]);
+        setLoadingTurns(false);
+        setInput("");
+      } catch {
+        setErrorMessage(DELETE_ALL_ERROR_MESSAGE);
+      }
+    };
+    await run();
+    setDeletingAll(false);
   };
 
   const handleSelectSuggestion = (prompt: string) => {
