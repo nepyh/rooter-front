@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
@@ -17,6 +18,7 @@ import { color } from "@/constants/token/color";
 import { createPlanTask, getOrCreateCurrentPlanBoard } from "@/api/common/planBoard";
 import { getCreateTaskErrorMessage } from "@/api/home/Home";
 import { getSpacing } from "@/utils/common/token";
+import { toCoverSource } from "@/utils/home/textbook";
 
 // ================================
 // Types
@@ -287,7 +289,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
                         <Pressable key={textbook.id} onPress={() => setShowTextbookPicker(true)} className="gap-spacing-3 w-[104px]">
                           <View className="w-[104px] h-[134px] rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden">
                             {textbook.coverImageUrl ? (
-                              <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                              <Image source={toCoverSource(textbook.coverImageUrl)} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                             ) : (
                               <Icon name="book" size={32} color={color.neutral["400"]} />
                             )}

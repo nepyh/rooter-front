@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
+import { Image } from "expo-image";
 import { Stack, Row } from "@/components/layout";
 import { Text, LoadingView } from "@/components/ui";
 import { Icon } from "@/assets";
@@ -9,6 +10,7 @@ import { getUserInfo } from "@/api/common/user";
 import { useUserStore } from "@/store";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
+import { toCoverSource } from "@/utils/home/textbook";
 
 // ================================
 // Types
@@ -52,7 +54,7 @@ function TextbookCard({ textbook, selected, onPress }: { textbook: TextbookWithS
         style={{ aspectRatio: 210 / 270, borderWidth: selected ? 2 : 0, borderColor: color.primary["500"] }}
       >
         {textbook.coverImageUrl ? (
-          <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <Image source={toCoverSource(textbook.coverImageUrl)} style={{ width: "100%", height: "100%" }} contentFit="cover" />
         ) : (
           <Icon name="book" size={32} color={color.neutral["400"]} />
         )}
