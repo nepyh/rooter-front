@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Stack } from "../../layout";
@@ -36,19 +36,22 @@ export function AddMenu({ visible, onClose, onFullyClosed, onCreateSchedule, onC
   const translateY = useSharedValue(ADD_MENU_OFFSCREEN_Y);
   const [isRendered, setIsRendered] = useState(visible);
 
+  // 열리면 바로 그리고, 닫힐 때는 내려가는 애니메이션이 끝난 뒤에 지움
+  if (visible && !isRendered) setIsRendered(true);
+
+  const finishClosing = useEffectEvent(() => {
+    setIsRendered(false);
+    onFullyClosed();
+  });
+
   useEffect(() => {
     if (visible) {
-      setIsRendered(true);
       translateY.value = withTiming(0, SLIDE_TIMING);
     } else {
       translateY.value = withTiming(ADD_MENU_OFFSCREEN_Y, SLIDE_TIMING, (finished) => {
-        if (finished) {
-          runOnJS(setIsRendered)(false);
-          runOnJS(onFullyClosed)();
-        }
+        if (finished) runOnJS(finishClosing)();
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, translateY]);
 
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));

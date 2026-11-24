@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { LoadingScreen } from "@/components";
 import { saveStudyStyleAnswers } from "@/api/common";
@@ -29,14 +29,19 @@ export default function StudySurveyLoading() {
   }>();
   const userId = useUserStore((state) => state.userId);
 
-  useEffect(() => {
+  // 들어왔을 때 한 번만 저장하고, 분석하는 척 잠시 기다린 뒤 완료 화면으로 넘어감
+  const saveAnswers = useEffectEvent(() => {
     if (userId !== null && from !== "AccountSetting") saveStudentProfile(userId, schoolId, grade, classNum);
     if (answers) saveStudyStyleAnswers(answers);
-    const timer = setTimeout(() => {
-      router.replace({ pathname: "/LearningSurvey/StudySurveyComplete", params: { from } });
-    }, ANALYZE_MS);
+  });
+  const goComplete = useEffectEvent(() => {
+    router.replace({ pathname: "/LearningSurvey/StudySurveyComplete", params: { from } });
+  });
+
+  useEffect(() => {
+    saveAnswers();
+    const timer = setTimeout(() => goComplete(), ANALYZE_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <LoadingScreen text="공부 스타일 분석 중..." />;

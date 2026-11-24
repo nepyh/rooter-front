@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -65,29 +65,37 @@ export default function PlanGeneratingPage() {
 
   const generate = async () => {
     const { title, description, examStartDate, examEndDate } = usePlanDraftStore.getState();
-    try {
-      const generated = await generatePlan({
-        title: title || (examStartDate ? `${examStartDate} 시험 대비` : "새 학습 계획"),
-        subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
-        examDate: examStartDate ?? undefined,
-        examEndDate: examEndDate !== null && examEndDate !== examStartDate ? examEndDate : undefined,
-      });
-      await Promise.all([
-        description ? updatePlanBoard(generated.planBoardId, { description }).catch(() => {}) : null,
-        setRepresentativeIfMissing(generated.planBoardId).catch(() => {}),
+    const input = {
+      title: title || (examStartDate ? `${examStartDate} 시험 대비` : "새 학습 계획"),
+      subjects: JSON.parse(subjects ?? "[]") as PlanGenerationSubjectInput[],
+      examDate: examStartDate ?? undefined,
+      examEndDate: examEndDate !== null && examEndDate !== examStartDate ? examEndDate : undefined,
+    };
+    // 설명 저장과 대표 플랜 지정은 플랜이 이미 만들어진 뒤라 실패해도 넘어감
+    const finishBoard = (planBoardId: number) =>
+      Promise.all([
+        description ? updatePlanBoard(planBoardId, { description }).catch(() => {}) : null,
+        setRepresentativeIfMissing(planBoardId).catch(() => {}),
       ]);
+
+    try {
+      const generated = await generatePlan(input);
+      await finishBoard(generated.planBoardId);
       invalidatePlanQueries();
-      if (!leftRef.current) router.replace("/Home/Home");
     } catch (error) {
-      if (leftRef.current) return;
-      setFailure(getGenerateFailure(error));
+      if (!leftRef.current) setFailure(getGenerateFailure(error));
+      return;
     }
+    if (!leftRef.current) router.replace("/Home/Home");
   };
 
-  useEffect(() => {
-    // 수면 시간은 처음 들어왔을 때 한 번만 저장하고, 다시 시도할 때는 생성만 다시 요청
+  // 수면 시간은 처음 들어왔을 때 한 번만 저장하고, 다시 시도할 때는 생성만 다시 요청
+  const startGenerating = useEffectEvent(() => {
     saveSleepTime().then(generate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+
+  useEffect(() => {
+    startGenerating();
   }, []);
 
   const goBack = () => {
