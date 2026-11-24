@@ -20,9 +20,8 @@ export function useWithdraw() {
     } catch {
       setVisible(false);
       setErrorMessage("탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setPending(false);
     }
+    setPending(false);
   };
 
   return {

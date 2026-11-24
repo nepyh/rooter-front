@@ -44,8 +44,9 @@ export function useCalendarEvents(startKey: string, endKey: string) {
   const reload = () => queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
 
   const createEvent = async (date: Date, title: string, memo: string) => {
+    const optionalMemo = memo || undefined;
     try {
-      await createCalendarEvent({ title, eventDate: toLocalDateString(date), memo: memo || undefined });
+      await createCalendarEvent({ title, eventDate: toLocalDateString(date), memo: optionalMemo });
       reload();
       return true;
     } catch (error) {

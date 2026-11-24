@@ -28,9 +28,8 @@ export function useAgreementGate() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.agreements.user(userId) });
     } catch {
       setErrorMessage("약관 동의에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setPending(false);
     }
+    setPending(false);
   };
 
   return {
