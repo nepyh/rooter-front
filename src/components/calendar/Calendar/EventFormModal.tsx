@@ -7,6 +7,12 @@ import { Text } from "../../ui/Text";
 import { DismissKeyboardView } from "../../common/DismissKeyboardView";
 
 // ================================
+// Constants
+// ================================
+
+const EVENT_MEMO_MAX_LENGTH = 500;
+
+// ================================
 // Components
 // ================================
 
@@ -22,6 +28,7 @@ interface Props {
 /**
  * 개인 일정 제목·메모를 입력하는 아래쪽 모달 (추가·수정 겸용)
  * 키보드가 올라오면 시트를 키보드 위로 올려 입력칸이 가려지지 않게 함
+ * 메모는 서버 한도에 맞춰 500자까지만 입력됨
  * @param visible 모달을 띄울지
  * @param date 일정 날짜, null 이면 그리지 않음
  * @param initial 열릴 때 채워 둘 제목·메모 (수정할 때)
@@ -50,7 +57,14 @@ export function EventFormModal({ visible, date, initial, submitLabel, onClose, o
           <Stack gap="l" className="bg-background-primary p-spacing-6 rounded-t-radius-4">
             <Text variant="header-medium">{`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${submitLabel}`}</Text>
             <Input label="제목" value={title} onChangeText={setTitle} />
-            <Input label="메모" value={memo} onChangeText={setMemo} multiline style={{ height: 80, textAlignVertical: "top" }} />
+            <Input
+              label="메모"
+              value={memo}
+              onChangeText={setMemo}
+              maxLength={EVENT_MEMO_MAX_LENGTH}
+              multiline
+              style={{ height: 80, textAlignVertical: "top" }}
+            />
             <Row gap="m" width="full">
               <View className="flex-1">
                 <Button variant="disabled" disabled={false} onPress={onClose}> 취소 </Button>
