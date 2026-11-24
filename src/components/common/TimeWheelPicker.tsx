@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View } from "react-native";
 import { Text } from "../ui/Text";
 import { color } from "@/constants/token/color";
@@ -51,10 +51,12 @@ function WheelColumn({ data, selectedIndex, onChange, loop = false }: WheelColum
     scrollRef.current?.scrollTo({ y: row * WHEEL_ITEM_HEIGHT, animated });
   };
 
+  // 처음 그릴 때 한 번만 고른 값 위치로 옮김
+  const scrollToSelected = useEffectEvent(() => scrollToRow(toRow(selectedIndex), false));
+
   useEffect(() => {
-    const timer = setTimeout(() => scrollToRow(toRow(selectedIndex), false), SHEET_SLIDE_SETTLE_MS);
+    const timer = setTimeout(() => scrollToSelected(), SHEET_SLIDE_SETTLE_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const commitRow = (row: number) => {

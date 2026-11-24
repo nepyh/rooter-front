@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { Button } from "../../ui/Button";
@@ -37,16 +37,18 @@ interface Props {
  * @param onSubmit 버튼을 눌렀을 때 앞뒤 공백을 뺀 제목·메모로 호출
  */
 export function EventFormModal({ visible, date, initial, submitLabel, onClose, onSubmit }: Props) {
-  const [title, setTitle] = useState("");
-  const [memo, setMemo] = useState("");
+  const [title, setTitle] = useState(() => (visible ? initial?.title ?? "" : ""));
+  const [memo, setMemo] = useState(() => (visible ? initial?.memo ?? "" : ""));
+  const [wasVisible, setWasVisible] = useState(visible);
 
-  useEffect(() => {
+  // 열릴 때마다 입력칸을 처음 값으로 채움
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) {
       setTitle(initial?.title ?? "");
       setMemo(initial?.memo ?? "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }
 
   if (!date) return null;
 

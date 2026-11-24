@@ -80,7 +80,6 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
 
   useEffect(() => {
     if (visible) {
-      setIsRendered(true);
       translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
     } else {
       translateY.value = withTiming(SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
@@ -109,21 +108,26 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!visible) return;
-    const s = roundToNextHour(baseDate);
-    setTitle("");
-    setAllDay(false);
-    setStart(s);
-    setEnd(new Date(s.getTime() + 60 * 60_000));
-    setSelectedTextbooks(new Map());
-    setSelectedChapterIds(new Set());
-    setShowTextbookPicker(false);
-    setChapterTextbook(null);
-    setError("");
-    setSubmitting(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  const [wasVisible, setWasVisible] = useState(visible);
+
+  // 열릴 때 바로 그리고 입력값을 처음 상태로 되돌림. 닫힐 때는 내려가는 애니메이션이 끝난 뒤에 지움
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) {
+      const s = roundToNextHour(baseDate);
+      setIsRendered(true);
+      setTitle("");
+      setAllDay(false);
+      setStart(s);
+      setEnd(new Date(s.getTime() + 60 * 60_000));
+      setSelectedTextbooks(new Map());
+      setSelectedChapterIds(new Set());
+      setShowTextbookPicker(false);
+      setChapterTextbook(null);
+      setError("");
+      setSubmitting(false);
+    }
+  }
 
   const canSubmit = title.trim().length > 0 && selectedTextbooks.size > 0 && selectedChapterIds.size > 0 && !submitting;
 
@@ -178,28 +182,27 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
       endAt = new Date(endAt.getTime() + 24 * 60 * 60_000);
     }
 
+    const task = {
+      planDate: toDateString(startAt),
+      taskName: title.trim(),
+      startTime: formatTimePill(startAt),
+      endTime: formatTimePill(endAt),
+      estimatedMinutes: Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000)),
+      // 교과서는 목차 선택을 마칠 때 하나로 바뀌므로(confirmChapters), 고른 목차는 모두 이 교과서의 단원
+      textbookId: [...selectedTextbooks.keys()][0],
+      chapterIds: [...selectedChapterIds],
+    };
+
     setError("");
     setSubmitting(true);
     try {
       const board = await getOrCreateCurrentPlanBoard();
-      const estimatedMinutes = Math.max(1, Math.round((endAt.getTime() - startAt.getTime()) / 60_000));
-      await createPlanTask({
-        planBoardId: board.id,
-        planDate: toDateString(startAt),
-        taskName: title.trim(),
-        startTime: formatTimePill(startAt),
-        endTime: formatTimePill(endAt),
-        estimatedMinutes,
-        // 교과서는 목차 선택을 마칠 때 하나로 바뀌므로(confirmChapters), 고른 목차는 모두 이 교과서의 단원
-        textbookId: [...selectedTextbooks.keys()][0],
-        chapterIds: [...selectedChapterIds],
-      });
+      await createPlanTask({ planBoardId: board.id, ...task });
       onCreated();
     } catch (e) {
       setError(getCreateTaskErrorMessage(e));
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   return (
