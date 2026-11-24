@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { buildMonthWeeks, toLocalDateString } from "@/utils/common/date";
 
 // ================================
@@ -19,7 +19,8 @@ export type SlideDirection = "next" | "prev";
 export function useCalendarMonth(now: Date) {
   const [viewDate, setViewDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
   const [direction, setDirection] = useState<SlideDirection>("next");
-  const hasNavigatedRef = useRef(false);
+  // 한 번이라도 달을 넘겼는지. 처음 열 때는 넘김 애니메이션을 하지 않음
+  const [hasNavigated, setHasNavigated] = useState(false);
 
   const weeks = buildMonthWeeks(viewDate.getFullYear(), viewDate.getMonth());
   const gridStartKey = toLocalDateString(weeks[0][0].date);
@@ -31,7 +32,7 @@ export function useCalendarMonth(now: Date) {
     : `${viewDate.getFullYear()}년 ${viewDate.getMonth() + 1}월`;
 
   const moveMonth = (delta: number) => {
-    hasNavigatedRef.current = true;
+    setHasNavigated(true);
     setDirection(delta > 0 ? "next" : "prev");
     setViewDate((d) => new Date(d.getFullYear(), d.getMonth() + delta, 1));
   };
@@ -43,7 +44,7 @@ export function useCalendarMonth(now: Date) {
     gridEndKey,
     headerText,
     direction,
-    hasNavigated: hasNavigatedRef.current,
+    hasNavigated,
     goPrevMonth: () => moveMonth(-1),
     goNextMonth: () => moveMonth(1),
   };
