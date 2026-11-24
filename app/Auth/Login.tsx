@@ -17,21 +17,33 @@ export default function Login() {
   const handleSubmit = async () => {
     setBtnVariant("disabled");
 
+    const resolveStartPath = () => {
+      const userId = useUserStore.getState().userId;
+      return userId === null ? "/Home/Home" : getStartPath(userId);
+    };
+
+    let failure: unknown;
+    let loggedIn = true;
     try {
       await login(email.value, password.value);
-      const userId = useUserStore.getState().userId;
-      router.replace(userId === null ? "/Home/Home" : await getStartPath(userId));
+      router.replace(await resolveStartPath());
     } catch (error) {
-      const authError = getLoginError(error);
-
-      if (authError?.target === "password") {
-        password.setError(authError.message);
-        password.focus(true);
-        return;
-      }
-      if (authError?.target === "toast") setToastMessage(authError.message);
+      loggedIn = false;
+      failure = error;
     }
 
+    if (loggedIn) {
+      setBtnVariant("primary");
+      return;
+    }
+
+    const authError = getLoginError(failure);
+    if (authError?.target === "password") {
+      password.setError(authError.message);
+      password.focus(true);
+      return;
+    }
+    if (authError?.target === "toast") setToastMessage(authError.message);
     setBtnVariant("primary");
   };
 

@@ -62,12 +62,13 @@ export function useOpenTaskQuiz() {
   return useCallback(async (params: TaskQuizParams) => {
     if (openingRef.current) return;
     openingRef.current = true;
-    try {
-      const retryAt = await fetchQuizRetryAt(Number(params.taskId));
-      if (retryAt) router.push({ pathname: "/Quiz/QuizRetryWaitPage", params: { ...params, retryAt: retryAt.toISOString() } });
-      else router.push({ pathname: "/Quiz/QuizPage", params: { ...params } });
-    } finally {
+    // 확인에 실패해도 다음에 다시 열 수 있게 잠금을 풂
+    const retryAt = await fetchQuizRetryAt(Number(params.taskId)).catch((error: unknown) => {
       openingRef.current = false;
-    }
+      throw error;
+    });
+    openingRef.current = false;
+    if (retryAt) router.push({ pathname: "/Quiz/QuizRetryWaitPage", params: { ...params, retryAt: retryAt.toISOString() } });
+    else router.push({ pathname: "/Quiz/QuizPage", params: { ...params } });
   }, []);
 }

@@ -80,7 +80,7 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
   }, [taskId, startDate, startTime]);
 
   const getCorrectMessage = (questionId: number) => {
-    correctMessagesRef.current[questionId] ??= pickCorrectMessage();
+    if (correctMessagesRef.current[questionId] === undefined) correctMessagesRef.current[questionId] = pickCorrectMessage();
     return correctMessagesRef.current[questionId];
   };
 
@@ -94,9 +94,8 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
       setPhase("review");
     } catch (e) {
       setError(getQuizErrorMessage(e, "채점 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."));
-    } finally {
-      setChecking(false);
     }
+    setChecking(false);
   };
 
   const start = async () => {
@@ -112,21 +111,31 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     }
     setLoading(true);
     setError("");
-    try {
+    // 미리 받아 둔 요청이 있으면 그걸 쓰고, 실패했으면 다시 받음
+    const loadQuiz = () => {
       const prefetched = prefetchRef.current;
       prefetchRef.current = null;
-      const data = await (prefetched ? prefetched.catch(() => getTaskQuiz(id)) : getTaskQuiz(id));
-      setServerSubject(data.subject?.subjectName ?? null);
-      setQuiz(data);
-      setAnswers(Object.fromEntries(data.questions.filter((q) => q.selectedChoiceId !== null).map((q) => [q.id, q.selectedChoiceId as number])));
-      const firstOpen = data.questions.findIndex((q) => q.selectedChoiceId === null);
-      if (firstOpen === -1) await submit(id);
-      else setCurrentIndex(firstOpen);
+      return prefetched ? prefetched.catch(() => getTaskQuiz(id)) : getTaskQuiz(id);
+    };
+
+    let data: Awaited<ReturnType<typeof getTaskQuiz>> | null = null;
+    try {
+      data = await loadQuiz();
     } catch (e) {
       setError(getQuizErrorMessage(e, "퀴즈를 준비하지 못했습니다. 잠시 후 다시 시도해주세요."));
-    } finally {
-      setLoading(false);
     }
+    if (!data) {
+      setLoading(false);
+      return;
+    }
+
+    setServerSubject(data.subject?.subjectName ?? null);
+    setQuiz(data);
+    setAnswers(Object.fromEntries(data.questions.filter((q) => q.selectedChoiceId !== null).map((q) => [q.id, q.selectedChoiceId as number])));
+    const firstOpen = data.questions.findIndex((q) => q.selectedChoiceId === null);
+    if (firstOpen === -1) await submit(id);
+    else setCurrentIndex(firstOpen);
+    setLoading(false);
   };
 
   const select = (choiceId: number) => {
@@ -150,9 +159,8 @@ export function useTaskQuiz(taskId: string | undefined, taskStart?: TaskStart) {
     } catch (e) {
       if (isAlreadyAnswered(e)) next();
       else setError(getQuizErrorMessage(e, "채점하지 못했습니다. 잠시 후 다시 시도해주세요."));
-    } finally {
-      setChecking(false);
     }
+    setChecking(false);
   };
 
   const reviewNext = () => {

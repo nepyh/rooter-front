@@ -46,19 +46,20 @@ export function useAgreementCheck() {
   const open = async () => {
     if (pending || userId === null) return;
     setPending(true);
-    try {
-      const [catalog, userAgreements] = await Promise.all([
-        queryClient.fetchQuery({ queryKey: queryKeys.agreements.catalog, queryFn: getAgreementCatalog }),
-        queryClient.fetchQuery({ queryKey: queryKeys.agreements.user(userId), queryFn: () => getUserAgreements(userId), staleTime: 0 }),
-      ]);
-      setDescription(describeAgreements(catalog, userAgreements));
-      setTermsUrl(catalog.find((doc) => doc.code === "TERMS")?.url ?? catalog[0]?.url ?? null);
-      setVisible(true);
-    } catch {
+    const loaded = await Promise.all([
+      queryClient.fetchQuery({ queryKey: queryKeys.agreements.catalog, queryFn: getAgreementCatalog }),
+      queryClient.fetchQuery({ queryKey: queryKeys.agreements.user(userId), queryFn: () => getUserAgreements(userId), staleTime: 0 }),
+    ]).catch(() => null);
+    setPending(false);
+    if (!loaded) {
       setErrorMessage("약관 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setPending(false);
+      return;
     }
+
+    const [catalog, userAgreements] = loaded;
+    setDescription(describeAgreements(catalog, userAgreements));
+    setTermsUrl(catalog.find((doc) => doc.code === "TERMS")?.url ?? catalog[0]?.url ?? null);
+    setVisible(true);
   };
 
   const handleConfirm = () => {
