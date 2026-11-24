@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { router } from 'expo-router';
 import { useUserStore } from '@/store';
-import { captureApiFailure } from '@/lib/monitoring';
+import { captureApiFailure, endApiSpan, startApiSpan } from '@/lib/monitoring';
+import type { Span } from '@sentry/react-native';
+
+// 성능 추적용 — 요청마다 시작한 span 을 응답에서 끝냅니다 (성능 추적이 꺼져 있으면 비어 있음)
+const requestSpans = new WeakMap<object, Span>();
 
 // AI 호출 API(계획 생성·퀴즈·피드백·챗봇) 전용 timeout
 export const AI_TIMEOUT_MS = 60_000;
@@ -21,6 +25,8 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const span = startApiSpan(config.method, config.url);
+  if (span) requestSpans.set(config, span);
   return config;
 });
 
@@ -31,8 +37,12 @@ let lastSessionRedirectAt = 0;
 // 토큰 만료·무효·없음(code=UNAUTHORIZED) 시 로그아웃 후 첫 화면 이동
 // 새로고침으로 토큰이 사라진 경우도 포함, BAD_CREDENTIALS 같은 다른 401은 각 화면에서 처리
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    endApiSpan(requestSpans.get(response.config), response.status);
+    return response;
+  },
   (error) => {
+    if (error.config) endApiSpan(requestSpans.get(error.config), error.response?.status);
     captureApiFailure(error);
     const isUnauthorized = error.response?.status === 401 && error.response?.data?.code === 'UNAUTHORIZED';
     const now = Date.now();

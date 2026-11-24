@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   apiFailureMetadata,
+  apiSpanName,
+  parseTracesSampleRate,
   sanitizeErrorEvent,
+  sanitizeTransactionEvent,
+  screenSpanName,
 } from "../src/lib/monitoring-policy.ts";
 
 const failure = (status, extra = {}) => ({
@@ -142,5 +146,120 @@ test("표준 에러 종류와 네트워크 오류 코드를 보존한다", () =>
   assert.equal(
     apiFailureMetadata(failure(undefined, { code: "ECONNABORTED" })).code,
     "ECONNABORTED",
+  );
+});
+
+test("성능 추적 샘플링 비율은 0~1, 비었거나 이상하면 0", () => {
+  assert.equal(parseTracesSampleRate(undefined), 0);
+  assert.equal(parseTracesSampleRate(""), 0);
+  assert.equal(parseTracesSampleRate("abc"), 0);
+  assert.equal(parseTracesSampleRate("0.5"), 0.5);
+  assert.equal(parseTracesSampleRate("3"), 1);
+  assert.equal(parseTracesSampleRate("-1"), 0);
+});
+
+test("API span 이름은 id·날짜·쿼리·호스트를 뺀 경로 모양만", () => {
+  assert.equal(
+    apiSpanName("get", "/users/12/streak"),
+    "GET /users/{id}/streak",
+  );
+  assert.equal(
+    apiSpanName("get", "/calendar/2026-11-18?token=secret"),
+    "GET /calendar/{date}",
+  );
+  assert.equal(
+    apiSpanName(
+      "post",
+      "https://user:pw@api.test/api/plan-tasks/7/quiz/submit#x",
+    ),
+    "POST /api/plan-tasks/{id}/quiz/submit",
+  );
+  assert.equal(
+    apiSpanName("get", "/school/search?name=비밀중학교"),
+    "GET /school/search",
+  );
+  assert.equal(apiSpanName("get", "/users/secret@example.com"), null);
+  assert.equal(apiSpanName("trace", "/users"), null);
+  assert.equal(apiSpanName(undefined, "/users"), null);
+});
+
+test("화면 이름은 expo-router 경로 모양만", () => {
+  assert.equal(screenSpanName("/Home/Home"), "/Home/Home");
+  assert.equal(screenSpanName("/users/secret@example.com"), null);
+  assert.equal(screenSpanName(undefined), null);
+});
+
+test("성능 트랜잭션은 화면 이름·API 경로 모양·시간만 남긴다", () => {
+  const event = sanitizeTransactionEvent({
+    type: "transaction",
+    event_id: "event",
+    transaction: "/Home/Home",
+    start_timestamp: 1,
+    timestamp: 2,
+    release: "rooter@sha",
+    environment: "loadtest",
+    request: { url: "https://secret", headers: { Authorization: "secret" } },
+    user: { email: "secret@example.com" },
+    tags: { private: "secret" },
+    extra: { secret: "secret" },
+    breadcrumbs: [{ message: "secret" }],
+    contexts: {
+      trace: {
+        trace_id: "t",
+        span_id: "s",
+        op: "navigation",
+        status: "ok",
+        data: { secret: "secret" },
+      },
+      device: { name: "secret phone" },
+    },
+    spans: [
+      {
+        span_id: "a",
+        trace_id: "t",
+        parent_span_id: "s",
+        op: "http.client",
+        description: "GET /plan-tasks",
+        start_timestamp: 1,
+        timestamp: 1.5,
+        status: "ok",
+        data: { url: "https://secret?token=secret" },
+      },
+      {
+        span_id: "b",
+        trace_id: "t",
+        parent_span_id: "s",
+        op: "http.client",
+        description: "GET /users/secret@example.com",
+        start_timestamp: 1,
+        timestamp: 1.5,
+      },
+      {
+        span_id: "c",
+        trace_id: "t",
+        parent_span_id: "s",
+        op: "ui.render",
+        description: "secret",
+        start_timestamp: 1,
+        timestamp: 1.5,
+      },
+    ],
+  });
+  assert.equal(event.transaction, "/Home/Home");
+  assert.deepEqual(
+    event.spans.map((span) => span.description),
+    ["GET /plan-tasks"],
+  );
+  assert.deepEqual(event.spans[0].data, {});
+  assert.deepEqual(Object.keys(event.contexts), ["trace"]);
+  assert.equal(event.contexts.trace.data, undefined);
+  const json = JSON.stringify(event);
+  assert.ok(!json.includes("secret"), json);
+  assert.equal(
+    sanitizeTransactionEvent({
+      transaction: "/users/secret@example.com",
+      contexts: { trace: {} },
+    }),
+    null,
   );
 });
