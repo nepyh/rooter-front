@@ -1,7 +1,9 @@
 import type { Ref } from "react";
 import { Pressable, TextInput, TextInputProps } from "react-native";
-import { Row } from "../../layout";
+import { Row, Stack } from "../../layout";
+import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
+import { CHAT_LENGTH_COUNTER_FROM, CHAT_MESSAGE_MAX_LENGTH } from "@/constants/chat";
 import { color } from "@/constants/token/color";
 import { getSpacing } from "@/utils/common/token";
 
@@ -10,6 +12,8 @@ import { getSpacing } from "@/utils/common/token";
 // ================================
 
 type SendState = "active" | "inactive";
+
+type CounterState = "normal" | "limit";
 
 // ================================
 // Constants
@@ -31,6 +35,11 @@ const sendStateStyles: Record<SendState, string> = {
   "inactive": "bg-neutral-600",
 };
 
+const counterStateStyles: Record<CounterState, string> = {
+  "normal": "text-text-secondary",
+  "limit": "text-utility-error-primary",
+};
+
 // ================================
 // Components
 // ================================
@@ -43,40 +52,51 @@ interface Props extends TextInputProps {
 
 /**
  * AI 채팅 입력창. 글자가 있으면 전송 버튼이 활성화됨
+ * 서버 한도에 맞춰 CHAT_MESSAGE_MAX_LENGTH(500자)까지만 입력되고, CHAT_LENGTH_COUNTER_FROM(450자)부터 입력창 위에 글자 수를 보여줌 (500자면 빨간색)
  * @param onSend 전송 버튼이나 키보드 전송을 눌렀을 때 호출
  * @param sending 답변을 기다리는 중이면 true (전송 버튼 비활성화)
  */
 export function ChatInput({ ref, value, onSend, sending = false, ...props }: Props) {
   const canSend = !!value?.trim() && !sending;
+  const length = value?.length ?? 0;
+  const counterState: CounterState = length >= CHAT_MESSAGE_MAX_LENGTH ? "limit" : "normal";
 
   return (
-    <Row
-      width="full"
-      className="items-end bg-neutral-700 border border-neutral-600 pl-spacing-6 pr-spacing-3 py-spacing-3"
-      style={{ borderRadius: INPUT_RADIUS, gap: INPUT_GAP }}
-    >
-      <TextInput
-        ref={ref}
-        value={value}
-        placeholder="루티에게 질문하기..."
-        placeholderTextColor={color.text.disabled}
-        multiline
-        submitBehavior="submit"
-        onSubmitEditing={onSend}
-        returnKeyType="send"
-        className="flex-1 text-lg font-medium text-text-primary py-spacing-3"
-        style={[{ lineHeight: INPUT_LINE_HEIGHT, maxHeight: INPUT_MAX_HEIGHT }, !value && { height: SINGLE_LINE_HEIGHT }]}
-        {...props}
-      />
-      <Pressable
-        onPress={onSend}
-        disabled={!canSend}
-        accessibilityLabel="보내기"
-        className={`items-center justify-center rounded-radius-full ${sendStateStyles[canSend ? "active" : "inactive"]}`}
-        style={{ width: SEND_BUTTON_SIZE, height: SEND_BUTTON_SIZE }}
+    <Stack gap="xs" width="full" className="items-end">
+      {length >= CHAT_LENGTH_COUNTER_FROM && (
+        <Text variant="base-small" weight="medium" className={`pr-spacing-6 ${counterStateStyles[counterState]}`}>
+          {`${length}/${CHAT_MESSAGE_MAX_LENGTH}`}
+        </Text>
+      )}
+      <Row
+        width="full"
+        className="items-end bg-neutral-700 border border-neutral-600 pl-spacing-6 pr-spacing-3 py-spacing-3"
+        style={{ borderRadius: INPUT_RADIUS, gap: INPUT_GAP }}
       >
-        <Icon name="arrowUp" size={24} color={color.neutral["0"]} />
-      </Pressable>
-    </Row>
+        <TextInput
+          ref={ref}
+          value={value}
+          placeholder="루티에게 질문하기..."
+          placeholderTextColor={color.text.disabled}
+          multiline
+          maxLength={CHAT_MESSAGE_MAX_LENGTH}
+          submitBehavior="submit"
+          onSubmitEditing={onSend}
+          returnKeyType="send"
+          className="flex-1 text-lg font-medium text-text-primary py-spacing-3"
+          style={[{ lineHeight: INPUT_LINE_HEIGHT, maxHeight: INPUT_MAX_HEIGHT }, !value && { height: SINGLE_LINE_HEIGHT }]}
+          {...props}
+        />
+        <Pressable
+          onPress={onSend}
+          disabled={!canSend}
+          accessibilityLabel="보내기"
+          className={`items-center justify-center rounded-radius-full ${sendStateStyles[canSend ? "active" : "inactive"]}`}
+          style={{ width: SEND_BUTTON_SIZE, height: SEND_BUTTON_SIZE }}
+        >
+          <Icon name="arrowUp" size={24} color={color.neutral["0"]} />
+        </Pressable>
+      </Row>
+    </Stack>
   );
 }
