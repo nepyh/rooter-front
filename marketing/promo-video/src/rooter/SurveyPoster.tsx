@@ -88,35 +88,40 @@ export const SurveyPoster: React.FC = () => (
   </Base>
 );
 
-/** 스토리 1080 x 1920 (위 250·아래 340px는 인스타 UI 자리라 비움, 링크 스티커는 QR 아래 빈칸에) */
+/** 스토리 1080 x 1920: 피드 포스터와 같은 배치
+ *  위 250·아래 340px는 인스타 UI 자리라 비움
+ *  가운데(약 y 880~1050)는 링크 스티커 자리라 비움 */
 export const SurveyStory: React.FC = () => (
   <Base>
-    <div style={{ position: "absolute", left: 80, top: 260 }}><Logo /></div>
+    <div style={{ position: "absolute", left: 80, top: 250 }}><Logo /></div>
 
-    <div style={{ position: "absolute", left: 80, top: 400 }}>
+    <div style={{ position: "absolute", left: 80, top: 380 }}>
       <div style={{ display: "inline-block", padding: "10px 26px", borderRadius: 999, background: C.primary, fontSize: 32, fontWeight: 600 }}>SURVEY</div>
-      <div style={{ marginTop: 28 }}><Headline size={100} /></div>
-      <div style={{ marginTop: 30, display: "flex", gap: 12 }}>
+      <div style={{ marginTop: 26 }}><Headline size={88} /></div>
+      <div style={{ marginTop: 26, display: "flex", gap: 12 }}>
         <Chip>약 2분</Chip>
         <Chip>질문 4개</Chip>
         <Chip>개인정보 없음</Chip>
       </div>
     </div>
 
-    <Img src={staticFile("ruti2/teacher.png")} style={{ position: "absolute", right: 50, top: 660, width: 300 }} />
+    <Img src={staticFile("ruti2/teacher.png")} style={{ position: "absolute", right: 60, top: 600, width: 300 }} />
 
-    <div style={{ position: "absolute", left: 80, top: 1010 }}>
-      <Questions width={920} />
+    {/* 링크 스티커 자리 (비움) */}
+
+    <div style={{ position: "absolute", left: 80, top: 1070 }}>
+      <div style={{ fontSize: 28, fontWeight: 600, color: C.textDim, marginBottom: 16 }}>이런 걸 물어봐요</div>
+      <Questions width={600} />
     </div>
 
-    {/* 아래: QR + 링크 스티커 자리 */}
-    <div style={{ position: "absolute", left: 80, right: 80, top: 1440, display: "flex", alignItems: "center", gap: 36 }}>
-      <div style={{ padding: 16, borderRadius: 24, background: "#fff", flexShrink: 0 }}><QrCode url={SURVEY_URL} size={230} /></div>
-      <div style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.4, letterSpacing: -0.8 }}>
-        아래 링크를 누르거나
-        <br />
-        <span style={{ color: C.textSub }}>QR을 찍어 참여해 주세요</span>
-      </div>
+    <div style={{ position: "absolute", right: 80, top: 1118, width: 300, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+      <div style={{ padding: 22, borderRadius: 30, background: "#fff" }}><QrCode url={SURVEY_URL} size={256} /></div>
+      <div style={{ fontSize: 27, fontWeight: 600, color: C.textSub, textAlign: "center", lineHeight: 1.35 }}>카메라로 찍어서
+        <br />바로 참여</div>
+    </div>
+
+    <div style={{ position: "absolute", top: 1540, left: 80, right: 80 }}>
+      <div style={{ fontSize: 28, fontWeight: 600, color: C.textSub }}>여러분의 답이 다음 루터를 만들어요</div>
     </div>
   </Base>
 );

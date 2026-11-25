@@ -3,7 +3,7 @@ import { PROMO_DURATION, RooterPromo } from "./rooter/RooterPromo";
 import { PROMO_H_DURATION, RooterPromoH } from "./rooter/RooterPromoH";
 import { BugPoster } from "./rooter/BugPoster";
 import { AndroidPoster } from "./rooter/AndroidPoster";
-import { EventPoster } from "./rooter/EventPoster";
+import { EventPoster, EventStory } from "./rooter/EventPoster";
 import { SurveyPoster, SurveyStory } from "./rooter/SurveyPoster";
 import { NotionBanner } from "./rooter/NotionBanner";
 import { GRID_H, GRID_W, NotionBannerGrid } from "./rooter/NotionBannerGrid";
@@ -49,6 +49,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="SurveyPoster" component={SurveyPoster} durationInFrames={1} fps={30} width={1080} height={1350} />
       <Composition id="SurveyStory" component={SurveyStory} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="EventPoster" component={EventPoster} durationInFrames={1} fps={30} width={1080} height={1350} />
+      <Composition id="EventStory" component={EventStory} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="AndroidPoster" component={AndroidPoster} durationInFrames={1} fps={30} width={1080} height={1350} />
       <Composition id="BugPoster" component={BugPoster} durationInFrames={1} fps={30} width={1080} height={1350} />
       <Composition id="Thumbnail" component={Thumbnail} durationInFrames={1} fps={30} width={1080} height={1920} />
