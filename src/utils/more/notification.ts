@@ -1,5 +1,6 @@
 import type { Href } from "expo-router";
 import type { AppNotification } from "@/api/more/NotificationList";
+import type { TaskQuizParams } from "@/hooks/common/useOpenTaskQuiz";
 import { isSameDay, parseServerDateTime, toLocalDateString } from "@/utils/common/date";
 
 // ================================
@@ -104,4 +105,19 @@ export const getNotificationHref = ({ type, data, date }: NotificationTarget): H
     return "/Home/Home";
   }
   return null;
+};
+
+/**
+ * 퀴즈 준비 알림(TASK_QUIZ_READY, rooter-back#395)이면 열 퀴즈 정보. 할일이 끝나기 5분 전에 서버가 퀴즈를 만들고 보냄
+ * 화면으로 바로 가지 않고 useOpenTaskQuiz 로 열어, 재도전 대기 중이면 대기 화면을 보여줌
+ * @param target 누른 알림
+ * @returns 열 퀴즈 정보, 퀴즈 준비 알림이 아니거나 할일 ID 가 없으면 null
+ */
+export const getNotificationQuiz = ({ type, data, date }: NotificationTarget): TaskQuizParams | null => {
+  if (type !== "TASK_QUIZ_READY" || !data.planTaskId) return null;
+  return {
+    taskId: String(data.planTaskId),
+    dailyPlanId: data.dailyPlanId ? String(data.dailyPlanId) : "",
+    date: typeof data.date === "string" ? data.date : toLocalDateString(date),
+  };
 };

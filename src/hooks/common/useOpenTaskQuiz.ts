@@ -14,14 +14,14 @@ import { getQuizRetryAt } from "@/utils/common/quizRetry";
  * @param dailyPlanId 퀴즈 뒤 피드백 화면에 넘길 일일 계획 ID (없으면 빈 문자열)
  * @param category 퀴즈 응답에 과목이 없을 때 과목 이름을 고르는 카테고리
  * @param date 할일 날짜 (yyyy-MM-dd)
- * @param startTime 할일 시작 시각 ("HH:MM")
+ * @param startTime 할일 시작 시각 ("HH:MM"), 퀴즈 준비 알림처럼 모르면 생략
  */
 export interface TaskQuizParams {
   taskId: string;
   dailyPlanId: string;
   category?: Category;
   date: string;
-  startTime: string;
+  startTime?: string;
 }
 
 // ================================

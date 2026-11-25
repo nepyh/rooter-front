@@ -10,7 +10,6 @@ import {
   WINDOW_START_MIN,
   formatDuration,
   mapPlanTaskToPlan,
-  markPastPlansFailed,
   toClockString,
   withPlanNames,
   type Plan,
@@ -52,10 +51,9 @@ export const dailyPlansQueryOptions = (date: string) =>
  * 수정·삭제·실패 처리는 캐시를 먼저 고쳐 바로 반영하고, 서버 반영에 실패하면 그날 목록을 다시 불러옵니다.
  * @param selectedDate 보고 있는 날짜
  * @param selectedKey 보고 있는 날짜 (YYYY-MM-DD)
- * @param now 현재 시각, 끝난 시각이 지난 미완료 일정을 실패로 표시할 때 씀
  * @returns plans(원본), coloredPlans(실패·과목 색·플랜 이름 반영), plansLoaded(그날 할 일을 불러왔는지), chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan
  */
-export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
+export function usePlans(selectedDate: Date, selectedKey: string) {
   const dailyKey = queryKeys.tasks.daily(selectedKey);
 
   const dailyQuery = useQuery(dailyPlansQueryOptions(selectedKey));
@@ -80,7 +78,7 @@ export function usePlans(selectedDate: Date, selectedKey: string, now: Date) {
     invalidatePlanQueries();
   };
 
-  const coloredPlans = withPlanNames(markPastPlansFailed(plans, selectedDate, now), planNames);
+  const coloredPlans = withPlanNames(plans, planNames);
 
   const savePlanEdit = (id: string, title: string, start: number, duration: number) => {
     const startMin = (start + WINDOW_START_MIN) % DAY_MIN;

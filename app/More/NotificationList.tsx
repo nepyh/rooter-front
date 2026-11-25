@@ -5,7 +5,8 @@ import { LoadingView, PageHeader, NotificationCard, Text, Toast, UnreadCountBadg
 import type { AppNotification } from "@/api/more/NotificationList";
 import { useNow } from "@/hooks/common/useNow";
 import { useNotifications } from "@/hooks/more/useNotifications";
-import { formatRelativeTime, getNotificationHref, groupNotificationsByDay, toNotificationTarget } from "@/utils/more/notification";
+import { useOpenTaskQuiz } from "@/hooks/common/useOpenTaskQuiz";
+import { formatRelativeTime, getNotificationHref, getNotificationQuiz, groupNotificationsByDay, toNotificationTarget } from "@/utils/more/notification";
 import { parseServerDateTime } from "@/utils/common/date";
 import { getSpacing } from "@/utils/common/token";
 
@@ -24,10 +25,17 @@ export default function NotificationListPage() {
   const now = useNow(60_000);
   const { loaded, failed, notifications, unreadCount, loadingMore, loadMore, markRead, readAll, errorMessage, clearError } = useNotifications();
   const sections = groupNotificationsByDay(notifications, now);
+  const openTaskQuiz = useOpenTaskQuiz();
 
   const handlePress = (notification: AppNotification) => {
     markRead(notification.id);
-    const href = getNotificationHref(toNotificationTarget(notification));
+    const target = toNotificationTarget(notification);
+    const quiz = getNotificationQuiz(target);
+    if (quiz) {
+      openTaskQuiz(quiz).catch(() => {});
+      return;
+    }
+    const href = getNotificationHref(target);
     if (href) router.push(href);
   };
 

@@ -29,7 +29,7 @@ export function useQuizItems(now: Date) {
   const nowMin = now.getHours() * 60 + now.getMinutes();
   // 실패로 확정된 할일은 다시 퀴즈에 들어가지 못하게 뺌
   const remaining = items.filter((item) => item.task.status === "PENDING");
-  const current = remaining.filter((item) => parseHHmm(item.task.startTime) <= nowMin && nowMin < parseHHmm(item.task.endTime));
+  const current = remaining.filter((item) => parseHHmm(item.task.startTime) <= nowMin);
   const upcoming = remaining.filter((item) => parseHHmm(item.task.startTime) > nowMin);
   const completed = items.filter((item) => item.task.status === "DONE");
 

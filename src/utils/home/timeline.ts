@@ -310,21 +310,6 @@ export const layoutColumns = (items: { id: string; start: number; duration: numb
 };
 
 /**
- * 끝난 시각이 지났는데 아직 완료하지 않은 계획을 실패로 바꿔 돌려줌
- * @param plans 그날 계획 목록
- * @param date 계획이 속한 날짜
- * @param now 현재 시각
- */
-export const markPastPlansFailed = (plans: Plan[], date: Date, now: Date): Plan[] => {
-  const dayStartMs = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const isPast = (plan: Plan) => dayStartMs + (plan.start + plan.duration) * 60_000 <= now.getTime();
-  return plans.map((plan) => ({
-    ...plan,
-    status: plan.status === "pending" && isPast(plan) ? "failed" : plan.status,
-  }));
-};
-
-/**
  * 계획마다 속한 플랜 이름을 붙여 돌려줌. 이름 목록에 없는 플랜의 계획은 이름 없이 둠
  * @param plans 그날 계획 목록
  * @param planNames 플랜보드 ID → 플랜 이름 (getPlanNames() 의 결과)

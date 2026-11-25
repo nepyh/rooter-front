@@ -76,7 +76,7 @@ export default function Home() {
   const setFullScreenModalOpen = useUIStore((state) => state.setFullScreenModalOpen);
   const resetPlanDraft = usePlanDraftStore((state) => state.reset);
 
-  const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey, now);
+  const { plans, coloredPlans, plansLoaded, chatDailyPlanId, reload, savePlanEdit, deletePlan, failPlan } = usePlans(selectedDate, selectedKey);
   const { busyBlocks } = useDaySchedule(selectedKey);
   const busyEdit = useBusyEdit(selectedDate);
   const { boards, representative, isPending: boardsPending, isError: boardsError } = usePlanBoards();
