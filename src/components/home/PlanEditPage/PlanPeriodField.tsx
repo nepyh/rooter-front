@@ -22,17 +22,18 @@ interface RowProps {
   value: Date;
   minDate?: Date;
   active: boolean;
+  disabled: boolean;
   onToggle: () => void;
   onSelect: (date: Date) => void;
   className?: string;
 }
 
-function PeriodRow({ label, value, minDate, active, onToggle, onSelect, className = "" }: RowProps) {
+function PeriodRow({ label, value, minDate, active, disabled, onToggle, onSelect, className = "" }: RowProps) {
   return (
     <View className={`w-full bg-neutral-700 px-spacing-6 py-spacing-5 ${className}`} style={{ gap: getSpacing("spacing-7") }}>
       <Row width="full" align="between" className="items-center">
         <Text variant="base-large" weight="medium">{label}</Text>
-        <DatePill label={formatMonthDay(value)} active={active} onPress={onToggle} />
+        <DatePill label={formatMonthDay(value)} active={active} disabled={disabled} onPress={onToggle} className={disabled ? "opacity-50" : ""} />
       </Row>
       {active && <CalendarGrid value={value} minDate={minDate} onSelect={onSelect} />}
     </View>
@@ -45,6 +46,7 @@ interface Props {
   minDate?: Date;
   onChangeStart: (date: Date) => void;
   onChangeEnd: (date: Date) => void;
+  disabledMessage?: string | null;
 }
 
 /**
@@ -54,9 +56,11 @@ interface Props {
  * @param minDate 고를 수 있는 가장 이른 날짜, 생략하면 제한 없음
  * @param onChangeStart 시작일을 고를 때 호출
  * @param onChangeEnd 종료일을 고를 때 호출
+ * @param disabledMessage 주면 날짜를 바꿀 수 없게 막고 제목 아래에 이 이유를 보여줌
  */
-export function PlanPeriodField({ start, end, minDate, onChangeStart, onChangeEnd }: Props) {
+export function PlanPeriodField({ start, end, minDate, onChangeStart, onChangeEnd, disabledMessage = null }: Props) {
   const [activePicker, setActivePicker] = useState<PickerTarget | null>(null);
+  const disabled = !!disabledMessage;
 
   const togglePicker = (target: PickerTarget) => {
     Keyboard.dismiss();
@@ -71,12 +75,14 @@ export function PlanPeriodField({ start, end, minDate, onChangeStart, onChangeEn
   return (
     <Stack gap="s" width="full">
       <Text variant="base-medium">플랜 완료 시각</Text>
+      {disabled && <Text variant="base-small" color="secondary">{disabledMessage}</Text>}
       <View className="w-full rounded-radius-4 overflow-hidden">
         <PeriodRow
           label="시작"
           value={start}
           minDate={minDate}
           active={activePicker === "start"}
+          disabled={disabled}
           onToggle={() => togglePicker("start")}
           onSelect={(date) => selectDate("start", date)}
           className="border-b-2 border-neutral-600"
@@ -86,6 +92,7 @@ export function PlanPeriodField({ start, end, minDate, onChangeStart, onChangeEn
           value={end}
           minDate={minDate}
           active={activePicker === "end"}
+          disabled={disabled}
           onToggle={() => togglePicker("end")}
           onSelect={(date) => selectDate("end", date)}
         />

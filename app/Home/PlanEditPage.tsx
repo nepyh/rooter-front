@@ -25,12 +25,16 @@ import { usePlanBoardTextbooks } from "@/hooks/home/usePlanBoardTextbooks";
 import { toLocalDateString } from "@/utils/common/date";
 import { getSpacing } from "@/utils/common/token";
 import { buildPlanBoardEditInput, getPlanExamDate, hasPlanBoardEdit, parseLocalDate } from "@/utils/home/planBoard";
+import { getGenerationStatus } from "@/utils/home/planGeneration";
 
 // ================================
 // Constants
 // ================================
 
 const BOTTOM_FADE_HEIGHT = getSpacing("spacing-12");
+
+/** AI 계획의 남은 기간을 만드는 중이면 서버가 기간 수정을 막음 (409 PLAN_GENERATION_IN_PROGRESS, rooter-back#405) */
+const PERIOD_LOCKED_MESSAGE = "남은 계획을 만드는 중이라 다 만들어진 뒤에 바꿀 수 있어요.";
 
 // ================================
 // Components
@@ -44,6 +48,7 @@ interface FormProps {
 
 /**
  * 플랜 수정 입력 칸들. 지금은 시험일 하루만 저장할 수 있어 시작·종료일을 늘 같은 날짜(시험일)로 맞추고, 오늘 이전 날짜는 고를 수 없음
+ * AI 계획의 남은 기간을 만드는 중이면 날짜는 막아 두고 이름·설명·대표 여부만 바꿀 수 있음
  * 아래로 더 스크롤할 수 있으면 [수정하기] 버튼 바로 위를 그라데이션으로 흐리게 덮음
  * [수정하기] 를 누르면 확인창을 띄운 뒤 바뀐 이름·설명·시험일·대표 여부만 저장하고, 홈으로 돌아가 완료 토스트를 띄움
  * [삭제하기] 를 누르면 확인창을 띄운 뒤 플랜을 삭제하고, 목록 캐시에서 바로 빼서 홈으로 돌아가 완료 토스트를 띄움
@@ -117,6 +122,7 @@ function PlanEditForm({ board, canBeRepresentative, onDeleted }: FormProps) {
           minDate={today}
           onChangeStart={setExamDate}
           onChangeEnd={setExamDate}
+          disabledMessage={getGenerationStatus(board) === "GENERATING" ? PERIOD_LOCKED_MESSAGE : null}
         />
         <PlanTextbookList textbooks={textbooks} loading={loadingTextbooks} />
         <Stack gap="m" width="full">

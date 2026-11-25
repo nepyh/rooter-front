@@ -9,11 +9,11 @@ import type { Category } from '@/constants/category';
 /**
  * 캘린더 칸에 그리는 일정 하나
  * @param id 개인 일정 id (수정·삭제 가능), 시험은 없음
- * @param kind 시험(exam) / 개인 일정(event)
+ * @param kind 시험(exam) / 개인 일정(event) / 아직 계획을 만드는 중이거나 만들지 못한 날 표시(generation, rooter-back#405)
  */
 export interface CalendarItem {
   id?: number;
-  kind: "exam" | "event";
+  kind: "exam" | "event" | "generation";
   label: string;
   memo: string;
   category: Category;
