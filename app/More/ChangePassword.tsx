@@ -6,7 +6,7 @@ import { syncPushToken } from "@/api/common/notification";
 import { isInvalidPasswordFormat, isWrongCurrentPassword } from "@/api/more/ChangePassword";
 import { useFormField } from "@/hooks/common/useFormField";
 import { useUserStore } from "@/store";
-import { getPasswordError, PASSWORD_ERROR_MESSAGE } from "@/utils/common/password";
+import { getPasswordCharError, getPasswordError, PASSWORD_ERROR_MESSAGE } from "@/utils/common/password";
 
 // ================================
 // Types
@@ -35,7 +35,9 @@ export default function ChangePasswordPage() {
   const newPassword = useFormField();
   const confirmPassword = useFormField();
 
-  const isFilled = step === "verify" ? !!currentPassword.value : !!newPassword.value && !!confirmPassword.value;
+  // 새 비밀번호에 띄어쓰기 등 넣으면 안 되는 문자가 있으면 입력하는 동안 바로 알리고 버튼을 막음
+  const newPasswordCharError = getPasswordCharError(newPassword.value);
+  const isFilled = step === "verify" ? !!currentPassword.value : !!newPassword.value && !newPasswordCharError && !!confirmPassword.value;
   const btnVariant = isFilled && !submitting ? "primary" : "disabled";
 
   const handleVerify = async () => {
@@ -118,7 +120,12 @@ export default function ChangePasswordPage() {
         />
       ) : (
         <>
-          <PasswordInput {...newPassword.inputProps} label="새 비밀번호" placeholder="새 비밀번호를 입력해주세요" />
+          <PasswordInput
+            {...newPassword.inputProps}
+            errorMessage={newPassword.error || newPasswordCharError || ""}
+            label="새 비밀번호"
+            placeholder="새 비밀번호를 입력해주세요"
+          />
           <PasswordInput
             {...confirmPassword.inputProps}
             label="새 비밀번호 확인"

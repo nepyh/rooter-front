@@ -69,3 +69,14 @@ export const getPasswordError = (password: string): string | null => {
   const problem = findPasswordProblem(password);
   return problem ? PROBLEM_MESSAGES[problem] : null;
 };
+
+/**
+ * 입력하는 동안 바로 알려줄 문제(띄어쓰기·안 보이는 문자·이모지)만 찾아 안내 문구로 돌려줌
+ * 길이·영문·숫자는 아직 입력 중일 수 있어 제출할 때(getPasswordError) 안내함
+ * @param password 검사할 비밀번호
+ * @returns 넣으면 안 되는 문자가 있으면 안내 문구, 없으면 null
+ */
+export const getPasswordCharError = (password: string): string | null => {
+  const problem = findPasswordProblem(password);
+  return problem === "whitespace" || problem === "hidden" || problem === "emoji" ? PROBLEM_MESSAGES[problem] : null;
+};
