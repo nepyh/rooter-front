@@ -90,6 +90,7 @@ export const toNotificationTarget = (notification: AppNotification): Notificatio
  * 알림을 눌렀을 때 이동할 화면. 모르는 종류면 null (알림함에만 보여줌)
  * - 할 일 알림: 시작 몇 분 전에 오므로 알림이 생긴 날짜의 할 일 화면
  * - 오늘 공부 설문 알림: 그날 일일 계획의 학습 피드백 화면
+ * - AI 계획 완성·실패 알림 (rooter-back#405): 홈. 실패했으면 홈에서 남은 계획 다시 만들기를 안내함
  * @param target 누른 알림
  */
 export const getNotificationHref = ({ type, data, date }: NotificationTarget): Href | null => {
@@ -98,6 +99,9 @@ export const getNotificationHref = ({ type, data, date }: NotificationTarget): H
   }
   if (type === "DAILY_FEEDBACK_REMINDER" && data.dailyPlanId) {
     return { pathname: "/Quiz/FeedbackPage", params: { dailyPlanId: String(data.dailyPlanId) } };
+  }
+  if (type === "PLAN_GENERATION_COMPLETED" || type === "PLAN_GENERATION_FAILED") {
+    return "/Home/Home";
   }
   return null;
 };

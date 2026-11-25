@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import { createTodo } from "@/api/todo/AddTodo";
 import { invalidatePlanQueries } from "@/api/queryClient";
@@ -40,8 +41,10 @@ export function useAddTodo(date: string | undefined) {
       await createTodo(date, title.trim(), startTime, endTime, textbook?.id);
       invalidatePlanQueries();
       return true;
-    } catch {
-      setError("할 일 추가에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } catch (e) {
+      // 남은 기간을 만드는 중인 AI 계획의 아직 안 만든 날에는 추가할 수 없음 (rooter-back#405)
+      const inProgress = isAxiosError(e) && e.response?.data?.code === "PLAN_GENERATION_IN_PROGRESS";
+      setError(inProgress ? "이 날 계획은 아직 만드는 중이에요. 다 만들어진 뒤에 추가해주세요." : "할 일 추가에 실패했습니다. 잠시 후 다시 시도해주세요.");
       return false;
     } finally {
       setSubmitting(false);

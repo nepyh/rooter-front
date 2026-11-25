@@ -26,6 +26,7 @@ import { useBusyEdit } from "@/hooks/home/useBusyEdit";
 import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { useTimelineScroll } from "@/hooks/home/useTimelineScroll";
 import { useFeedbackNotice } from "@/hooks/home/useFeedbackNotice";
+import { usePlanGenerationNotice } from "@/hooks/home/usePlanGenerationNotice";
 import { usePlanDraftStore, useUIStore } from "@/store";
 import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 import { toLocalDateString } from "@/utils/common/date";
@@ -84,6 +85,7 @@ export default function Home() {
   const timeline = useTimelineScroll(now);
   const openTaskQuiz = useOpenTaskQuiz();
   const feedbackNotice = useFeedbackNotice(now);
+  const generationNotice = usePlanGenerationNotice(boards, selectedKey);
 
   const openFeedback = () => {
     if (feedbackNotice.dailyPlanId === null) return;
@@ -237,6 +239,13 @@ export default function Home() {
             actionLabel="오늘 공부 설문하기"
             onAction={openFeedback}
             onClose={feedbackNotice.close}
+          />
+        ) : generationNotice.visible && plans.length === 0 ? (
+          <MascotNotice
+            message={generationNotice.message}
+            actionLabel={generationNotice.actionLabel}
+            onAction={generationNotice.onAction}
+            onClose={generationNotice.close}
           />
         ) : (
           hasNoPlanBoard && plans.length === 0 && !emptyNoticeClosed && (
