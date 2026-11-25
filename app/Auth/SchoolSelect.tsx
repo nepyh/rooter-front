@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { BackHandler, TextInput } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { AuthScreen, SchoolSearchInput, ClassInfoInputs, SchoolInquiryLink, Stack, Button, Toast } from "@/components";
 import type { School } from "@/api/auth/SchoolSelect";
 import { useLogout } from "@/hooks/more/useLogout";
@@ -13,13 +13,15 @@ import { useInquiry } from "@/hooks/common/useInquiry";
 /**
  * 학교 선택 및 정보 입력 화면
  * 이미 로그인된 상태로 오는 화면이라, 뒤로 가면(헤더·안드로이드 뒤로가기) 로그아웃 후 첫 화면으로 보냄
+ * 설문 안내에서 뒤로 와서 학교·학년·반을 받으면 고른 상태 그대로 다시 보여줌
  */
 export default function SchoolSelect() {
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(false);
-  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
-  const [grade, setGrade] = useState("");
-  const [classNum, setClassNum] = useState("");
+  const params = useLocalSearchParams<{ school?: string; schoolId?: string; grade?: string; classNum?: string }>();
+  const [query, setQuery] = useState(params.school ?? "");
+  const [selected, setSelected] = useState(!!params.schoolId);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(params.schoolId || null);
+  const [grade, setGrade] = useState(params.grade ?? "");
+  const [classNum, setClassNum] = useState(params.classNum ?? "");
 
   const schoolRef = useRef<TextInput>(null);
   const logout = useLogout();
@@ -43,13 +45,13 @@ export default function SchoolSelect() {
 
   const handleSelect = (school: School) => {
     // 같은 학교를 다시 고르면 입력해 둔 학년·반을 유지
-    if (selectedSchool?.schoolId !== school.schoolId) {
+    if (selectedSchoolId !== school.schoolId) {
       setGrade("");
       setClassNum("");
     }
     setQuery(school.name);
     setSelected(true);
-    setSelectedSchool(school);
+    setSelectedSchoolId(school.schoolId);
     schoolRef.current?.blur();
   };
 
@@ -61,7 +63,7 @@ export default function SchoolSelect() {
   const handleComplete = () => {
     router.push({
       pathname: "/LearningSurvey/StudySurveyIntro",
-      params: { school: query, schoolId: selectedSchool?.schoolId ?? "", grade, classNum },
+      params: { school: query, schoolId: selectedSchoolId ?? "", grade, classNum },
     });
   };
 
@@ -85,7 +87,7 @@ export default function SchoolSelect() {
         onSelect={handleSelect}
         onEdit={handleEditSchool}
       />
-      {selectedSchool && (
+      {selectedSchoolId && (
         <ClassInfoInputs grade={grade} classNum={classNum} onChangeGrade={setGrade} onChangeClassNum={setClassNum} />
       )}
     </AuthScreen>
