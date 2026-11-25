@@ -11,6 +11,7 @@ const SAVE_ERROR_MESSAGES: Record<string, string> = {
   "INVALID_DATE_RANGE": "종료일은 시작일보다 늦어야 해요.",
   "PLAN_BOARD_NOT_FOUND": "삭제되었거나 찾을 수 없는 플랜이에요.",
   "FORBIDDEN": "내 플랜만 수정할 수 있어요.",
+  "PLAN_GENERATION_IN_PROGRESS": "아직 남은 기간의 계획을 만드는 중이에요. 다 만들어진 뒤에 기간·과목을 바꿔주세요.",
 };
 
 const DEFAULT_SAVE_ERROR_MESSAGE = "플랜을 수정하지 못했습니다. 잠시 후 다시 시도해주세요.";

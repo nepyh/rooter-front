@@ -6,6 +6,14 @@ import { toLocalDateString } from '@/utils/common/date';
 // Types
 // ================================
 
+/**
+ * AI 계획 생성 상태 (rooter-back#405). 서버가 앞 구간만 먼저 만들어 응답하고 남은 기간은 이어서 만든다
+ * - COMPLETED: 기간 전체를 만듦 (직접 만든 플랜·옛 서버 응답도 이 값으로 봄)
+ * - GENERATING: 남은 기간을 만드는 중, generatedUntil 까지만 일일 계획이 있음
+ * - FAILED: 재시도까지 실패, 다시 만들기(retryPlanGeneration)가 필요
+ */
+export type PlanGenerationStatus = "COMPLETED" | "GENERATING" | "FAILED";
+
 export interface PlanBoard {
   id: number;
   title: string;
@@ -17,6 +25,10 @@ export interface PlanBoard {
   isRepresentative: boolean;
   createdAt: string;
   updatedAt: string;
+  /** 없으면 COMPLETED (옛 서버 응답·저장된 캐시) */
+  generationStatus?: PlanGenerationStatus;
+  /** 만들어진 마지막 날짜 (YYYY-MM-DD). GENERATING·FAILED 일 때만 */
+  generatedUntil?: string | null;
 }
 
 export interface CreatePlanBoardInput {
