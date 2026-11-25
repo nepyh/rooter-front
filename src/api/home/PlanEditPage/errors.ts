@@ -28,11 +28,13 @@ const DEFAULT_DELETE_ERROR_MESSAGE = "플랜을 삭제하지 못했습니다. �
 // ================================
 
 /**
- * 플랜 수정 실패 에러를 안내 문구로 변환 (백엔드 code 기준)
+ * 플랜 수정 실패 에러를 안내 문구로 변환 (백엔드 code 기준), INVALID_DATE_RANGE 는 서버 message 를 그대로 씀
  * @param error savePlanBoardEdit() 가 던진 에러
  */
 export const getSaveErrorMessage = (error: unknown) => {
-  const code = isAxiosError(error) ? error.response?.data?.code : undefined;
+  const { code, message } = (isAxiosError(error) ? error.response?.data : undefined) ?? {};
+  // 날짜 범위는 사유(80일 초과·1년 넘음 등)가 서버 message 로만 나뉘어 그대로 보여줌
+  if (code === "INVALID_DATE_RANGE" && message) return message;
   return SAVE_ERROR_MESSAGES[code] ?? DEFAULT_SAVE_ERROR_MESSAGE;
 };
 

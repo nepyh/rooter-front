@@ -49,6 +49,7 @@ interface Props {
   selectedDate: Date | null;
   onSelect: (date: Date) => void;
   minDate?: Date;
+  maxDate?: Date;
   rangeStart?: Date;
   className?: string;
 }
@@ -61,14 +62,16 @@ interface Props {
  * @param selectedDate 고른 날짜
  * @param onSelect 날짜를 눌렀을 때 호출
  * @param minDate 고를 수 있는 가장 이른 날짜, 생략하면 오늘·지난 날짜를 뺀 내일부터
+ * @param maxDate 고를 수 있는 가장 늦은 날짜, 생략하면 제한 없음
  * @param rangeStart 기간의 시작일. 주면 이 날도 주황 테두리로 표시하고, 고른 날까지의 사이 날짜를 옅은 주황으로 칠함
  * @param className 바깥 Stack 에 덧붙일 클래스. flex-1 을 주면 주는 그 높이 안에 맞춰 줄어듦 (한 주 최대 87)
  */
-export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, minDate, rangeStart, className = "" }: Props) {
+export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, minDate, maxDate, rangeStart, className = "" }: Props) {
   const weeks = buildMonthWeeks(viewYear, viewMonth);
   const todayString = toLocalDateString(today);
   const selectedString = selectedDate ? toLocalDateString(selectedDate) : null;
   const minString = minDate ? toLocalDateString(minDate) : null;
+  const maxString = maxDate ? toLocalDateString(maxDate) : null;
   const rangeStartString = rangeStart ? toLocalDateString(rangeStart) : null;
 
   return (
@@ -86,7 +89,7 @@ export function DateGrid({ viewYear, viewMonth, today, selectedDate, onSelect, m
             const dateString = toLocalDateString(cell.date);
             const isToday = dateString === todayString;
             const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
-            const isSelectable = minString === null ? dateString > todayString : dateString >= minString;
+            const isSelectable = (minString === null ? dateString > todayString : dateString >= minString) && (maxString === null || dateString <= maxString);
             return (
               <Pressable
                 key={j}

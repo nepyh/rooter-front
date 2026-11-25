@@ -22,7 +22,8 @@ import { getDeleteErrorMessage, getSaveErrorMessage, savePlanBoardEdit } from "@
 import { invalidatePlanQueries, queryClient, queryKeys } from "@/api/queryClient";
 import { usePlanBoards } from "@/hooks/home/usePlanBoards";
 import { usePlanBoardTextbooks } from "@/hooks/home/usePlanBoardTextbooks";
-import { toLocalDateString } from "@/utils/common/date";
+import { PLAN_MAX_AHEAD_YEARS } from "@/constants/plan";
+import { addYears, toLocalDateString } from "@/utils/common/date";
 import { getSpacing } from "@/utils/common/token";
 import { buildPlanBoardEditInput, getPlanExamDate, hasPlanBoardEdit, parseLocalDate } from "@/utils/home/planBoard";
 import { getGenerationStatus } from "@/utils/home/planGeneration";
@@ -47,7 +48,7 @@ interface FormProps {
 }
 
 /**
- * 플랜 수정 입력 칸들. 지금은 시험일 하루만 저장할 수 있어 시작·종료일을 늘 같은 날짜(시험일)로 맞추고, 오늘 이전 날짜는 고를 수 없음
+ * 플랜 수정 입력 칸들. 지금은 시험일 하루만 저장할 수 있어 시작·종료일을 늘 같은 날짜(시험일)로 맞추고, 오늘 이전·1년 넘는 날짜는 고를 수 없음
  * AI 계획의 남은 기간을 만드는 중이면 날짜는 막아 두고 이름·설명·대표 여부만 바꿀 수 있음
  * 아래로 더 스크롤할 수 있으면 [수정하기] 버튼 바로 위를 그라데이션으로 흐리게 덮음
  * [수정하기] 를 누르면 확인창을 띄운 뒤 바뀐 이름·설명·시험일·대표 여부만 저장하고, 홈으로 돌아가 완료 토스트를 띄움
@@ -120,6 +121,7 @@ function PlanEditForm({ board, canBeRepresentative, onDeleted }: FormProps) {
           start={examDate}
           end={examDate}
           minDate={today}
+          maxDate={addYears(today, PLAN_MAX_AHEAD_YEARS)}
           onChangeStart={setExamDate}
           onChangeEnd={setExamDate}
           disabledMessage={getGenerationStatus(board) === "GENERATING" ? PERIOD_LOCKED_MESSAGE : null}
