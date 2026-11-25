@@ -8,6 +8,6 @@ module.exports = defineConfig([
   // Prettier 와 겹치는 포맷팅 규칙을 끕니다. 포맷팅은 Prettier(npm run format)가 담당합니다.
   eslintConfigPrettier,
   {
-    ignores: ["dist/*", ".expo/*", "ios/*", "android/*"],
+    ignores: ["dist/*", ".expo/*", "ios/*", "android/*", "marketing/**"],
   },
 ]);

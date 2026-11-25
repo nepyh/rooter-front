@@ -1,0 +1,10 @@
+{
+  "cleanUrls": false,
+  "headers": [
+    { "source": "/vcf/(.*)", "headers": [
+      { "key": "Content-Type", "value": "text/vcard; charset=utf-8" },
+      { "key": "Cache-Control", "value": "no-cache" }
+    ] },
+    { "source": "/(.*)\\.(html|js|css)", "headers": [ { "key": "Cache-Control", "value": "no-cache" } ] }
+  ]
+}

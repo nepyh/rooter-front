@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Team Hyphen · 디지털 명함</title>
+  <meta name="description" content="부산소프트웨어마이스터고등학교 전공동아리 Team Hyphen · AI 시험공부 계획 앱 루터" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Team Hyphen · 디지털 명함" />
+  <meta property="og:description" content="AI 시험공부 계획 앱 루터를 개발하는 Team Hyphen" />
+  <meta property="og:image" content="https://hyphen-card.duckdns.org/assets/og.png" />
+  <meta property="og:url" content="https://hyphen-card.duckdns.org/" />
+  <meta name="theme-color" content="#33363F" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="icon" href="assets/face.svg" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="nav">
+      <span class="logo"><img src="assets/face.svg" alt="" width="150" height="128" /><b>Rooter</b></span>
+    </header>
+    <div id="kakao"></div>
+
+    <section class="hero">
+      <div class="eyebrow" id="eyebrow"></div>
+      <h1 id="teamName"></h1>
+      <p id="teamIntro"></p>
+    </section>
+
+    <div class="section-label"><span>Members</span><span id="count"></span></div>
+    <main class="cards" id="list"></main>
+
+    <div id="app"></div>
+    <footer id="foot"></footer>
+  </div>
+
+  <script src="phones.js"></script>
+  <script src="members.js"></script>
+  <script src="card.js"></script>
+  <script>
+    document.getElementById("eyebrow").textContent = `${TEAM.school} ${TEAM.club}`;
+    document.getElementById("teamName").textContent = TEAM.name;
+    document.getElementById("teamIntro").textContent = TEAM.intro;
+    document.getElementById("count").textContent = `${MEMBERS.length}명`;
+    document.getElementById("kakao").innerHTML = kakaoBanner();
+    document.getElementById("app").innerHTML = appHtml();
+    document.getElementById("foot").textContent = footerText();
+
+    const list = document.getElementById("list");
+    MEMBERS.forEach((m) => list.appendChild(makeCard(m, { link: `card.html?id=${encodeURIComponent(m.id)}` })));
+  </script>
+</body>
+</html>

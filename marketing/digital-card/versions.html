@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>명함 디자인 비교 · Team Hyphen</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="assets/face.svg" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .ver { margin-top: 32px; }
+    .ver h2 { display: flex; justify-content: space-between; align-items: baseline; font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    .ver h2 a { font-size: 13px; font-weight: 600; color: var(--primary); }
+    .pair { display: flex; flex-direction: column; gap: 12px; }
+    .pair .card { cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <header class="nav"><span class="logo"><img src="assets/face.svg" alt="" width="150" height="128" /><b>Rooter</b></span></header>
+    <section class="hero"><div class="eyebrow">디자인 비교</div><h1>명함 후보 15개</h1><p>A = 얼굴형, B = 하이픈형. 각 후보의 앞면과 뒷면입니다. '이 안으로 보기'를 누르면 그 디자인으로 전체 페이지를 볼 수 있습니다.</p></section>
+    <div id="list"></div>
+  </div>
+  <script src="phones.js"></script>
+  <script src="members.js"></script>
+  <script src="card.js"></script>
+  <script>
+    const m = MEMBERS.find((x) => x.email) || MEMBERS[0];
+    const names = Object.fromEntries(Object.entries(VARIANTS).map(([k, [n]]) => [k, `${k} · ${n}`]));
+    const list = document.getElementById("list");
+    document.documentElement.classList.remove(...themeClasses(THEME));
+    Object.keys(names).forEach((v) => {
+      const sec = document.createElement("section");
+      sec.className = `ver ${themeClasses(v).join(" ")}`;
+      sec.innerHTML = `<h2>${names[v]}<a href="./?v=${v}">이 안으로 보기 ›</a></h2><div class="pair"></div>`;
+      const pair = sec.querySelector(".pair");
+      const front = makeCard(m);
+      const back = makeCard(m);
+      back.classList.add("flipped");
+      pair.append(front, back);
+      list.appendChild(sec);
+    });
+  </script>
+</body>
+</html>

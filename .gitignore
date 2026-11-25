@@ -42,3 +42,13 @@ yarn-error.*
 # Sentry upload credentials
 .env.sentry-build-plugin
 sentry.properties
+
+# 홍보물: 렌더 결과·배포 정보·전화번호는 제외 (홍보영상 node_modules·out 은 promo-video/.gitignore)
+marketing/digital-card/phones.js
+marketing/digital-card/vcf/
+marketing/digital-card/.vercel/
+marketing/digital-card/qr/
+marketing/digital-card/assets/contact/
+
+# 홍보영상 배경음악 (라이선스 문제로 GitHub 제외, 로컬에만 둠)
+marketing/promo-video/public/*Background Music*.mp4

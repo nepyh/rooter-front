@@ -14,3 +14,6 @@ android/
 
 # assets
 src/assets/fonts/
+
+# 홍보물 (홍보영상·디지털 명함) — 앱과 별개 프로젝트
+marketing/

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>명함 · Team Hyphen</title>
+  <meta property="og:title" content="Team Hyphen · 디지털 명함" />
+  <meta property="og:image" content="https://hyphen-card.duckdns.org/assets/og.png" />
+  <meta name="theme-color" content="#33363F" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="icon" href="assets/face.svg" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="nav">
+      <a class="back-link" href="./" id="back"></a>
+      <span class="logo"><img src="assets/face.svg" alt="" width="150" height="128" /><b>Rooter</b></span>
+    </header>
+    <div id="kakao"></div>
+    <main id="main"></main>
+    <div id="app"></div>
+    <footer id="foot"></footer>
+  </div>
+
+  <script src="phones.js"></script>
+  <script src="members.js"></script>
+  <script src="vendor/html-to-image.js"></script>
+  <script src="card.js"></script>
+  <script>
+    document.getElementById("back").innerHTML = `${line("back")}<span>${esc(TEAM.name)}</span>`;
+    document.getElementById("kakao").innerHTML = kakaoBanner();
+    document.getElementById("app").innerHTML = appHtml();
+    document.getElementById("foot").textContent = footerText();
+
+    const m = MEMBERS.find((x) => x.id === new URLSearchParams(location.search).get("id"));
+    const main = document.getElementById("main");
+
+    if (!m) {
+      main.innerHTML = `<div class="empty">명함을 찾을 수 없습니다.<br /><br /><a class="btn primary" href="./">팀 전체 보기</a></div>`;
+    } else {
+      document.title = `${m.name} · ${TEAM.name}`;
+      const rows = contactRows(m)
+        .map(([k, label, text, href]) => k === "phone"
+          ? `<button type="button" class="info-row" data-phone><span class="k">${label}</span><span class="v">${esc(text)}</span>${line("chevron")}</button>`
+          : `<a class="info-row" href="${esc(href)}"${isWeb(k) ? ' target="_blank" rel="noopener"' : ""}><span class="k">${label}</span><span class="v">${esc(text)}</span>${line("chevron")}</a>`)
+        .join("");
+      main.innerHTML = `
+        <div id="slot"></div>
+        <p class="hint">카드를 누르면 뒷면을 볼 수 있습니다</p>
+        ${m.bio ? `<section class="block"><h2>About</h2><p class="bio">${esc(m.bio)}</p></section>` : ""}
+        ${m.skills?.length ? `<section class="block"><h2>Skills</h2><div class="chips">${m.skills.map((s) => `<span>${esc(s)}</span>`).join("")}</div></section>` : ""}
+        ${rows ? `<section class="block"><h2>Contact</h2><div class="info">${rows}</div></section>` : ""}
+        <div class="buttons">
+          <a class="btn primary" ${vcfAttrs(m)}>${line("save")}연락처 저장</a>
+          <div class="two">
+            <button class="btn" id="img">${line("image")}명함 사진 저장</button>
+            <button class="btn" id="share">${line("share")}공유</button>
+          </div>
+        </div>`;
+      const card = makeCard(m);
+      document.getElementById("slot").appendChild(card);
+      document.getElementById("img").onclick = () => saveCardImage(card, m);
+      main.querySelector(".info [data-phone]")?.addEventListener("click", () => openPhoneSheet(m));
+      document.getElementById("share").onclick = () => shareLink(memberUrl(m), `${m.name} · ${TEAM.name}`);
+    }
+  </script>
+</body>
+</html>
