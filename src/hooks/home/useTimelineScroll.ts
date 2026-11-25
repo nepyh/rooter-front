@@ -26,6 +26,7 @@ const MENU_GAP = 8;
  * 처음 열면 현재 시각 조금 위로 스크롤하고, 액션 메뉴가 화면 밖이나 아래 탭 뒤에 뜨면 메뉴가 가운데 오도록 스크롤합니다.
  * scrollRef 는 animated ref 라서 블록을 끌 때 UI 스레드에서 자동 스크롤(useAutoScroll)할 때도 함께 씁니다.
  * @param now 현재 시각
+ * revealMenu 는 타임라인 배율(1분당 px)을 받아 메뉴 위치를 계산합니다.
  * @returns scrollRef, scrollYRef, handleScrollY, handleViewportHeight, revealMenu
  */
 export function useTimelineScroll(now: Date) {
@@ -48,12 +49,14 @@ export function useTimelineScroll(now: Date) {
     viewportHeightRef.current = height;
   };
 
-  const revealMenu = (plan: Plan) => {
+  const revealMenu = (plan: Plan, scale: number) => {
     const viewportHeight = viewportHeightRef.current;
     if (!viewportHeight) return;
 
-    const showBelow = plan.start < POPOVER_HEIGHT + MENU_GAP;
-    const menuTop = showBelow ? plan.start + plan.duration + MENU_GAP : plan.start - POPOVER_HEIGHT - MENU_GAP;
+    const planTop = plan.start * scale;
+    const planBottom = (plan.start + plan.duration) * scale;
+    const showBelow = planTop < POPOVER_HEIGHT + MENU_GAP;
+    const menuTop = showBelow ? planBottom + MENU_GAP : planTop - POPOVER_HEIGHT - MENU_GAP;
     const menuBottom = menuTop + POPOVER_HEIGHT;
 
     // 타임라인 아래쪽은 아래 탭이 덮고 있어 보이는 높이에서 뺌
@@ -63,7 +66,7 @@ export function useTimelineScroll(now: Date) {
     if (menuTop >= visibleTop && menuBottom <= visibleBottom) return;
 
     const centerTarget = menuTop + POPOVER_HEIGHT / 2 - visibleHeight / 2;
-    const maxScrollY = TIMELINE_HEIGHT + TIMELINE_BOTTOM_PADDING - viewportHeight;
+    const maxScrollY = TIMELINE_HEIGHT * scale + TIMELINE_BOTTOM_PADDING - viewportHeight;
     const targetY = Math.max(0, Math.min(maxScrollY, centerTarget));
     scrollRef.current?.scrollTo({ y: targetY, animated: true });
   };

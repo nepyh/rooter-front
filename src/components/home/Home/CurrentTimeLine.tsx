@@ -13,7 +13,7 @@ interface Props {
 
 /**
  * 타임라인 위의 현재 시각 선
- * @param top 타임라인 시작 기준 위치(분 = px)
+ * @param top 타임라인 시작 기준 위치(px)
  * @param label 선 왼쪽에 보여줄 시각 (예: 14:05)
  */
 export function CurrentTimeLine({ top, label }: Props) {

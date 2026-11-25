@@ -12,6 +12,7 @@ import { CATEGORY_COLORS } from "@/constants/category";
 import { color } from "@/constants/token/color";
 import { useAnimatedColumn } from "@/hooks/home/useAnimatedColumn";
 import type { AutoScroll } from "@/hooks/home/useAutoScroll";
+import { useTimelineScale } from "@/hooks/home/useTimelineZoom";
 import { formatDuration, snapBusyDrag, toClockString, type BusyBlock, type BusyEdit } from "@/utils/home/timeline";
 
 // ================================
@@ -76,6 +77,7 @@ export function BusyBlockView({ block, column, columns, areaWidth, scrollGesture
   const kind = block.key.split("-")[0];
   const colors = kind === "sleep" || kind === "school" ? busyColors[kind] : CATEGORY_COLORS.neutral;
   const edge = onDrop && autoScroll ? block.edit?.edge : undefined;
+  const scale = useTimelineScale();
 
   const [dragPreview, setDragPreview] = useState<{ start: number; duration: number } | null>(null);
   const { left, width, ...columnPadding } = columnStyle(column, columns, areaWidth);
@@ -95,14 +97,14 @@ export function BusyBlockView({ block, column, columns, areaWidth, scrollGesture
   const columnAnimatedStyle = useAnimatedStyle(() => ({
     left: x.get(),
     width: animatedWidth.get(),
-    top: top.get(),
-    height: height.get(),
+    top: top.get() * scale,
+    height: height.get() * scale,
   }));
 
   const followFinger = () => {
     "worklet";
     if (!dragging.get() || !edge) return;
-    const next = snapBusyDrag(edge, block.start, block.duration, fingerY.get() + scrollDelta.get());
+    const next = snapBusyDrag(edge, block.start, block.duration, (fingerY.get() + scrollDelta.get()) / scale);
     if (next.start === top.get() && next.duration === height.get()) return;
     top.set(next.start);
     height.set(next.duration);
@@ -157,7 +159,7 @@ export function BusyBlockView({ block, column, columns, areaWidth, scrollGesture
   const [titleHeight, setTitleHeight] = useState<number | null>(null);
   const measured = titleHeight !== null;
   const shownDuration = dragPreview?.duration ?? block.duration;
-  const showText = titleHeight === null || titleHeight <= shownDuration - BLOCK_TEXT_PADDING;
+  const showText = titleHeight === null || titleHeight <= shownDuration * scale - BLOCK_TEXT_PADDING;
 
   const content = (
     <Animated.View
