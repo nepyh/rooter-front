@@ -341,3 +341,25 @@ header.nav .logo::before { display: none !important; }
 .t4 .front .brand { gap: 4cqw; }
 .band .front .flogo { position: absolute; right: calc(100% + 2cqw); top: 50%; translate: 0 -50%; }
 .col-k .front .f-ruti { filter: drop-shadow(0 0 .3cqw var(--cream)) drop-shadow(0 0 .3cqw var(--cream)); }
+
+/* ================= 최종 명함 (B4 기준, 11-25) ================= */
+/* 글꼴은 전부 Pretendard (깔끔한 고딕) */
+:is(.logo b, .app-name b, .front .vlogo, .flogo b, .hy-mark b) { font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", sans-serif !important; font-weight: 800 !important; }
+header.nav .logo b::before { font-weight: 800; letter-spacing: -.03em; }
+/* 이탤릭 없음 */
+.front .role { font-style: normal; letter-spacing: .01em; }
+/* 연락처 링크 밑줄 없음 */
+.front .row span { text-decoration: none !important; }
+/* 앞면(정보 면): 세로 Hyphen · 루티 빼고 배경 얼굴 워터마크만 */
+.t4 .front .brand { display: none !important; }
+.t4 .front { justify-content: flex-start; }
+/* 뒷면 Hyphen: 주황 Pretendard ExtraBold, 촘촘하게 */
+.t4 .hy-mark b { color: var(--primary) !important; font-size: 12cqw; letter-spacing: -.05em; line-height: 1; }
+.t4 .hy-sub { margin-top: 2.6cqw; font-size: 3cqw; font-weight: 600; color: var(--b-sub); letter-spacing: -.01em; }
+/* 왼쪽 세로선: 위는 가늘고 옅게 → 아래로 갈수록 굵고 진하게 (앞·뒷면) */
+:is(.t3, .t4) .face .edge {
+  display: block !important; left: 3cqw; width: 1.3cqw;
+  background: linear-gradient(180deg, rgba(246,72,45,0) 0%, var(--primary) 100%);
+  clip-path: polygon(0 0, 20% 0, 100% 100%, 0 100%);
+}
+:is(.t3, .t4) .front .edge { position: absolute !important; top: 0; bottom: 0; z-index: 1; }

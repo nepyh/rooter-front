@@ -92,7 +92,6 @@ function backHtml(m) {
     <div class="hy">
       <div class="hy-mark"><i></i><b>Hyphen</b></div>
       <div class="hy-sub">${esc(TEAM.school)} ${esc(TEAM.club)}</div>
-      <div class="hy-app"><img src="assets/face.svg" alt="" width="150" height="128" />${esc(APP.name)} · ${esc(APP.tagline)}</div>
     </div>
   </div>`;
 }

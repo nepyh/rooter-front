@@ -9,7 +9,7 @@ window.TEAM = {
   club: "전공동아리",
   intro: "AI 시험공부 계획 앱 '루터'를 개발합니다.",
   siteUrl: "https://hyphen-card.duckdns.org/",
-  theme: "4w", // 명함 디자인: 3w/3o/3k 얼굴형(흰·주황·회검) · 4w/4o/4k 하이픈형(흰·주황·회검)
+  theme: "B4", // 명함 디자인 (card.js VARIANTS): B4 = 하이픈형 흰색, 앞면 얼굴 워터마크 / 3w/3o/3k 얼굴형(흰·주황·회검) · 4w/4o/4k 하이픈형(흰·주황·회검)
 };
 
 window.APP = {
@@ -32,7 +32,7 @@ window.MEMBERS = [
     id: "seokchan",
     name: "이석찬",
     nameEn: "Lee Sukchan",
-    role: "Team Lead · Backend",
+    role: "CEO · Backend",
     bio: "팀장이자 백엔드 개발자로 AI 학습 계획의 핵심 흐름을 설계하고 서버 성능과 안정성을 개선했습니다.",
     skills: ["Kotlin", "Ktor", "PostgreSQL", "Docker"],
     email: "ydhkms0904@gmail.com",
@@ -45,7 +45,7 @@ window.MEMBERS = [
     id: "mingyu",
     name: "성민규",
     nameEn: "Sung Mingyu",
-    role: "CTO · Backend · Frontend",
+    role: "CTO · AI · Backend · Frontend",
     bio: "CTO로 백엔드와 프론트엔드 개발을 함께 맡고 AWS 인프라(ECS·RDS·S3)를 구성했습니다.",
     skills: ["Kotlin", "Ktor", "React Native", "AWS"],
     email: "qlalfql123@gmail.com",
