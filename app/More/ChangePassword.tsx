@@ -42,19 +42,24 @@ export default function ChangePasswordPage() {
     if (userId === null || submitting) return;
 
     setSubmitting(true);
+    let verified = true;
+    let failure: unknown;
     try {
       await verifyPassword(userId, currentPassword.value);
       setStep("reset");
     } catch (error) {
-      if (isWrongCurrentPassword(error)) {
-        currentPassword.setError("현재 비밀번호가 일치하지 않습니다.");
-        currentPassword.focus(true);
-        return;
-      }
-      setToastMessage("현재 비밀번호를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setSubmitting(false);
+      verified = false;
+      failure = error;
     }
+    setSubmitting(false);
+    if (verified) return;
+
+    if (isWrongCurrentPassword(failure)) {
+      currentPassword.setError("현재 비밀번호가 일치하지 않습니다.");
+      currentPassword.focus(true);
+      return;
+    }
+    setToastMessage("현재 비밀번호를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.");
   };
 
   const handleReset = async () => {

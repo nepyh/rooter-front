@@ -1,8 +1,24 @@
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import { createTodo } from "@/api/todo/AddTodo";
 import { invalidatePlanQueries } from "@/api/queryClient";
+import { PLAN_GENERATION_IN_PROGRESS_TASK_MESSAGE } from "@/constants/task";
 import { normalizeClock } from "@/utils/common/time";
 import type { TextbookWithSubject } from "@/components/home/Home/TextbookPicker";
+
+// ================================
+// Functions
+// ================================
+
+/**
+ * 할 일 추가 실패 안내. 남은 기간을 만드는 중인 AI 계획의 아직 안 만든 날이면 기다려 달라고 안내 (rooter-back#405)
+ * try 안에서 조건식을 쓰면 React Compiler 가 훅을 건너뛰어서 함수로 뺌
+ * @param error createTodo() 가 던진 에러
+ */
+const getAddTodoErrorMessage = (error: unknown) =>
+  isAxiosError(error) && error.response?.data?.code === "PLAN_GENERATION_IN_PROGRESS"
+    ? PLAN_GENERATION_IN_PROGRESS_TASK_MESSAGE
+    : "할 일 추가에 실패했습니다. 잠시 후 다시 시도해주세요.";
 
 // ================================
 // Hooks
@@ -36,16 +52,19 @@ export function useAddTodo(date: string | undefined) {
 
     setError("");
     setSubmitting(true);
+    const textbookId = textbook?.id;
+    let added = true;
+    let failure: unknown = null;
     try {
-      await createTodo(date, title.trim(), startTime, endTime, textbook?.id);
+      await createTodo(date, title.trim(), startTime, endTime, textbookId);
       invalidatePlanQueries();
-      return true;
-    } catch {
-      setError("할 일 추가에 실패했습니다. 잠시 후 다시 시도해주세요.");
-      return false;
-    } finally {
-      setSubmitting(false);
+    } catch (e) {
+      failure = e;
+      added = false;
     }
+    if (!added) setError(getAddTodoErrorMessage(failure));
+    setSubmitting(false);
+    return added;
   };
 
   return { title, setTitle, startText, setStartText, endText, setEndText, textbook, setTextbook, error, canSubmit, submit };

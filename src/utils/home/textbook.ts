@@ -22,3 +22,10 @@ export const getTextbookLabels = (textbook: Textbook, fallback: string) => ({
   title: textbook.title.replace(/\s*\([^)]+\)\s*$/, ""),
   publisher: textbook.publisherName ?? textbook.title.match(/\(([^)]+)\)\s*$/)?.[1] ?? fallback,
 });
+
+/**
+ * 교과서 표지 이미지 소스. 서버가 주는 표지 주소는 요청마다 서명이 바뀌어서, 서명을 뺀 경로로 캐시함
+ * @param uri 서버가 준 표지 주소
+ * @returns expo-image 의 source
+ */
+export const toCoverSource = (uri: string) => ({ uri, cacheKey: uri.split("?")[0] });

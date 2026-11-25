@@ -1,9 +1,10 @@
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { Image } from "expo-image";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
 import type { TextbookWithSubject } from "@/api/home/common/catalog";
-import { getTextbookLabels } from "@/utils/home/textbook";
+import { getTextbookLabels, toCoverSource } from "@/utils/home/textbook";
 import { color } from "@/constants/token/color";
 
 // ================================
@@ -29,7 +30,7 @@ export function TextbookCard({ textbook, selected = false, onPress }: Props) {
     <Pressable onPress={onPress} disabled={!onPress} className="gap-spacing-3" style={{ width: 104 }}>
       <View className="rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden" style={{ aspectRatio: 210 / 270 }}>
         {textbook.coverImageUrl ? (
-          <Image source={{ uri: textbook.coverImageUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <Image source={toCoverSource(textbook.coverImageUrl)} style={{ width: "100%", height: "100%" }} contentFit="cover" />
         ) : (
           <Icon name="book" size={32} color={color.neutral["400"]} />
         )}

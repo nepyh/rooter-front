@@ -4,6 +4,7 @@ import { Text } from "../../ui/Text";
 import { PlanCard } from "./PlanCard";
 import type { PlanBoard } from "@/api/common/planBoard";
 import { formatPlanDate, getPlanExamDate } from "@/utils/home/planBoard";
+import { getPendingGenerationKind } from "@/utils/home/planGeneration";
 
 // ================================
 // Components
@@ -16,7 +17,7 @@ interface Props {
 }
 
 /**
- * 플랜 목록의 한 묶음 (진행 중인 플랜, 완료된 플랜). 플랜을 누르면 플랜 수정 화면으로 이동
+ * 플랜 목록의 한 묶음 (진행 중인 플랜, 완료된 플랜). 플랜을 누르면 플랜 수정 화면으로 이동. AI 계획을 아직 만드는 중·실패한 플랜은 카드에 함께 표시
  * @param title 묶음 제목
  * @param boards 묶음에 넣을 플랜
  * @param representativeId 대표 플랜 id, 이 묶음에 대표 표시가 필요 없으면 생략
@@ -32,6 +33,7 @@ export function PlanSection({ title, boards, representativeId = null }: Props) {
             title={board.title}
             date={formatPlanDate(getPlanExamDate(board))}
             isRepresentative={board.id === representativeId}
+            generation={getPendingGenerationKind(board)}
             onPress={() => router.push({ pathname: "/Home/PlanEditPage", params: { boardId: String(board.id) } })}
           />
         ))}

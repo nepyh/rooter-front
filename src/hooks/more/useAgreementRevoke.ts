@@ -31,9 +31,8 @@ export function useAgreementRevoke() {
     } catch (error) {
       setVisible(false);
       setErrorMessage(getRevokeErrorMessage(error));
-    } finally {
-      setPending(false);
     }
+    setPending(false);
   };
 
   return {

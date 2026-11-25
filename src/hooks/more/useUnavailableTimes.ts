@@ -36,17 +36,17 @@ export function useUnavailableTimes() {
 
     setError("");
     setSubmitting(true);
+    let added = true;
     try {
       const created = await addUnavailableTime(userId, { dayOfWeek, startTime, endTime });
       setItems((prev) => [...prev, created]);
       queryClient.invalidateQueries({ queryKey: queryKeys.busyTimes.all });
-      return true;
     } catch {
       setError("추가에 실패했습니다. 잠시 후 다시 시도해주세요.");
-      return false;
-    } finally {
-      setSubmitting(false);
+      added = false;
     }
+    setSubmitting(false);
+    return added;
   };
 
   return { items, error, submitting, add };
