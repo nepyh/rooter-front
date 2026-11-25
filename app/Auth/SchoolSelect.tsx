@@ -5,6 +5,7 @@ import { AuthScreen, SchoolSearchInput, ClassInfoInputs, SchoolInquiryLink, Stac
 import type { School } from "@/api/auth/SchoolSelect";
 import { useLogout } from "@/hooks/more/useLogout";
 import { useInquiry } from "@/hooks/common/useInquiry";
+import { isValidClassNumber } from "@/utils/auth/classNumber";
 
 // ================================
 // Components
@@ -36,7 +37,7 @@ export default function SchoolSelect() {
     return () => subscription.remove();
   }, [logout]));
 
-  const btnVariant = selected && grade && classNum ? "primary" : "disabled";
+  const btnVariant = selected && grade && isValidClassNumber(classNum) ? "primary" : "disabled";
 
   const handleChangeQuery = (text: string) => {
     setQuery(text);
@@ -61,6 +62,7 @@ export default function SchoolSelect() {
   };
 
   const handleComplete = () => {
+    if (btnVariant === "disabled") return;
     router.push({
       pathname: "/LearningSurvey/StudySurveyIntro",
       params: { school: query, schoolId: selectedSchoolId ?? "", grade, classNum },

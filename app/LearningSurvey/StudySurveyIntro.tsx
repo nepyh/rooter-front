@@ -1,8 +1,7 @@
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Row, Button, SurveyMessageScreen } from "@/components";
-import { saveStudentProfile } from "@/api/learningSurvey/common";
-import { useUserStore } from "@/store";
+import { useSaveStudentProfile } from "@/hooks/learningSurvey/useSaveStudentProfile";
 
 // ================================
 // Components
@@ -20,16 +19,15 @@ export default function StudySurveyIntro() {
     classNum: string;
     from?: "AccountSetting";
   }>();
-  const userId = useUserStore((state) => state.userId);
+  const saveProfile = useSaveStudentProfile();
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     if (from === "AccountSetting") {
       router.replace("/Home/Home");
       return;
     }
 
-    if (userId !== null) saveStudentProfile(userId, schoolId, grade, classNum);
-    router.replace("/Tutorial/Tutorial");
+    if (await saveProfile({ school, schoolId, grade, classNum })) router.replace("/Tutorial/Tutorial");
   };
 
   const handleStart = () => {
