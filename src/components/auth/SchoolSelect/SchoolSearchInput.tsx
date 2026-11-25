@@ -33,6 +33,7 @@ interface Props {
  */
 export function SchoolSearchInput({ ref, query, selected, onChangeQuery, onSelect, onEdit }: Props) {
   const [schools, setSchools] = useState<School[]>([]);
+  const [listHeight, setListHeight] = useState(0);
   const showSuggestions = query.length > 0 && !selected;
 
   useEffect(() => {
@@ -51,7 +52,12 @@ export function SchoolSearchInput({ ref, query, selected, onChangeQuery, onSelec
   }, [query, showSuggestions]);
 
   return (
-    <View className="relative z-10">
+    // 목록을 칸 안에 두고 그 높이만큼 아래 여백을 당겨, 아래 입력칸 위치는 그대로 두고 목록만 겹쳐 보이게 함
+    // 목록이 칸 밖으로 튀어나오면 안드로이드에서 목록 스크롤이 먹지 않음
+    <View
+      className="z-10"
+      style={{ pointerEvents: "box-none", marginBottom: showSuggestions ? -listHeight : 0 }}
+    >
       <Input
         ref={ref}
         value={query}
@@ -61,7 +67,13 @@ export function SchoolSearchInput({ ref, query, selected, onChangeQuery, onSelec
         label="학교명"
         placeholder="학교 이름을 입력해주세요."
       />
-      {showSuggestions && <SchoolSuggestionList schools={schools} onSelect={onSelect} />}
+      {showSuggestions && (
+        <SchoolSuggestionList
+          schools={schools}
+          onSelect={onSelect}
+          onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+        />
+      )}
     </View>
   );
 }
