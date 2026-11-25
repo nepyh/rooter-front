@@ -30,7 +30,7 @@ interface Props {
  * @param now 현재 시각, 이 페이지가 오늘이면 현재 시각 선을 그림
  */
 export function NeighborPage({ width, offset, date, now }: Props) {
-  const { dateKey, busyBlocks, plans } = useNeighborDay(date, now);
+  const { dateKey, busyBlocks, plans } = useNeighborDay(date);
   const [areaWidth, setAreaWidth] = useState(0);
   const isToday = dateKey === toLocalDateString(now);
 

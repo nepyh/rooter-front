@@ -49,7 +49,7 @@ export const getWeekDates = (center: Date) => {
 };
 
 /**
- * 할 일의 끝나는 시각이 지났는지 (지난 할 일은 실패로 봄)
+ * 할 일의 끝나는 시각이 지났는지
  * @param task 할 일
  * @param dateKey 할 일 날짜 (yyyy-MM-dd)
  */
@@ -59,8 +59,7 @@ export const isTaskEnded = (task: PlanTask, dateKey: string) => {
 };
 
 /**
- * 할 일이 실패했는지 (실패로 저장됐거나, 완료하지 않은 채 끝나는 시각이 지남. 홈과 같은 기준)
+ * 할 일이 실패했는지 (서버에 실패로 저장됨). 끝나는 시각이 지났어도 아직 PENDING 이면 퀴즈를 풀어 완료할 수 있어 실패로 보지 않음
  * @param task 할 일
- * @param dateKey 할 일 날짜 (yyyy-MM-dd)
  */
-export const isTaskFailed = (task: PlanTask, dateKey: string) => task.status === "FAILED" || (task.status === "PENDING" && isTaskEnded(task, dateKey));
+export const isTaskFailed = (task: PlanTask) => task.status === "FAILED";
