@@ -7,7 +7,7 @@ import { signup, getSignupError } from '@/api/auth/Signup';
 import type { AgreementDecision } from '@/api/common/agreement';
 import { useFormField } from '@/hooks/common/useFormField';
 import { useAgreementCatalog } from '@/hooks/common/useAgreements';
-import { getPasswordError } from '@/utils/common/password';
+import { getPasswordCharError, getPasswordError } from '@/utils/common/password';
 
 export default function Signup() {
   const username = useFormField();
@@ -77,7 +77,7 @@ export default function Signup() {
   };
 
   useEffect(() => {
-    const isError = !username.value || !email.value || !password.value || !checkPassword.value;
+    const isError = !username.value || !email.value || !password.value || !!getPasswordCharError(password.value) || !checkPassword.value;
     setBtnVariant(isError ? "disabled" : "primary");
   }, [username.value, email.value, password.value, checkPassword.value]);
 
@@ -96,7 +96,7 @@ export default function Signup() {
     >
       <Input {...username.inputProps} label="이름" placeholder="이름을 입력해주세요" />
       <EmailInput {...email.inputProps} />
-      <PasswordInput {...password.inputProps} />
+      <PasswordInput {...password.inputProps} errorMessage={password.error || getPasswordCharError(password.value) || ""} />
       <PasswordInput {...checkPassword.inputProps} label="비밀번호 확인" placeholder="비밀번호를 다시 입력해주세요" />
     </AuthScreen>
   );
