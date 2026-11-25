@@ -80,7 +80,7 @@ export default function CalendarPage() {
       <CalendarHeader title={month.headerText} onPrev={month.goPrevMonth} onNext={month.goNextMonth} />
       <WeekdayHeader />
       <GestureDetector gesture={swipe.gesture}>
-        <Animated.View style={swipe.animatedStyle} onLayout={swipe.onLayout}>
+        <Animated.View style={[{ flex: 1 }, swipe.animatedStyle]} onLayout={swipe.onLayout}>
           <MonthGrid
             monthKey={monthKey}
             weeks={month.weeks}
