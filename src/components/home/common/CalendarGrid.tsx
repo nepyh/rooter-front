@@ -54,6 +54,7 @@ interface Props {
   value: Date;
   onSelect: (date: Date) => void;
   minDate?: Date;
+  maxDate?: Date;
 }
 
 /**
@@ -61,14 +62,17 @@ interface Props {
  * @param value 선택된 날짜, 처음 보여줄 달도 이 날짜의 달
  * @param onSelect 날짜를 눌렀을 때 호출
  * @param minDate 고를 수 있는 가장 이른 날짜. 이보다 이른 날짜는 회색으로 보이고 눌리지 않으며, 이 날짜의 달 이전으로는 넘길 수 없음
+ * @param maxDate 고를 수 있는 가장 늦은 날짜. 이보다 늦은 날짜는 회색으로 보이고 눌리지 않으며, 이 날짜의 달 이후로는 넘길 수 없음
  * 날짜 부분을 좌우로 끌어도 달을 넘길 수 있고, 넘긴 방향에서 새 달이 밀려 들어옴
  */
-export function CalendarGrid({ value, onSelect, minDate }: Props) {
+export function CalendarGrid({ value, onSelect, minDate, maxDate }: Props) {
   const [viewYear, setViewYear] = useState(value.getFullYear());
   const [viewMonth, setViewMonth] = useState(value.getMonth());
   const weeks = buildMonthWeeks(viewYear, viewMonth);
   const minKey = minDate ? toLocalDateString(minDate) : null;
+  const maxKey = maxDate ? toLocalDateString(maxDate) : null;
   const canGoPrev = !minDate || toMonthIndex(viewYear, viewMonth) > toMonthIndex(minDate.getFullYear(), minDate.getMonth());
+  const canGoNext = !maxDate || toMonthIndex(viewYear, viewMonth) < toMonthIndex(maxDate.getFullYear(), maxDate.getMonth());
 
   // 처음 열 때는 밀려 들어오지 않고, 한 번이라도 넘긴 뒤부터 넘긴 방향으로 애니메이션
   const [direction, setDirection] = useState<SlideDirection | null>(null);
@@ -83,7 +87,7 @@ export function CalendarGrid({ value, onSelect, minDate }: Props) {
     if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else setViewMonth((m) => m + 1);
   };
 
-  const swipe = useMonthSwipe(monthKey, goPrevMonth, goNextMonth, canGoPrev);
+  const swipe = useMonthSwipe(monthKey, goPrevMonth, goNextMonth, canGoPrev, canGoNext);
   const entering = direction ? slideInAnimations[direction].duration(SLIDE_MS) : undefined;
 
   return (
@@ -93,8 +97,8 @@ export function CalendarGrid({ value, onSelect, minDate }: Props) {
           <Icon name="chevronLeft" size={20} color={navIconColors[canGoPrev ? "enabled" : "disabled"]} />
         </Pressable>
         <Text variant="base-large" weight="medium" className="text-text-primary">{viewMonth + 1}월</Text>
-        <Pressable onPress={goNextMonth} className="w-spacing-7 h-spacing-7 items-center justify-center">
-          <Icon name="chevronRight" size={20} />
+        <Pressable onPress={goNextMonth} disabled={!canGoNext} className="w-spacing-7 h-spacing-7 items-center justify-center">
+          <Icon name="chevronRight" size={20} color={navIconColors[canGoNext ? "enabled" : "disabled"]} />
         </Pressable>
       </Row>
       <Stack gap="s" width="full">
@@ -114,7 +118,8 @@ export function CalendarGrid({ value, onSelect, minDate }: Props) {
                     <Row key={i} width="full" className="justify-between">
                       {week.map((cell, j) => {
                         const isSelected = isSameDay(cell.date, value);
-                        const isSelectable = minKey === null || toLocalDateString(cell.date) >= minKey;
+                        const dateKey = toLocalDateString(cell.date);
+                        const isSelectable = (minKey === null || dateKey >= minKey) && (maxKey === null || dateKey <= maxKey);
                         return (
                           <Pressable
                             key={j}

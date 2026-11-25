@@ -13,6 +13,20 @@ export const toLocalDateString = (date: Date) => `${date.getFullYear()}-${pad(da
  */
 export const parseServerDateTime = (value: string) => new Date(value.replace(/(\.\d{3})\d+/, "$1"));
 
+/**
+ * 날짜에 일수를 더한 새 Date (기기 시간 기준, 시각은 0시)
+ * @param date 기준 날짜
+ * @param days 더할 일수, 음수면 이전 날짜
+ */
+export const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+
+/**
+ * 날짜에 해 수를 더한 새 Date (기기 시간 기준, 시각은 0시)
+ * @param date 기준 날짜
+ * @param years 더할 해 수
+ */
+export const addYears = (date: Date, years: number) => new Date(date.getFullYear() + years, date.getMonth(), date.getDate());
+
 export const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 

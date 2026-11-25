@@ -30,6 +30,12 @@ const slideInAnimations: Record<SlideDirection, typeof SlideInRight> = {
 };
 
 // ================================
+// Helpers
+// ================================
+
+const toMonthIndex = (year: number, month: number) => year * 12 + month;
+
+// ================================
 // Components
 // ================================
 
@@ -41,6 +47,7 @@ interface Props extends ViewProps {
   onNext: () => void;
   onBack: () => void;
   minDate?: Date;
+  maxDate?: Date;
   rangeStart?: Date;
   className?: string;
 }
@@ -56,9 +63,10 @@ interface Props extends ViewProps {
  * @param onNext 다음 버튼을 눌렀을 때 호출
  * @param onBack 뒤로가기 버튼을 눌렀을 때 호출
  * @param minDate 고를 수 있는 가장 이른 날짜, 생략하면 내일부터
+ * @param maxDate 고를 수 있는 가장 늦은 날짜. 이 날짜의 달 이후로는 넘길 수 없음, 생략하면 제한 없음
  * @param rangeStart 기간의 시작일. 주면 이 날부터 고른 날까지를 달력에 함께 표시
  */
-export function ExamDateScreen({ title, description, selectedDate, onSelect, onNext, onBack, minDate, rangeStart, className = "", ...props }: Props) {
+export function ExamDateScreen({ title, description, selectedDate, onSelect, onNext, onBack, minDate, maxDate, rangeStart, className = "", ...props }: Props) {
   const today = new Date();
   const initialView = selectedDate ?? minDate ?? today;
   const [viewYear, setViewYear] = useState(initialView.getFullYear());
@@ -66,6 +74,7 @@ export function ExamDateScreen({ title, description, selectedDate, onSelect, onN
   // 처음 열 때는 밀려 들어오지 않고, 한 번이라도 넘긴 뒤부터 넘긴 방향으로 애니메이션
   const [direction, setDirection] = useState<SlideDirection | null>(null);
   const monthKey = `${viewYear}-${viewMonth}`;
+  const canGoNext = !maxDate || toMonthIndex(viewYear, viewMonth) < toMonthIndex(maxDate.getFullYear(), maxDate.getMonth());
 
   const goPrevMonth = () => {
     setDirection("prev");
@@ -76,7 +85,7 @@ export function ExamDateScreen({ title, description, selectedDate, onSelect, onN
     if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else setViewMonth((m) => m + 1);
   };
 
-  const swipe = useMonthSwipe(monthKey, goPrevMonth, goNextMonth);
+  const swipe = useMonthSwipe(monthKey, goPrevMonth, goNextMonth, true, canGoNext);
   const entering = direction ? slideInAnimations[direction].duration(SLIDE_MS) : undefined;
 
   return (
@@ -86,7 +95,7 @@ export function ExamDateScreen({ title, description, selectedDate, onSelect, onN
       <PageTitle title={title} description={description} className="pb-spacing-6 border-b border-neutral-600" />
 
       <Stack gap="m" width="full" className="pt-spacing-6 pb-spacing-4 flex-1">
-        <MonthNavigator year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+        <MonthNavigator year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} canGoNext={canGoNext} />
         <GestureDetector gesture={swipe.gesture}>
           <Animated.View style={[{ flex: 1 }, swipe.animatedStyle]} onLayout={swipe.onLayout}>
             <Animated.View key={monthKey} entering={entering} style={{ flex: 1 }}>
@@ -97,6 +106,7 @@ export function ExamDateScreen({ title, description, selectedDate, onSelect, onN
                 selectedDate={selectedDate}
                 onSelect={onSelect}
                 minDate={minDate}
+                maxDate={maxDate}
                 rangeStart={rangeStart}
                 className="flex-1"
               />

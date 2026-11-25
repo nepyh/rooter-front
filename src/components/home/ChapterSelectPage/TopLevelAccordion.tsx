@@ -20,6 +20,8 @@ const CONTENT_SHADOW_END = 0.08446;
 
 type State = "expanded" | "collapsed";
 
+type LeafState = "selected" | "unselected";
+
 // ================================
 // Styles
 // ================================
@@ -32,6 +34,11 @@ const containerStyles: Record<State, string> = {
 const headerStyles: Record<State, string> = {
   "expanded": "bg-neutral-700",
   "collapsed": "rounded-radius-3",
+};
+
+const leafStyles: Record<LeafState, string> = {
+  "selected": "bg-neutral-600",
+  "unselected": "",
 };
 
 // ================================
@@ -48,13 +55,29 @@ interface Props {
 
 /**
  * 펼치고 접을 수 있는 대단원. 펼치면 안의 중단원·소단원이 모두 보임
+ * 중단원·소단원이 없는 대단원은 펼치지 않고 대단원 자체를 고름
  * @param node 대단원
  * @param expanded 펼친 상태인지
  * @param onToggle 대단원 제목을 눌렀을 때 호출
- * @param selectedIds 고른 소단원 id
- * @param onToggleLeaves 소단원이나 중단원을 눌렀을 때 그 아래 소단원 id 들로 호출
+ * @param selectedIds 고른 소단원 id (자식 없는 대단원 id 포함)
+ * @param onToggleLeaves 소단원이나 중단원, 자식 없는 대단원을 눌렀을 때 그 아래 소단원 id 들로 호출
  */
 export function TopLevelAccordion({ node, expanded, onToggle, selectedIds, onToggleLeaves }: Props) {
+  if (node.children.length === 0) {
+    const selected = selectedIds.has(node.id);
+    return (
+      <Pressable
+        onPress={() => onToggleLeaves([node.id])}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
+        className={`flex-row items-center gap-spacing-4 px-spacing-6 py-spacing-5 w-full rounded-radius-3 ${leafStyles[selected ? "selected" : "unselected"]}`}
+      >
+        <Text variant="header-large" weight="semibold" numberOfLines={1} style={{ flex: 1 }}>{node.chapterName}</Text>
+        {selected && <Icon name="check" size={28} />}
+      </Pressable>
+    );
+  }
+
   const state: State = expanded ? "expanded" : "collapsed";
 
   return (

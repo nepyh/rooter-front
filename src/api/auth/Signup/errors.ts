@@ -14,7 +14,7 @@ export type SignupErrorTarget = 'username' | 'email' | 'password' | 'toast';
 
 // 백엔드 UserValidationException 의 code 기준. 이름·비밀번호·이메일 길이 오류가 모두 400 이라 status 로는 나눌 수 없음
 const SIGNUP_ERRORS: Record<string, AuthError<SignupErrorTarget>> = {
-  INVALID_USERNAME: { target: 'username', message: '이름은 12자 이하여야 합니다.' },
+  INVALID_USERNAME: { target: 'username', message: '이름을 다시 확인해주세요.' },
   INVALID_PASSWORD_FORMAT: { target: 'password', message: PASSWORD_ERROR_MESSAGE },
   DUPLICATED_EMAIL: { target: 'email', message: '이미 사용 중인 이메일입니다.' },
   EMAIL_TOO_LONG: { target: 'email', message: '이메일은 320자를 초과할 수 없습니다.' },
@@ -32,7 +32,9 @@ const SIGNUP_ERRORS: Record<string, AuthError<SignupErrorTarget>> = {
 export const getSignupError = (error: unknown): AuthError<SignupErrorTarget> | null => {
   if (!axios.isAxiosError(error)) return null;
 
-  const code = error.response?.data?.code;
+  const { code, message } = error.response?.data ?? {};
+  // 이름은 어긴 규칙(띄어쓰기·길이 등)이 서버 message 로만 나뉘어 그대로 보여줌
+  if (code === 'INVALID_USERNAME' && message) return { target: 'username', message };
   if (typeof code === 'string' && SIGNUP_ERRORS[code]) return SIGNUP_ERRORS[code];
 
   const status = getStatus(error);

@@ -5,6 +5,7 @@ import { queryClient, queryKeys } from "@/api/queryClient";
 import type { School } from "@/api/auth/SchoolSelect";
 import { useUserInfo } from "@/hooks/common/useUserInfo";
 import { useUserStore } from "@/store";
+import { isValidClassNumber } from "@/utils/auth/classNumber";
 
 // ================================
 // Hooks
@@ -42,7 +43,7 @@ export function useSchoolEdit() {
     editedClassNum ??
     (userInfo?.classNumber ? String(userInfo.classNumber) : "");
 
-  const canSave = selected && !!schoolId && !!grade && !!classNum && !saving;
+  const canSave = selected && !!schoolId && !!grade && isValidClassNumber(classNum) && !saving;
 
   const changeQuery = (text: string) => {
     setEditedQuery(text);
