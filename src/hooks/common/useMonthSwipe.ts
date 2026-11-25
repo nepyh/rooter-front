@@ -26,9 +26,10 @@ const SNAP_BACK_MS = 200;
  * @param onPrev 오른쪽으로 넘겼을 때 호출 (이전 달)
  * @param onNext 왼쪽으로 넘겼을 때 호출 (다음 달)
  * @param canGoPrev 이전 달로 넘길 수 있는지. false 면 오른쪽으로 끌어도 제자리로 돌아옴 (고를 수 있는 가장 이른 달)
+ * @param canGoNext 다음 달로 넘길 수 있는지. false 면 왼쪽으로 끌어도 제자리로 돌아옴 (고를 수 있는 가장 늦은 달)
  * @returns gesture(GestureDetector 에 넘김), animatedStyle(움직일 Animated.View 에 넘김), onLayout(달력 너비 측정)
  */
-export function useMonthSwipe(pageKey: string, onPrev: () => void, onNext: () => void, canGoPrev = true) {
+export function useMonthSwipe(pageKey: string, onPrev: () => void, onNext: () => void, canGoPrev = true, canGoNext = true) {
   const width = useSharedValue(0);
   const translateX = useSharedValue(0);
 
@@ -50,6 +51,7 @@ export function useMonthSwipe(pageKey: string, onPrev: () => void, onNext: () =>
       if (Math.abs(e.velocityX) > SWIPE_FLING_VELOCITY) delta = e.velocityX < 0 ? 1 : -1;
       else if (Math.abs(e.translationX) > width.get() * SWIPE_PAGE_RATIO) delta = e.translationX < 0 ? 1 : -1;
       if (delta < 0 && !canGoPrev) delta = 0;
+      if (delta > 0 && !canGoNext) delta = 0;
 
       if (delta === 0) {
         translateX.set(withTiming(0, { duration: SNAP_BACK_MS }));

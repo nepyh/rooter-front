@@ -2,12 +2,14 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { ExamDateScreen } from "@/components";
 import { usePlanDraftStore } from "@/store";
-import { toLocalDateString } from "@/utils/common/date";
+import { PLAN_MAX_AHEAD_YEARS } from "@/constants/plan";
+import { addYears, toLocalDateString } from "@/utils/common/date";
 import { parseLocalDate } from "@/utils/home/planBoard";
 
 /**
  * 시험 종료 날짜 선택 화면. 시험 시작일부터 고를 수 있고, 시작일과 같은 날을 고르면 하루만 시험을 보는 것으로 봄
  * 고른 날짜를 플랜 만들기 내용에 저장하고 교과서 선택 화면으로 넘어감
+ * 종료일은 오늘 + PLAN_MAX_AHEAD_YEARS 년까지 고를 수 있음
  */
 export default function ExamEndDatePage() {
   const examStartDate = usePlanDraftStore((state) => state.examStartDate);
@@ -35,6 +37,7 @@ export default function ExamEndDatePage() {
       onNext={handleNext}
       onBack={goBack}
       minDate={startDate}
+      maxDate={addYears(new Date(), PLAN_MAX_AHEAD_YEARS)}
       rangeStart={startDate}
     />
   );

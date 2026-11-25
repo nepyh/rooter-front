@@ -2,6 +2,22 @@ import { Pressable } from "react-native";
 import { Row } from "../../layout";
 import { Text } from "../../ui/Text";
 import { Icon } from "@/assets";
+import { color } from "@/constants/token/color";
+
+// ================================
+// Types
+// ================================
+
+type NavState = "enabled" | "disabled";
+
+// ================================
+// Styles
+// ================================
+
+const navIconColors: Record<NavState, string> = {
+  "enabled": color.text.primary,
+  "disabled": color.text.disabled,
+};
 
 // ================================
 // Components
@@ -12,6 +28,8 @@ interface Props {
   month: number;
   onPrev: () => void;
   onNext: () => void;
+  canGoPrev?: boolean;
+  canGoNext?: boolean;
 }
 
 /**
@@ -20,17 +38,19 @@ interface Props {
  * @param month 보여줄 달 (0부터)
  * @param onPrev 이전 달 버튼을 눌렀을 때 호출
  * @param onNext 다음 달 버튼을 눌렀을 때 호출
+ * @param canGoPrev 이전 달로 갈 수 있는지, false 면 버튼이 회색으로 막힘
+ * @param canGoNext 다음 달로 갈 수 있는지, false 면 버튼이 회색으로 막힘
  */
-export function MonthNavigator({ year, month, onPrev, onNext }: Props) {
+export function MonthNavigator({ year, month, onPrev, onNext, canGoPrev = true, canGoNext = true }: Props) {
   return (
     <Row width="full" align="between" className="items-center">
       <Text variant="header-large" weight="semibold">{`${year}년 ${month + 1}월`}</Text>
       <Row gap="xs" className="items-center">
-        <Pressable onPress={onPrev} className="p-spacing-2 rounded-radius-full items-center justify-center">
-          <Icon name="chevronLeft" size={24} />
+        <Pressable onPress={onPrev} disabled={!canGoPrev} className="p-spacing-2 rounded-radius-full items-center justify-center">
+          <Icon name="chevronLeft" size={24} color={navIconColors[canGoPrev ? "enabled" : "disabled"]} />
         </Pressable>
-        <Pressable onPress={onNext} className="p-spacing-2 rounded-radius-full items-center justify-center">
-          <Icon name="chevronRight" size={24} />
+        <Pressable onPress={onNext} disabled={!canGoNext} className="p-spacing-2 rounded-radius-full items-center justify-center">
+          <Icon name="chevronRight" size={24} color={navIconColors[canGoNext ? "enabled" : "disabled"]} />
         </Pressable>
       </Row>
     </Row>

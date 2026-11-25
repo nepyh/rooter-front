@@ -52,11 +52,15 @@ const DEFAULT_FAILURE: GenerateFailure = { message: '학습 계획을 만들지 
 
 /**
  * 계획 생성 실패 에러를 안내 문구와 다음 동작으로 변환 (시간 초과·네트워크·백엔드 code 순으로 판단)
+ * INVALID_DATE_RANGE 는 서버 message 를 그대로 씀
  * @param error generatePlan() 이 던진 에러
  */
 export const getGenerateFailure = (error: unknown): GenerateFailure => {
   if (!axios.isAxiosError(error)) return DEFAULT_FAILURE;
   if (error.code === 'ECONNABORTED') return TIMEOUT_FAILURE;
   if (!error.response) return NETWORK_FAILURE;
-  return GENERATE_FAILURES[error.response.data?.code] ?? DEFAULT_FAILURE;
+  const { code, message } = error.response.data ?? {};
+  // 날짜 범위는 사유(80일 초과·1년 넘음 등)가 서버 message 로만 나뉘어 그대로 보여줌
+  if (code === 'INVALID_DATE_RANGE' && message) return { message, action: 'edit' };
+  return GENERATE_FAILURES[code] ?? DEFAULT_FAILURE;
 };
