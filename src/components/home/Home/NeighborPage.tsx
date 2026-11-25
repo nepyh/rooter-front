@@ -6,6 +6,7 @@ import { PlanBlockCard } from "./PlanBlockCard";
 import { CurrentTimeLine } from "./CurrentTimeLine";
 import { columnStyle } from "./styles";
 import { useNeighborDay } from "@/hooks/home/useNeighborDay";
+import { useTimelineScale } from "@/hooks/home/useTimelineZoom";
 import { formatClock } from "@/utils/common/time";
 import { toLocalDateString } from "@/utils/common/date";
 import { TIMELINE_HEIGHT, TIMELINE_LEFT, layoutColumns, minutesSinceWindowStart } from "@/utils/home/timeline";
@@ -33,6 +34,7 @@ export function NeighborPage({ width, offset, date, now }: Props) {
   const { dateKey, busyBlocks, plans } = useNeighborDay(date);
   const [areaWidth, setAreaWidth] = useState(0);
   const isToday = dateKey === toLocalDateString(now);
+  const scale = useTimelineScale();
 
   const columns = layoutColumns([
     ...busyBlocks.map((block) => ({ id: `busy:${block.key}`, start: block.start, duration: block.duration })),
@@ -42,7 +44,7 @@ export function NeighborPage({ width, offset, date, now }: Props) {
 
   return (
     <View pointerEvents="none" className="px-spacing-7" style={{ width, overflow: "hidden" }}>
-      <View key={dateKey} style={{ height: TIMELINE_HEIGHT, transform: [{ translateY: -offset }] }}>
+      <View key={dateKey} style={{ height: TIMELINE_HEIGHT * scale, transform: [{ translateY: -offset }] }}>
         <HourLines />
 
         <View
@@ -57,7 +59,7 @@ export function NeighborPage({ width, offset, date, now }: Props) {
             return (
               <View
                 key={plan.id}
-                style={{ position: "absolute", top: plan.start, height: plan.duration, ...columnStyle(column, count, areaWidth) }}
+                style={{ position: "absolute", top: plan.start * scale, height: plan.duration * scale, ...columnStyle(column, count, areaWidth) }}
               >
                 <PlanBlockCard plan={plan} />
               </View>
@@ -65,7 +67,7 @@ export function NeighborPage({ width, offset, date, now }: Props) {
           })}
         </View>
 
-        {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now)} label={formatClock(now)} />}
+        {isToday && <CurrentTimeLine top={minutesSinceWindowStart(now) * scale} label={formatClock(now)} />}
       </View>
     </View>
   );

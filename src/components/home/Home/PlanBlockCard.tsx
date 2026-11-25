@@ -6,6 +6,7 @@ import { BLOCK_MEASURE_STYLE, BLOCK_TEXT_PADDING } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
 import { color } from "@/constants/token/color";
 import type { Plan, PlanStatus } from "@/utils/home/timeline";
+import { useTimelineScale } from "@/hooks/home/useTimelineZoom";
 
 // ================================
 // Styles
@@ -64,7 +65,8 @@ export function PlanBlockCard({ plan, isActive = false }: Props) {
   const [titleHeight, setTitleHeight] = useState(0);
   const [fullHeight, setFullHeight] = useState(0);
   const [rowHeight, setRowHeight] = useState(0);
-  const available = plan.duration - BLOCK_TEXT_PADDING;
+  const scale = useTimelineScale();
+  const available = plan.duration * scale - BLOCK_TEXT_PADDING;
   const measured = fullHeight > 0 && rowHeight > 0;
   const lineLayout: PlanLineLayout =
     fullHeight <= available

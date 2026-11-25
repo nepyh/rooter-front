@@ -20,6 +20,7 @@ import {
 } from "@/utils/home/timeline";
 import { formatClock } from "@/utils/common/time";
 import { useAutoScroll } from "@/hooks/home/useAutoScroll";
+import { useTimelineScale } from "@/hooks/home/useTimelineZoom";
 
 // ================================
 // Components
@@ -28,6 +29,7 @@ import { useAutoScroll } from "@/hooks/home/useAutoScroll";
 interface Props {
   scrollRef: AnimatedRef<ScrollView>;
   pagerGesture: GestureType;
+  pinchGesture: GestureType;
   dateKey: string;
   busyBlocks: BusyBlock[];
   plans: Plan[];
@@ -56,6 +58,7 @@ interface Props {
  * 수면·식사 블록도 꾹 눌러 끌 수 있음 (놓은 뒤 저장은 바깥에서)
  * @param scrollRef 세로 ScrollView 의 animated ref, 바깥(useTimelineScroll)의 스크롤과 자동 스크롤이 함께 씀
  * @param pagerGesture 날짜를 넘기는 가로 ScrollView 의 제스처, 계획 블록을 꾹 누른 동안 막을 때 씀
+ * @param pinchGesture 두 손가락으로 확대·축소하는 제스처, 세로 스크롤과 함께 인식함
  * @param dateKey 보고 있는 날짜 (YYYY-MM-DD), 날짜가 바뀌면 타임라인을 새로 그림
  * @param busyBlocks 수면·학교·불가능 시간 블록
  * @param plans 계획 목록
@@ -79,6 +82,7 @@ interface Props {
 export function PlanTimeline({
   scrollRef,
   pagerGesture,
+  pinchGesture,
   dateKey,
   busyBlocks,
   plans,
@@ -102,7 +106,9 @@ export function PlanTimeline({
   const scrollGesture = useMemo(() => Gesture.Native(), []);
   const scrollGestures = useMemo(() => [scrollGesture, pagerGesture], [scrollGesture, pagerGesture]);
   const [areaWidth, setAreaWidth] = useState(0);
-  const autoScroll = useAutoScroll(scrollRef, TIMELINE_HEIGHT + TIMELINE_BOTTOM_PADDING);
+  const scale = useTimelineScale();
+  const timelineHeight = TIMELINE_HEIGHT * scale;
+  const autoScroll = useAutoScroll(scrollRef, timelineHeight + TIMELINE_BOTTOM_PADDING);
 
   const columns = layoutColumns([
     ...busyBlocks.map((block) => ({ id: `busy:${block.key}`, start: block.start, duration: block.duration })),
@@ -115,7 +121,7 @@ export function PlanTimeline({
   const columnOf = (id: string) => columns.get(id) ?? { column: 0, columns: 1 };
 
   return (
-    <GestureDetector gesture={scrollGesture}>
+    <GestureDetector gesture={Gesture.Simultaneous(scrollGesture, pinchGesture)}>
       <ScrollView
         ref={scrollRef}
         className="flex-1"
@@ -128,7 +134,7 @@ export function PlanTimeline({
         }}
         onLayout={(e) => onViewportHeight(e.nativeEvent.layout.height)}
       >
-        <View key={dateKey} style={{ height: TIMELINE_HEIGHT, position: "relative" }}>
+        <View key={dateKey} style={{ height: timelineHeight, position: "relative" }}>
           <HourLines />
           {activePlan && <Pressable style={StyleSheet.absoluteFill} onPress={onDismissMenu} />}
 
@@ -169,7 +175,7 @@ export function PlanTimeline({
             ))}
           </View>
 
-          {currentTime && <CurrentTimeLine top={minutesSinceWindowStart(currentTime)} label={formatClock(currentTime)} />}
+          {currentTime && <CurrentTimeLine top={minutesSinceWindowStart(currentTime) * scale} label={formatClock(currentTime)} />}
 
           {activePlan && !dragPreview && (
             <ActionMenu

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { Row, Stack } from "../../layout";
 import { ActionButton } from "./ActionButton";
 import { POPOVER_HEIGHT, TIMELINE_LEFT, type Plan } from "@/utils/home/timeline";
+import { useTimelineScale } from "@/hooks/home/useTimelineZoom";
 
 // ================================
 // Components
@@ -28,8 +29,11 @@ interface Props {
  */
 export function ActionMenu({ plan, canResolve, onComplete, onFail, onEdit, onDelete }: Props) {
   const [menuHeight, setMenuHeight] = useState(POPOVER_HEIGHT);
-  const showBelow = plan.start < menuHeight + 8;
-  const top = showBelow ? plan.start + plan.duration + 8 : plan.start - menuHeight - 8;
+  const scale = useTimelineScale();
+  const planTop = plan.start * scale;
+  const planBottom = (plan.start + plan.duration) * scale;
+  const showBelow = planTop < menuHeight + 8;
+  const top = showBelow ? planBottom + 8 : planTop - menuHeight - 8;
 
   return (
     <View style={{ position: "absolute", top, left: TIMELINE_LEFT }} className="items-center">

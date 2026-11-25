@@ -113,6 +113,7 @@ export interface PlanColumn {
 // ================================
 
 export const WINDOW_START_MIN = 0;
+/** 배율 1 일 때 타임라인 높이(px). 1분 = 1px */
 export const TIMELINE_HEIGHT = DAY_MIN;
 export const TIMELINE_LEFT = 52;
 export const POPOVER_HEIGHT = 92;
@@ -124,11 +125,28 @@ export const FLOATING_ACTIONS_HEIGHT = 54;
 // 맨 아래까지 스크롤하면 24시 블록이 떠 있는 버튼 위로 올라오도록 버튼 높이와 여유만큼 아래 여백을 둠
 export const TIMELINE_BOTTOM_PADDING = FLOATING_ACTIONS_BOTTOM + FLOATING_ACTIONS_HEIGHT + 24;
 
+// 타임라인 확대·축소 배율 (1분당 px). 두 손가락으로 벌리고 오므려 바꿈
+export const TIMELINE_DEFAULT_SCALE = 1;
+export const TIMELINE_MIN_SCALE = 0.5;
+export const TIMELINE_MAX_SCALE = 3;
+// 손가락을 움직이는 동안 이 단위로 끊어서 다시 그림 (매 프레임 다시 그리지 않도록)
+const TIMELINE_SCALE_STEP = 0.05;
+
 export const HOURS = Array.from({ length: 24 }, (_, i) => (WINDOW_START_MIN / 60 + i) % 24);
 
 // ================================
 // Functions
 // ================================
+
+/**
+ * 배율을 최소~최대 안으로 자르고 TIMELINE_SCALE_STEP 단위로 맞춤. 핀치 제스처 콜백(UI 스레드)에서 부를 수 있도록 worklet
+ * @param scale 원하는 배율 (1분당 px)
+ */
+export const clampTimelineScale = (scale: number) => {
+  "worklet";
+  const stepped = Math.round(scale / TIMELINE_SCALE_STEP) * TIMELINE_SCALE_STEP;
+  return Math.min(Math.max(Number(stepped.toFixed(2)), TIMELINE_MIN_SCALE), TIMELINE_MAX_SCALE);
+};
 
 export const minutesSinceWindowStart = (date: Date) =>
   (date.getHours() * 60 + date.getMinutes() - WINDOW_START_MIN + DAY_MIN) % DAY_MIN;
@@ -142,7 +160,7 @@ export const minutesSinceWindowStart = (date: Date) =>
 export const snapPlanStart = (start: number, duration: number) => {
   "worklet";
   const snapped = Math.round(start / SNAP_MIN) * SNAP_MIN;
-  return Math.min(Math.max(snapped, 0), TIMELINE_HEIGHT - duration);
+  return Math.min(Math.max(snapped, 0), DAY_MIN - duration);
 };
 
 /**
@@ -167,7 +185,7 @@ export const snapResizeTop = (start: number, end: number) => {
 export const snapResizeBottom = (start: number, end: number) => {
   "worklet";
   const snapped = Math.round(end / SNAP_MIN) * SNAP_MIN;
-  const next = Math.min(Math.max(snapped, start + SNAP_MIN), TIMELINE_HEIGHT);
+  const next = Math.min(Math.max(snapped, start + SNAP_MIN), DAY_MIN);
   return { start, duration: next - start };
 };
 

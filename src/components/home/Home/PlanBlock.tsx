@@ -8,9 +8,10 @@ import { columnStyle } from "./styles";
 import { CATEGORY_COLORS } from "@/constants/category";
 import { useAnimatedColumn } from "@/hooks/home/useAnimatedColumn";
 import type { AutoScroll } from "@/hooks/home/useAutoScroll";
+import { useTimelineScale } from "@/hooks/home/useTimelineZoom";
+import { DAY_MIN } from "@/utils/common/time";
 import {
   SNAP_MIN,
-  TIMELINE_HEIGHT,
   snapPlanStart,
   snapResizeBottom,
   snapResizeTop,
@@ -60,6 +61,7 @@ interface Props {
  * 꾹 누르면 그림자가 생기고 상하좌우로 자유롭게 끌어 옮길 수 있음. 그림자가 있는 동안은 꾹 누르지 않고 바로 끌 수 있음
  * 그림자가 있는 동안 위아래 손잡이를 끌면 시작·종료 시각을 바꿀 수 있음 (최소 SNAP_MIN 분)
  * 끄는 동안 감싼 ScrollView 들은 스크롤되지 않음. 놓으면 SNAP_MIN 단위로 맞추고, 가로는 칸 자리로 돌아감
+ * 위치·길이는 분 단위로 다루고, 그릴 때와 손가락 이동을 바꿀 때만 타임라인 배율(1분당 px)을 씀
  * @param plan 그릴 계획
  * @param column 겹치는 계획 사이에서 몇 번째 칸인지 (0부터)
  * @param columns 겹치는 묶음의 전체 칸 수
@@ -92,6 +94,7 @@ export function PlanBlock({
   onDrop,
 }: Props) {
   const colors = CATEGORY_COLORS[plan.category];
+  const scale = useTimelineScale();
 
   const { left, width, ...columnPadding } = columnStyle(column, columns, areaWidth);
 
@@ -119,16 +122,17 @@ export function PlanBlock({
 
   const positionStyle = useAnimatedStyle(() => ({
     left: startX.get() + dragX.get(),
-    top: startY.get() + dragY.get() + topDelta.get(),
+    top: (startY.get() + dragY.get() + topDelta.get()) * scale,
     width: animatedWidth.get(),
-    height: height.get() - topDelta.get() + bottomDelta.get(),
+    height: (height.get() - topDelta.get() + bottomDelta.get()) * scale,
   }));
 
   const followFinger = () => {
     "worklet";
     const mode = gestureMode.get();
     if (mode === "idle") return;
-    const y = fingerY.get() + scrollDelta.get();
+    // 손가락·자동 스크롤은 px 이라 분으로 바꿈
+    const y = (fingerY.get() + scrollDelta.get()) / scale;
     const top = startY.get();
     const h = height.get();
     let preview;
@@ -141,7 +145,7 @@ export function PlanBlock({
       topDelta.set(delta);
       preview = snapResizeTop(top + delta, top + h);
     } else {
-      const delta = Math.min(Math.max(y, SNAP_MIN - h), TIMELINE_HEIGHT - top - h);
+      const delta = Math.min(Math.max(y, SNAP_MIN - h), DAY_MIN - top - h);
       bottomDelta.set(delta);
       preview = snapResizeBottom(top, top + h + delta);
     }
