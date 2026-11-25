@@ -10,6 +10,8 @@ import { useNow } from "@/hooks/common/useNow";
 import { useCalendarMonth } from "@/hooks/calendar/useCalendarMonth";
 import { useCalendarEvents } from "@/hooks/calendar/useCalendarEvents";
 import { useMonthSwipe } from "@/hooks/common/useMonthSwipe";
+import { usePlanBoards } from "@/hooks/home/usePlanBoards";
+import { buildPendingGenerationItems, mergeItemsByDate } from "@/utils/home/planGeneration";
 
 // ================================
 // Types
@@ -26,12 +28,15 @@ interface SelectedItem {
 
 /**
  * 캘린더 화면
+ * AI 계획을 아직 만드는 중이거나 만들지 못한 날은 "계획 만드는 중"·"계획 만들기 실패" 표시를 붙여 빈 날과 구분함 (rooter-back#405)
  */
 export default function CalendarPage() {
   const insets = useSafeAreaInsets();
   const now = useNow(60_000);
   const month = useCalendarMonth(now);
-  const { itemsByDate, createEvent, updateEvent, deleteEvent } = useCalendarEvents(month.gridStartKey, month.gridEndKey);
+  const { itemsByDate: eventsByDate, createEvent, updateEvent, deleteEvent } = useCalendarEvents(month.gridStartKey, month.gridEndKey);
+  const { boards } = usePlanBoards();
+  const itemsByDate = mergeItemsByDate(eventsByDate, buildPendingGenerationItems(boards, month.gridStartKey, month.gridEndKey));
   const monthKey = `${month.viewDate.getFullYear()}-${month.viewDate.getMonth()}`;
   const swipe = useMonthSwipe(monthKey, month.goPrevMonth, month.goNextMonth);
 

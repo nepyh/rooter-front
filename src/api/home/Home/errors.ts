@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { CHAT_MESSAGE_MAX_LENGTH } from "@/constants/chat";
-import { TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
+import { PLAN_GENERATION_IN_PROGRESS_TASK_MESSAGE, TASK_NOT_STARTED_MESSAGE } from "@/constants/task";
 
 // ================================
 // Constants
@@ -89,6 +89,7 @@ const CREATE_TASK_ERROR_MESSAGES: Record<string, string> = {
   "INVALID_TASK_NAME": "일정 이름을 다시 확인해주세요.",
   "INVALID_TIME_FORMAT": "시간 형식이 올바르지 않아요.",
   "INVALID_ESTIMATED_MINUTES": "소요 시간을 다시 확인해주세요.",
+  "PLAN_GENERATION_IN_PROGRESS": PLAN_GENERATION_IN_PROGRESS_TASK_MESSAGE,
 };
 
 const DEFAULT_CREATE_TASK_ERROR_MESSAGE = "일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.";
