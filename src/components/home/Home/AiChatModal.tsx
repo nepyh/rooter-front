@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Dimensions, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { KeyboardAvoidingView, KeyboardEvents, useWindowDimensions } from "react-native-keyboard-controller";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
@@ -235,12 +235,19 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
     }
   }
 
+  // 닫힘 애니메이션이 끝났다는 알림은 JS 스레드에 늦게 올 수 있어서, 그 사이 다시 열었으면 지우지 않음.
+  // 이미 안 그려진 상태면 set 하지 않음: 처음 마운트 때처럼 값이 같아도 set 하면 업데이트가 큐에 남아,
+  // 버튼 터치(높은 우선순위)로 연 뒤 늦게 처리되면서 isRendered 를 다시 false 로 되돌림
+  const finishClosing = useEffectEvent(() => {
+    if (!visible && isRendered) setIsRendered(false);
+  });
+
   useEffect(() => {
     if (visible) {
       translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
     } else {
       translateY.value = withTiming(SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(setIsRendered)(false);
+        if (finished) runOnJS(finishClosing)();
       });
     }
   }, [visible, translateY]);
@@ -459,7 +466,7 @@ export function AiChatModal({ visible, dailyPlanId, onClose, onPlanChanged }: Pr
   };
 
   return (
-    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
+    <Modal transparent animationType="none" visible={visible || isRendered} onRequestClose={onClose}>
       <View className="flex-1 justify-end">
         <Pressable className="absolute inset-spacing-0 bg-neutral-1000/40" onPress={onClose} />
         <Animated.View style={[{ height: SHEET_HEIGHT, width: "100%" }, sheetStyle]}>
