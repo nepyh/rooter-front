@@ -1,4 +1,16 @@
 import type { Textbook } from "@/api/home/common/catalog";
+import { TEXTBOOK_CARD_BASE_WIDTH, TEXTBOOK_GRID_MIN_COLUMNS } from "@/constants/textbook";
+
+/**
+ * 영역 너비에 맞는 교과서 격자 한 줄의 카드 수와 카드 너비. 최소 카드 수를 지키고, 기준 너비 카드가 더 들어가면 카드 수를 늘린 뒤 남는 공간 없이 카드를 늘림
+ * 카드 너비는 소수점을 버려서, 반올림 오차로 마지막 카드가 다음 줄로 밀리지 않게 함
+ * @param areaWidth 카드를 깔 영역 너비
+ * @param gap 카드 사이 간격
+ */
+export const getTextbookGridLayout = (areaWidth: number, gap: number) => {
+  const columns = Math.max(TEXTBOOK_GRID_MIN_COLUMNS, Math.floor((areaWidth + gap) / (TEXTBOOK_CARD_BASE_WIDTH + gap)));
+  return { columns, cardWidth: Math.floor((areaWidth - gap * (columns - 1)) / columns) };
+};
 
 /**
  * 제목이 "N학년 ..." 으로 시작하는 교과서를 학년 기준으로 거름. 학년 표기 없는 교과서는 유지

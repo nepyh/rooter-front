@@ -6,6 +6,7 @@ import { Icon } from "@/assets";
 import type { TextbookWithSubject } from "@/api/home/common/catalog";
 import { getTextbookLabels, toCoverSource } from "@/utils/home/textbook";
 import { color } from "@/constants/token/color";
+import { TEXTBOOK_CARD_BASE_WIDTH } from "@/constants/textbook";
 
 // ================================
 // Components
@@ -15,6 +16,7 @@ interface Props {
   textbook: TextbookWithSubject;
   selected?: boolean;
   onPress?: () => void;
+  width?: number;
 }
 
 /**
@@ -22,12 +24,13 @@ interface Props {
  * @param textbook 보여줄 교과서
  * @param selected 목차를 고른 교과서인지. 표지에 테두리·덮개·체크 표시를 띄움
  * @param onPress 카드를 눌렀을 때 호출, 없으면 눌리지 않는 카드
+ * @param width 카드 너비, 표지 높이는 너비에 맞춰 비율대로 정해짐
  */
-export function TextbookCard({ textbook, selected = false, onPress }: Props) {
+export function TextbookCard({ textbook, selected = false, onPress, width = TEXTBOOK_CARD_BASE_WIDTH }: Props) {
   const { title, publisher } = getTextbookLabels(textbook, textbook.subjectName);
 
   return (
-    <Pressable onPress={onPress} disabled={!onPress} className="gap-spacing-3" style={{ width: 104 }}>
+    <Pressable onPress={onPress} disabled={!onPress} className="gap-spacing-3" style={{ width }}>
       <View className="rounded-radius-1 bg-neutral-700 items-center justify-center overflow-hidden" style={{ aspectRatio: 210 / 270 }}>
         {textbook.coverImageUrl ? (
           <Image source={toCoverSource(textbook.coverImageUrl)} style={{ width: "100%", height: "100%" }} contentFit="cover" />

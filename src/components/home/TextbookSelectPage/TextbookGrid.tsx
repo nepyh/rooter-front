@@ -1,8 +1,6 @@
-import { View } from "react-native";
-import { TextbookCard } from "../common/TextbookCard";
+import { TextbookCardGrid } from "../common/TextbookCardGrid";
 import { FadeScrollView } from "../common/FadeScrollView";
 import type { TextbookWithSubject } from "@/api/home/common/catalog";
-import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Constants
@@ -29,11 +27,7 @@ interface Props {
 export function TextbookGrid({ textbooks, selectedIds, onSelect }: Props) {
   return (
     <FadeScrollView fadeHeight={TEXTBOOK_FADE_HEIGHT} contentContainerStyle={{ paddingBottom: 96 }}>
-      <View className="flex-row flex-wrap" style={{ gap: getSpacing("spacing-6") }}>
-        {textbooks.map((textbook) => (
-          <TextbookCard key={textbook.id} textbook={textbook} selected={selectedIds.has(textbook.id)} onPress={() => onSelect(textbook.id)} />
-        ))}
-      </View>
+      <TextbookCardGrid textbooks={textbooks} selectedIds={selectedIds} onSelect={onSelect} />
     </FadeScrollView>
   );
 }

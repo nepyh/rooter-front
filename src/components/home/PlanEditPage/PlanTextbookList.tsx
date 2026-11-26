@@ -1,10 +1,9 @@
 import { ActivityIndicator, View } from "react-native";
 import { Stack } from "../../layout";
 import { Text } from "../../ui/Text";
-import { TextbookCard } from "../common/TextbookCard";
+import { TextbookCardGrid } from "../common/TextbookCardGrid";
 import type { TextbookWithSubject } from "@/api/home/common/catalog";
 import { color } from "@/constants/token/color";
-import { getSpacing } from "@/utils/common/token";
 
 // ================================
 // Components
@@ -30,11 +29,7 @@ export function PlanTextbookList({ textbooks, loading }: Props) {
         </View>
       )}
       {!loading && textbooks.length === 0 && <Text variant="base-medium" color="secondary">등록된 교과서가 없어요.</Text>}
-      {!loading && textbooks.length > 0 && (
-        <View className="flex-row flex-wrap" style={{ gap: getSpacing("spacing-6") }}>
-          {textbooks.map((textbook) => <TextbookCard key={textbook.id} textbook={textbook} />)}
-        </View>
-      )}
+      {!loading && textbooks.length > 0 && <TextbookCardGrid textbooks={textbooks} />}
     </Stack>
   );
 }
