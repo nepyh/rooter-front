@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -78,12 +78,19 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   const translateY = useSharedValue(SHEET_HEIGHT);
   const [isRendered, setIsRendered] = useState(visible);
 
+  // 닫힘 애니메이션이 끝났다는 알림은 JS 스레드에 늦게 올 수 있어서, 그 사이 다시 열었으면 지우지 않음.
+  // 이미 안 그려진 상태면 set 하지 않음: 처음 마운트 때처럼 값이 같아도 set 하면 업데이트가 큐에 남아,
+  // 버튼 터치(높은 우선순위)로 연 뒤 늦게 처리되면서 isRendered 를 다시 false 로 되돌림
+  const finishClosing = useEffectEvent(() => {
+    if (!visible && isRendered) setIsRendered(false);
+  });
+
   useEffect(() => {
     if (visible) {
       translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) });
     } else {
       translateY.value = withTiming(SHEET_HEIGHT, { duration: 400, easing: Easing.out(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(setIsRendered)(false);
+        if (finished) runOnJS(finishClosing)();
       });
     }
   }, [visible, translateY]);
@@ -206,7 +213,7 @@ export function AddPlanBoardModal({ visible, baseDate, onClose, onCreated }: Pro
   };
 
   return (
-    <Modal transparent animationType="none" visible={isRendered} onRequestClose={onClose}>
+    <Modal transparent animationType="none" visible={visible || isRendered} onRequestClose={onClose}>
       {/* RN Modal 은 앱 루트의 GestureHandlerRootView 밖에 그려져서, 안의 제스처(달력 스와이프)가 동작하도록 다시 감쌈 */}
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View className="flex-1 justify-end">
